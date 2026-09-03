@@ -35,8 +35,9 @@ marker_begin="# >>> m4.2-dev-tokens (managed by postCreate) >>>"
 marker_end="# <<< m4.2-dev-tokens <<<"
 token_src="${repo_root}/scripts/dev-tokens.sh"
 touch "${bashrc}"
-if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
-  # Refresh block in place (portable; avoid GNU sed -i)
+if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
+  # Refresh block in place only when both markers exist (portable; avoid GNU sed -i).
+  # Begin-without-end would leave awk in skip=1 and truncate the rest of ~/.bashrc.
   tmp="$(mktemp)"
   awk -v b="${marker_begin}" -v e="${marker_end}" '
     $0 == b {skip=1; next}
@@ -45,15 +46,19 @@ if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
   ' "${bashrc}" >"${tmp}"
   mv "${tmp}" "${bashrc}"
 fi
-{
-  echo "${marker_begin}"
-  echo "# Load stored GH_TOKEN / GITGUARDIAN_API_KEY; prompt only on TTY."
-  echo "if [ -f \"${token_src}\" ]; then"
-  echo "  # shellcheck disable=SC1091"
-  echo "  source \"${token_src}\""
-  echo "fi"
-  echo "${marker_end}"
-} >>"${bashrc}"
+if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
+  {
+    echo "${marker_begin}"
+    echo "# Load stored GH_TOKEN / GITGUARDIAN_API_KEY; prompt only on TTY."
+    echo "if [ -f \"${token_src}\" ]; then"
+    echo "  # shellcheck disable=SC1091"
+    echo "  source \"${token_src}\""
+    echo "fi"
+    echo "${marker_end}"
+  } >>"${bashrc}"
+elif ! grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
+  echo "WARNING: corrupted m4.2-dev-tokens markers in ${bashrc}; skipping token block update" >&2
+fi
 
 echo "==> Load stored personal tokens into this postCreate environment (no TTY prompt)"
 # shellcheck disable=SC1091

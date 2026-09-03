@@ -26,9 +26,13 @@ _dev_tokens_real_git() {
 }
 
 _dev_tokens_repo_name() {
-  local real_git url name toplevel
+  local real_git url name toplevel scripts_dir repo_root
   real_git="$(_dev_tokens_real_git)" || return 1
-  url="$("${real_git}" remote get-url origin 2>/dev/null)" || true
+  # Always query the repo that owns this script, not the caller's CWD
+  # (wrappers may run from outside a worktree, e.g. `git --version` in $HOME).
+  scripts_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  repo_root="$(cd "${scripts_dir}/.." && pwd)"
+  url="$("${real_git}" -C "${repo_root}" remote get-url origin 2>/dev/null)" || true
   if [ -n "${url}" ]; then
     name="${url%.git}"
     name="${name%/}"
@@ -36,14 +40,14 @@ _dev_tokens_repo_name() {
     name="${name##*:}"
   fi
   if [ -z "${name}" ]; then
-    toplevel="$("${real_git}" rev-parse --show-toplevel 2>/dev/null)" || true
+    toplevel="$("${real_git}" -C "${repo_root}" rev-parse --show-toplevel 2>/dev/null)" || true
     if [ -n "${toplevel}" ]; then
       name="$(basename "${toplevel}")"
     fi
   fi
   if [ -z "${name}" ]; then
     echo "dev-tokens: cannot determine git repository name for host token path ~/.config/<repo>/tokens.env" >&2
-    echo "dev-tokens: run from a git clone with an origin remote (or a worktree with a toplevel)" >&2
+    echo "dev-tokens: expected a git clone at ${repo_root} with an origin remote" >&2
     return 1
   fi
   printf '%s' "${name}"

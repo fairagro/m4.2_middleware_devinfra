@@ -12,9 +12,10 @@ without hard-coding product config directories, following path conventions.
 `scripts/dev-tokens.sh` MUST resolve the token file to `/commandhistory/tokens.env` when `/commandhistory` exists, and
 otherwise to `~/.config/<git-repo-name>/tokens.env` where `<git-repo-name>` is the repository name from the clone's
 `origin` remote URL (strip `.git`; last path segment), falling back to the basename of `git rev-parse --show-toplevel`
-when `origin` is unavailable. The helpers MUST use the real `git` binary (not `scripts/bin/git`). The helpers MUST NOT
-require `PRODUCT_SLUG` and MUST NOT hard-code a single product name such as `middleware-api`. If `/commandhistory` is
-absent and the repository name cannot be determined, the helpers MUST fail with a clear error.
+when `origin` is unavailable. Both git lookups MUST use `git -C <repo_root>` where `<repo_root>` is the repository that
+owns `scripts/dev-tokens.sh` (not the caller's CWD). The helpers MUST use the real `git` binary (not `scripts/bin/git`).
+The helpers MUST NOT require `PRODUCT_SLUG` and MUST NOT hard-code a single product name such as `middleware-api`. If
+`/commandhistory` is absent and the repository name cannot be determined, the helpers MUST fail with a clear error.
 
 #### Scenario: Dev Container uses volume path
 
