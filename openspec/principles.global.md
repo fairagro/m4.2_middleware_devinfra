@@ -1,0 +1,154 @@
+# Shared project principles
+
+Canonical engineering foundation for FAIRagro m4.2 middleware product repos and this Devinfra repo. Synced as
+`openspec/principles.global.md` — do **not** hand-edit in consumers. Repo-local extensions belong in
+`openspec/principles.md`.
+
+All component specs and design decisions must stay consistent with the constraints here. Product stack, module graphs,
+and scaling notes live in the local `principles.md` (or product capability specs), not in this file.
+
+---
+
+## Values
+
+- **Correctness over speed** — a slow correct result is better than a fast broken one.
+- **Explicit over implicit** — configuration comes from the project's config model, not direct `os.environ` in
+  application code.
+- **Simplicity** — remove abstractions that serve no purpose; add them only when duplication becomes a real problem.
+- **Supported environment first** — the Linux Dev Container is the supported way to run the repo. Do not design or
+  review for macOS, Windows, Homebrew, or other host package layouts. Running scripts on a bare Linux workstation
+  without the Dev Container is possible but unofficial; GitHub Actions Linux is supported for CI.
+
+---
+
+## Configuration
+
+- Runtime configuration is read through the project's config wrapper / config model (not scattered `os.environ` reads).
+- **No `os.environ` calls in application code.** Environment variables are resolved only inside that config layer.
+- Every configurable value must have a typed field with a `description` (typically Pydantic).
+- Defaults belong in the config model, not buried in application code.
+
+---
+
+## Type Safety
+
+- All public functions and methods must have full type annotations.
+- Use the most precise type that is actually true (`list[str]`, a concrete class, `TypedDict` / Pydantic model — not
+  `list[Any]` or `Sequence[object]`).
+- `Any` and `object` only when the value is genuinely unconstrained and cannot be narrowed. `dict[str, Any]` and bare
+  `Any` fields are forbidden in config model subclasses.
+- Do not introduce a type alias whose meaning is `Any`, `object`, or another equally wide type so the annotation looks
+  precise.
+- Concrete Pydantic types for nested configs.
+- `SecretStr` for passwords and tokens — call `.get_secret_value()` only at the point of use (never log or cast to
+  `str`).
+- Do **not** widen a type to silence a checker or review (`T` → `T | None`, `Any`, `dict[str, Any]`). Narrow at the
+  source.
+- Do **not** add `if x is None` when the annotation, Pydantic model, or config wrapper already excludes `None`. If
+  `None` is required, change the producing API and every caller — no mid-pipeline guards.
+
+### Function signatures and `**kwargs`
+
+- Name every parameter the caller is expected to pass — in tests, production code, and monkey-patches that mirror
+  upstream APIs.
+- Do **not** replace known parameters with `**kwargs` just to satisfy linters or shorten signatures.
+- `**kwargs` / `**_ignored` is allowed only for genuinely open-ended extension points (e.g. forwarding extras from a
+  third-party library whose future keyword arguments are not fixed at compile time).
+- When a signature must match an upstream definition, mirror its explicit parameters and reserve `**kwargs` for the same
+  passthrough role upstream uses.
+
+---
+
+## Code Quality
+
+Product application code under `middleware/` must pass (via `uv`, config from `pyproject.toml` / `.bandit` as
+applicable):
+
+- `uv run ruff format --check --config pyproject.toml middleware/` — formatting
+- `uv run ruff check --config pyproject.toml middleware/` — linting
+- `uv run mypy --config-file pyproject.toml middleware/` — static type checking
+- `uv run pylint --rcfile pyproject.toml middleware/` — style and code smells
+- `uv run bandit -r middleware/ -c .bandit` — security (low findings logged, medium/high fail)
+
+Markdown must pass Prettier formatting and markdownlint (extends `markdownlint/style/prettier` so the two do not fight).
+Typical scripts (see `package.json` where present):
+
+- `npm run format:md` / `npm run format:md:check` — Prettier write / check for `**/*.{md,mdc}`
+- `npm run lint:md` — `markdownlint-cli2`
+
+After OpenSpec or other bulk Markdown edits: format first, then lint; remaining markdownlint findings must be fixed by
+hand (do not expand ignore lists to hide them).
+
+Dockerfiles must pass **hadolint** (Dev Container / CI provide `hadolint`). Prefer fixing the Dockerfile over
+suppressions; document any necessary ignore with a one-line reason.
+
+**Suppression comments** (`# noqa`, `# type: ignore`, `# pylint: disable`, hadolint ignores) are a last resort. A real
+fix is always preferred.
+
+This Devinfra repository has no product `middleware/` packages; the Python gates above apply when working in product
+consumers. Markdown and hadolint gates apply here and in consumers that ship those files.
+
+---
+
+## Testing
+
+- Every public behaviour that can fail must have at least one test.
+- Prefer tests that lock **real** behaviour over tests that encode states the types already forbid.
+- Run tests with `uv run pytest` scoped to the affected package tree.
+
+---
+
+## Supported development environment
+
+The **supported** way to develop and run repo scripts (`scripts/`, `gh` wrapper, quality hooks, token helpers) is the
+**Linux Dev Container** defined for that repository. GitHub Actions Linux runners are supported for CI.
+
+The following are **out of scope** for product code, scripts, and AI reviews:
+
+- macOS, Homebrew, Windows, or other host package layouts
+- `gh` / tools installed only on a custom host `PATH` (e.g. Homebrew prefixes) that the Dev Container does not use
+- Making wrappers portable to unofficial bare-metal Linux installs
+
+A Linux workstation without the Dev Container may still run some scripts; that path is **not** officially supported. Do
+not add complexity to accommodate it. The Dev Container exists to remove host-environment differences.
+
+Finders must not comment on “Homebrew / local install / macOS / Windows PATH” breakage. Fixers must **dismiss** those
+findings (practicality **None** — quote this section).
+
+---
+
+## Spec / Code Naming
+
+- Capability specs live under `openspec/specs/<domain>/` with kebab-case domain names that mirror the primary code
+  artifact or behaviour they describe.
+- When a spec covers a behaviour rather than a single class, the folder name describes that behaviour; it is acceptable
+  if there is no exact 1:1 class match.
+- Stable architecture decisions may live alongside the capability as `openspec/specs/<domain>/design.md`. Change-scoped
+  design belongs in `openspec/changes/<change>/design.md`.
+- Products that maintain a Spec-to-Code Mapping table (often in `AGENTS.md`) must keep it accurate; that table is
+  product-local.
+
+---
+
+## Security
+
+- All inputs are validated at system boundaries (typically Pydantic).
+- No secrets in logs or error messages.
+- SSL verification is enabled by default unless a documented exception exists.
+
+---
+
+## Branch Strategy
+
+These projects use **Trunk-Based Development** with short-lived branches:
+
+| Branch      | Purpose                    | CI behaviour                                            |
+| ----------- | -------------------------- | ------------------------------------------------------- |
+| `main`      | Trunk — always deployable  | Final release via `workflow_dispatch` when applicable   |
+| `feature/*` | New features and bug fixes | PR checks; optional pre-release via `workflow_dispatch` |
+| `docs/*`    | Documentation-only changes | Change detection may skip unnecessary CI jobs           |
+
+- All branches merge into `main` via pull request.
+- `feature/*` covers both new functionality and bug fixes; no separate `fix/*` or `hotfix/*` branches.
+- `docs/*` branches exist to skip unnecessary CI where change detection supports it; they carry no release privilege.
+- Long-lived branches other than `main` are not permitted.
