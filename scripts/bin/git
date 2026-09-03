@@ -11,8 +11,14 @@ _git_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _git_self="${_git_dir}/$(basename "${BASH_SOURCE[0]}")"
 
 REAL_GIT="${CURSOR_REAL_GIT:-}"
+if [[ -n "${REAL_GIT}" ]] && { [[ ! -x "${REAL_GIT}" ]] || [[ "${REAL_GIT}" -ef "${_git_self}" ]]; }; then
+  REAL_GIT=""
+fi
 if [[ -z "${REAL_GIT}" ]]; then
   REAL_GIT="$(command -v -p git 2>/dev/null || true)"
+fi
+if [[ -n "${REAL_GIT}" ]] && [[ "${REAL_GIT}" -ef "${_git_self}" ]]; then
+  REAL_GIT=""
 fi
 if [[ -z "${REAL_GIT}" ]]; then
   for candidate in /usr/bin/git /usr/local/bin/git; do

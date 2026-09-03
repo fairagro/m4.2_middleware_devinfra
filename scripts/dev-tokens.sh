@@ -12,7 +12,7 @@ fi
 _dev_tokens_real_git() {
   local self candidate
   self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bin/git"
-  if [ -n "${CURSOR_REAL_GIT:-}" ] && [ -x "${CURSOR_REAL_GIT}" ]; then
+  if [ -n "${CURSOR_REAL_GIT:-}" ] && [ -x "${CURSOR_REAL_GIT}" ] && [ ! "${CURSOR_REAL_GIT}" -ef "${self}" ]; then
     printf '%s' "${CURSOR_REAL_GIT}"
     return 0
   fi
