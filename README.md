@@ -9,8 +9,9 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
 consumers — land shared changes in this repo first. That includes the AI review policy, Finder entries
 (`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer` (`.agents/skills/review-fixer/`, Cursor
-command, Copilot prompt), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/bin/gh`), and
-`openspec/principles.global.md`. Roadmap: [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
+command, Copilot prompt), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`,
+`scripts/bin/gh`, `scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
+[epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
