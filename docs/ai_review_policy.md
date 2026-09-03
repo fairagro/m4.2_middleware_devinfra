@@ -55,8 +55,10 @@ Each comment **must** include:
 - Drive-by issues in files/hunks this PR did not change, unless Blocker
 - Theoretical weaknesses with no reachable path in this service / worker
 - Suggested `T | None`, `Any`, `object`, or `if x is None` when the type already excludes `None`
-- macOS, Homebrew, Windows, or host `PATH` layouts that the Linux Dev Container does not use
-  ([`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment)
+- macOS, Homebrew, Windows, BSD/non-GNU userland differences, host `PATH` layouts, or any failure mode that only appears
+  **outside** the Linux Dev Container (and is not GitHub Actions Linux CI) — see
+  [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. That includes
+  “fix the compatibility fallback” comments when the primary path already works in the Dev Container.
 
 If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severity comments.
 
@@ -66,11 +68,15 @@ If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severit
 
 Stop at the first matching step.
 
-1. **Correct?** If the diagnosis is wrong, already covered by types / Pydantic / the config wrapper / a spec invariant,
-   or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already gate it → `dismiss`. If the path is only macOS,
-   Homebrew, Windows, or an unofficial host install — quote
-   [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment → `dismiss`
-   (practicality **None**).
+1. **Correct? / supported environment?** If the diagnosis is wrong, already covered by types / Pydantic / the config
+   wrapper / a spec invariant, or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already gate it → `dismiss`.
+   **Also `dismiss` (practicality None)** when the only realistic bad path is outside the supported environment — quote
+   [`openspec/principles.global.md`](../openspec/principles.global.md) “Supported development environment”. Apply this
+   even if the finding is locally “correct” on that unsupported path, the suggested fix is cheap, or the code already
+   has a defensive fallback for it. Examples: macOS / Windows / Homebrew; BSD vs GNU flag differences (e.g. `base64`
+   without `-w0`); host `PATH` layouts the Dev Container does not use; unofficial bare-Linux-without-container runs. Do
+   **not** take step 5 merely because a host-only hardening is one line. GitHub Actions Linux CI **is** in scope — do
+   not dismiss solely as “host” when the path is Actions.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
    `dismiss` or `follow-up` (only if Medium+).
 3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
@@ -105,12 +111,12 @@ If nothing matches Blocker/High/Medium → **Low**.
 
 Practicality is not “we have seen this in prod”. It is “a realistic path exists in _this_ system”.
 
-| Level      | Rule                                                                                                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                    |
-| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                         |
-| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                      |
-| **None**   | False positive; the alleged path does not exist. Unsupported host (macOS, Windows, Homebrew, unofficial workstation) — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. |
+| Level      | Rule                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                                                                                                                                                                                                   |
+| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                                                                                                                                                                                                        |
+| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                                                                                                                                                                                                     |
+| **None**   | False positive; the alleged path does not exist in the **Linux Dev Container** (or GitHub Actions Linux CI). Includes macOS/Windows/Homebrew, BSD/non-GNU tool differences, host-only fallbacks when the Dev Container primary path already works, and unofficial bare-Linux-without-container runs — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. |
 
 If the fixer cannot write a path sentence, practicality is **Low**, not High.
 

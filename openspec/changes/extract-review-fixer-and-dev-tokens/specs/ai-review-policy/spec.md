@@ -15,6 +15,11 @@ abstraction), MUST NOT be gated on Copilot/Bugbot review round number, MUST stil
 the previous fixer pass (counting toward that run’s budget), and MUST never budget away risk or step-5 (cheap + High
 practicality + Medium+) findings.
 
+The policy MUST require `dismiss` (practicality None) when a finding’s only realistic path is outside the supported
+Linux Dev Container environment (including BSD/non-GNU tool differences and host-only compatibility fallbacks), quoting
+`openspec/principles.global.md` Supported development environment, and MUST NOT treat “cheap fix” as a reason to fix
+those findings. GitHub Actions Linux CI remains in scope.
+
 #### Scenario: Contributor opens the shared policy
 
 - **WHEN** a contributor opens `docs/ai_review_policy.md`
@@ -26,3 +31,10 @@ practicality + Medium+) findings.
 - **WHEN** a fixer triages Low nits on a PR that already had an earlier Copilot/Bugbot review round
 - **THEN** cheap nits may still be fixed while this run’s nit prod-line growth stays within ~15
 - **AND** the policy does not require dismissing them solely because the review round is 2 or higher
+
+#### Scenario: Host-only fallback finding is dismissed
+
+- **WHEN** a finder reports a bug that only occurs on a non-Dev-Container tool (e.g. `base64` without GNU `-w0`) while
+  the primary Dev Container path already works
+- **THEN** the fixer dismisses with practicality None and quotes Supported development environment
+- **AND** does not apply step 5 merely because the suggested patch is cheap
