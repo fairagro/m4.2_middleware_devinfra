@@ -39,8 +39,8 @@ The helpers MUST NOT require `PRODUCT_SLUG` and MUST NOT hard-code a single prod
 ### Requirement: Token file is never executed as shell
 
 `scripts/dev-tokens.sh` MUST NOT `source` the token store file. It MUST load only known keys (`GH_TOKEN`,
-`GITGUARDIAN_API_KEY`) by parsing lines. New writes MUST use a non-shell encoding (e.g. `b64:` + base64). Executing
-`dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error.
+`GITGUARDIAN_API_KEY`) by parsing lines. New writes MUST use a non-shell encoding (e.g. `b64:` + base64) on a **single
+line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error.
 
 #### Scenario: Corrupt tokens.env cannot run arbitrary commands via source
 
