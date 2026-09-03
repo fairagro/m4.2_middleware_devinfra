@@ -1,0 +1,45 @@
+{
+	"name": "middleware-devinfra (step 0)",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+	"workspaceFolder": "/workspaces/m4.2_middleware_devinfra",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:4": {
+			"moby": false,
+			"disableIp6tables": true,
+			"version": "28.5.1"
+		}
+	},
+	"mounts": [
+		"source=middleware-devinfra-bashhistory,target=/commandhistory,type=volume",
+		"source=middleware-devinfra-gh-config,target=/home/vscode/.config/gh,type=volume"
+	],
+	"containerEnv": {
+		"UV_LINK_MODE": "copy"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"jeff-hykin.better-dockerfile-syntax",
+				"ms-azuretools.vscode-docker",
+				"exiasr.hadolint",
+				"davidanson.vscode-markdownlint",
+				"redhat.vscode-yaml",
+				"tamasfe.even-better-toml",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.debugpy",
+				"mhutchie.git-graph",
+				"donjayamanne.githistory",
+				"codezombiech.gitignore",
+				"github.copilot-chat",
+				"github.vscode-github-actions"
+			],
+			"settings": {
+				"hadolint.hadolintPath": "/usr/local/bin/hadolint"
+			}
+		}
+	},
+	"postCreateCommand": ["bash", "scripts/devcontainer-post-create.sh"],
+	"remoteUser": "vscode"
+}
