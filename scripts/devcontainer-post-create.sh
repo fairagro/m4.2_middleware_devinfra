@@ -44,7 +44,9 @@ if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}
     $0 == e {skip=0; next}
     !skip {print}
   ' "${bashrc}" >"${tmp}"
-  mv "${tmp}" "${bashrc}"
+  # Rewrite in place so mode/owner of ~/.bashrc are preserved (mv would adopt mktemp 0600).
+  cat "${tmp}" >"${bashrc}"
+  rm -f "${tmp}"
 fi
 if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
   {
