@@ -66,7 +66,10 @@ _dev_tokens_file() {
   fi
   local repo
   repo="$(_dev_tokens_repo_name)" || return 1
-  mkdir -p "${HOME}/.config/${repo}"
+  if ! mkdir -p "${HOME}/.config/${repo}"; then
+    echo "dev-tokens: cannot create host token directory ${HOME}/.config/${repo}" >&2
+    return 1
+  fi
   echo "${HOME}/.config/${repo}/tokens.env"
 }
 
