@@ -9,7 +9,7 @@ Issue: [#3](https://github.com/fairagro/m4.2_middleware_devinfra/issues/3).
 
 ## Product slugs
 
-Short slugs identify a product in volume names and host config paths:
+Short slugs identify a product in **Docker volume names**:
 
 | Repository                     | product-slug           |
 | ------------------------------ | ---------------------- |
@@ -23,13 +23,14 @@ Short slugs identify a product in volume names and host config paths:
 Personal developer tokens (e.g. `GH_TOKEN`, `GITGUARDIAN_API_KEY`) are **per-product**, not shared across Dev Containers
 on the same machine.
 
-| Environment        | Path                                  |
-| ------------------ | ------------------------------------- |
-| Dev Container      | `/commandhistory/tokens.env`          |
-| Host (local clone) | `~/.config/<product-slug>/tokens.env` |
+| Environment        | Path                                   |
+| ------------------ | -------------------------------------- |
+| Dev Container      | `/commandhistory/tokens.env`           |
+| Host (local clone) | `~/.config/<git-repo-name>/tokens.env` |
 
-The in-container path is the same string everywhere; isolation comes from each product's own bashhistory volume. Host
-paths MUST use the product's slug — do **not** use a shared directory such as `~/.config/fairagro-m4.2/`.
+The in-container path is the same string everywhere; isolation comes from each product's own bashhistory volume. On the
+host, `<git-repo-name>` is the GitHub repository name from `origin` (e.g. `m4.2_middleware_devinfra`) — not the short
+product-slug and not a `PRODUCT_SLUG` env var. Do **not** use a shared directory such as `~/.config/fairagro-m4.2/`.
 
 ## Docker volumes
 

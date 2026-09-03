@@ -102,11 +102,20 @@ Ensure on the **host**:
 
 ### gh auth (HTTPS)
 
+Prefer the personal-token helpers (see root README **Personal tokens**):
+
+- Stored `GH_TOKEN` in `/commandhistory/tokens.env` (this Dev Container) or `~/.config/<git-repo-name>/tokens.env` on
+  the host (name from `origin`)
+- Empty prompt skips until `source ./scripts/set-dev-tokens.sh`
+- `scripts/bin/gh` on `PATH` (after rebuild) loads tokens then runs real `gh`
+
+Alternatively:
+
 ```bash
 gh auth login
 ```
 
-Credentials live in Docker volume `middleware-devinfra-gh-config` and survive rebuilds.
+`gh` CLI login credentials (if used) live in Docker volume `middleware-devinfra-gh-config` and survive rebuilds.
 
 ## postCreateCommand
 
@@ -114,6 +123,10 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 
 - fix `/commandhistory` and `~/.config/gh` permissions
 - write `.python-version` from `versions.env` via `scripts/load-versions-env.sh`
+- ensure `~/.bashrc` sources `scripts/dev-tokens.sh` (load stored tokens; TTY prompts only when interactive)
+- load stored tokens into the postCreate environment (no hang without TTY)
+
+`PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
 
 Re-run anytime:
 

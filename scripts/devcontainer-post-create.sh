@@ -28,6 +28,38 @@ echo "==> Sync versions from versions.env"
 # shellcheck disable=SC1091
 source "${script_dir}/load-versions-env.sh"
 
+# ── Personal tokens: interactive shells source helper (Kombi with PATH wrappers)
+echo "==> Ensure ~/.bashrc sources scripts/dev-tokens.sh"
+bashrc="${HOME}/.bashrc"
+marker_begin="# >>> m4.2-dev-tokens (managed by postCreate) >>>"
+marker_end="# <<< m4.2-dev-tokens <<<"
+token_src="${repo_root}/scripts/dev-tokens.sh"
+touch "${bashrc}"
+if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
+  # Refresh block in place (portable; avoid GNU sed -i)
+  tmp="$(mktemp)"
+  awk -v b="${marker_begin}" -v e="${marker_end}" '
+    $0 == b {skip=1; next}
+    $0 == e {skip=0; next}
+    !skip {print}
+  ' "${bashrc}" >"${tmp}"
+  mv "${tmp}" "${bashrc}"
+fi
+{
+  echo "${marker_begin}"
+  echo "# Load stored GH_TOKEN / GITGUARDIAN_API_KEY; prompt only on TTY."
+  echo "if [ -f \"${token_src}\" ]; then"
+  echo "  # shellcheck disable=SC1091"
+  echo "  source \"${token_src}\""
+  echo "fi"
+  echo "${marker_end}"
+} >>"${bashrc}"
+
+echo "==> Load stored personal tokens into this postCreate environment (no TTY prompt)"
+# shellcheck disable=SC1091
+source "${token_src}" || true
+
 echo "==> Dev Container post-create done"
 echo "    gh=$(command -v gh || echo missing)  openspec=$(command -v openspec || echo missing)  uv=$(command -v uv || echo missing)  node=$(command -v node || echo missing)"
 echo "    prettier=$(command -v prettier || echo missing)  markdownlint-cli2=$(command -v markdownlint-cli2 || echo missing)"
+echo "    scripts/bin on PATH via remoteEnv after rebuild"

@@ -2,10 +2,11 @@
 
 ## Context
 
-See proposal.md. Combines issue #8 (full) and issue #5. Explore lock-ins for #8: `PRODUCT_SLUG` only (no basename map);
-full wrappers; **Kombi** shell/postCreate load of stored tokens **plus** PATH wrappers; both `GH_TOKEN` and
-`GITGUARDIAN_API_KEY`; empty-skip / `scripts/bin` PATH / no worktree tokens. #5: Variante A, inline follow-up, Done =
-files + content ok. #4 already landed policy and `principles.global.md`.
+See proposal.md. Combines issue #8 (full) and issue #5. Explore lock-ins for #8: full wrappers; **Kombi**
+shell/postCreate load of stored tokens **plus** PATH wrappers; both `GH_TOKEN` and `GITGUARDIAN_API_KEY`; empty-skip /
+`scripts/bin` PATH / no worktree tokens. Host token path uses the **git repository name** (from `origin`, not
+`PRODUCT_SLUG`). #5: Variante A, inline follow-up, Done = files + content ok. #4 already landed policy and
+`principles.global.md`.
 
 ## Goals / Non-Goals
 
@@ -21,7 +22,7 @@ files + content ok. #4 already landed policy and `principles.global.md`.
 - #14 create-issue skill
 - #6 vendor skills, #7 quality scripts, #9 hooks/LFS
 - Product-repo PR smoke test of `/review-fixer` in this Devinfra change
-- Inferring product slug from directory/remote names
+- Mapping git repository names to short product-slugs for host token paths
 
 ## Decisions
 
@@ -30,13 +31,14 @@ files + content ok. #4 already landed policy and `principles.global.md`.
 - **Choice:** Single change; implement token helpers before the skill so Auth text is real
 - **Why:** User intent; avoids a skill that documents missing scripts
 
-### 2. Product slug = PRODUCT_SLUG only
+### 2. Host token dir = git repository name (not PRODUCT_SLUG)
 
-- **Choice:** Host path `~/.config/<slug>/tokens.env` uses `PRODUCT_SLUG` from the environment. If `/commandhistory` is
-  absent and `PRODUCT_SLUG` is unset/empty, helpers MUST fail with a clear error (do not guess). This Dev Container sets
-  `PRODUCT_SLUG=middleware-devinfra` (e.g. `containerEnv`). Consumers set their own slug in overlays.
-- **Alternatives:** Basename map; default slug in script
-- **Why:** User lock-in; explicit ownership per product overlay
+- **Choice:** Host path `~/.config/<git-repo-name>/tokens.env` derives `<git-repo-name>` from
+  `git remote get-url origin` (fallback: basename of git toplevel). No `PRODUCT_SLUG` required. Product-slugs remain for
+  Docker volume names only. This Dev Container does not set `PRODUCT_SLUG`.
+- **Alternatives:** `PRODUCT_SLUG` env only; basename→slug map; hard-coded default slug
+- **Why:** Env is easy to forget on host clones; repo name is unique per product and needs no overlay config. Auto-map
+  to short slugs fails for repos like `m4.2_advanced_middleware_api` → `middleware-api`.
 
 ### 3. Kombi: shell/postCreate load + wrappers
 
@@ -76,8 +78,9 @@ files + content ok. #4 already landed policy and `principles.global.md`.
 
 ## Risks / Trade-offs
 
-- **[Risk] Consumer forgets `PRODUCT_SLUG` on host** → Mitigation: clear error; document in README + conventions link;
-  Dev Container sets it for this repo
+- **[Trade-off] Host path uses repo name (`m4.2_…`), volumes use short product-slug** → Mitigation: document clearly in
+  conventions; isolation still per product
+- **[Risk] Clone without origin / outside git** → Mitigation: clear error; fallback to toplevel basename when possible
 - **[Risk] Double prompt if shell and wrapper both ask** → Mitigation: skip markers + “already set / key present” logic
   from API; non-TTY load never prompts
 - **[Risk] Skill GraphQL duplicates future CLI** → Mitigation: accepted until #16
@@ -85,7 +88,7 @@ files + content ok. #4 already landed policy and `principles.global.md`.
 
 ## Migration Plan
 
-1. Implement #8 scripts + PATH + PRODUCT_SLUG + shell/postCreate load + docs
+1. Implement #8 scripts + PATH + repo-name host path + shell/postCreate load + docs (incl. conventions delta)
 2. Implement #5 artifacts pointing at them
 3. Content review; no consumer sync in this change
 4. Rollback = revert

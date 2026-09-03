@@ -10,10 +10,11 @@ without hard-coding product config directories, following path conventions.
 ### Requirement: Token store paths follow conventions
 
 `scripts/dev-tokens.sh` MUST resolve the token file to `/commandhistory/tokens.env` when `/commandhistory` exists, and
-otherwise to `~/.config/<product-slug>/tokens.env` where `<product-slug>` is the value of `PRODUCT_SLUG`. The helpers
-MUST NOT infer the slug from directory or remote names and MUST NOT hard-code a single product name such as
-`middleware-api`. If `/commandhistory` is absent and `PRODUCT_SLUG` is unset or empty, the helpers MUST fail with an
-error that tells the user to set `PRODUCT_SLUG`.
+otherwise to `~/.config/<git-repo-name>/tokens.env` where `<git-repo-name>` is the repository name from the clone's
+`origin` remote URL (strip `.git`; last path segment), falling back to the basename of `git rev-parse --show-toplevel`
+when `origin` is unavailable. The helpers MUST use the real `git` binary (not `scripts/bin/git`). The helpers MUST NOT
+require `PRODUCT_SLUG` and MUST NOT hard-code a single product name such as `middleware-api`. If `/commandhistory` is
+absent and the repository name cannot be determined, the helpers MUST fail with a clear error.
 
 #### Scenario: Dev Container uses volume path
 
@@ -21,18 +22,18 @@ error that tells the user to set `PRODUCT_SLUG`.
 - **THEN** it reads and writes `/commandhistory/tokens.env`
 - **AND** it does not write tokens into the git worktree
 
-#### Scenario: Host clone requires PRODUCT_SLUG
+#### Scenario: Host clone uses git repository name
 
 - **WHEN** `dev-tokens.sh` runs on a host clone without `/commandhistory`
-- **AND** `PRODUCT_SLUG` is set to the product's documented slug
-- **THEN** it uses `~/.config/<PRODUCT_SLUG>/tokens.env`
-- **AND** two products on one machine keep separate host token files when they use different slugs
+- **AND** the clone has a resolvable `origin` remote (or git toplevel)
+- **THEN** it uses `~/.config/<git-repo-name>/tokens.env`
+- **AND** two products on one machine keep separate host token files when their repository names differ
 
-#### Scenario: Host clone missing PRODUCT_SLUG
+#### Scenario: Host clone cannot resolve repository name
 
-- **WHEN** `dev-tokens.sh` runs without `/commandhistory` and without `PRODUCT_SLUG`
-- **THEN** it exits with a non-zero status and an error naming `PRODUCT_SLUG`
-- **AND** it does not invent a slug
+- **WHEN** `dev-tokens.sh` runs without `/commandhistory` and cannot determine a git repository name
+- **THEN** it exits with a non-zero status and an error explaining the host path needs a git clone/remote
+- **AND** it does not invent a name or require `PRODUCT_SLUG`
 
 ### Requirement: Empty prompt skips until re-prompt
 
@@ -71,8 +72,8 @@ real system `gh` binary (not itself). It MUST NOT read tokens from the git workt
 
 ### Requirement: git wrapper preserves hooks under Cursor SCM
 
-`scripts/bin/git` MUST invoke `scripts/cursor-git.sh`, which MUST strip Cursor-injected `core.hooksPath=/dev/null` (and
-equivalent null hooks pins) from the environment and argv, source the token helper, and exec the real `git` binary.
+`scripts/bin/git` MUST strip Cursor-injected `core.hooksPath=/dev/null` (and equivalent null hooks pins) from the
+environment and argv, source the token helper, and exec the real `git` binary (not itself).
 
 #### Scenario: Cursor SCM does not disable hooks via null hooksPath
 
@@ -81,19 +82,19 @@ equivalent null hooks pins) from the environment and argv, source the token help
 - **THEN** that null hooksPath pin is removed before exec
 - **AND** the real git binary runs the remaining arguments
 
-### Requirement: Dev Container PATH, PRODUCT_SLUG, and stored-token load
+### Requirement: Dev Container PATH and stored-token load
 
 This repository's Dev Container configuration MUST put the repo's `scripts/bin` ahead of the default `PATH` so `gh` and
-`git` resolve to the wrappers, and MUST set `PRODUCT_SLUG` for this repo (`middleware-devinfra`). postCreate and/or the
-interactive shell profile MUST source the token helper in a non-prompting way so already stored non-empty tokens are
-exported into the environment. Documentation MUST describe the empty-skip and re-prompt flow, the Kombi (shell load +
-wrappers), and point at path conventions for token locations.
+`git` resolve to the wrappers. postCreate and/or the interactive shell profile MUST source the token helper in a
+non-prompting way so already stored non-empty tokens are exported into the environment. Documentation MUST describe the
+empty-skip and re-prompt flow, the Kombi (shell load + wrappers), and point at path conventions for token locations
+(including host derivation from the git repository name).
 
 #### Scenario: Contributor looks up token setup
 
 - **WHEN** a contributor reads the root README (or linked Dev Container doc) for personal tokens
 - **THEN** they find empty-skip and `set-dev-tokens.sh` re-prompt behavior
-- **AND** they are directed to the conventions token paths and `PRODUCT_SLUG`
+- **AND** they are directed to the conventions token paths (host: git repository name)
 
 #### Scenario: Stored tokens available in a Dev Container shell
 

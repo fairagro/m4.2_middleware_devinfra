@@ -23,7 +23,7 @@ unless a specific review URL is given, and MUST NOT commit or push unless the us
 ### Requirement: Auth uses shared gh wrapper and conventions
 
 The skill's Auth section MUST direct agents to `scripts/bin/gh` (on `PATH` in the Dev Container) and personal-token
-paths from path conventions (`/commandhistory/tokens.env` or `~/.config/<product-slug>/tokens.env`). It MUST NOT
+paths from path conventions (`/commandhistory/tokens.env` or `~/.config/<git-repo-name>/tokens.env`). It MUST NOT
 hard-code a product slug such as `middleware-api` or a product-specific bashhistory volume name.
 
 #### Scenario: Missing token without TTY

@@ -9,9 +9,9 @@ coherent. Policy and Finder entries already live here from #4.
 ## What Changes
 
 - **Issue #8 (complete):** Add `scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`,
-  `scripts/bin/git`, `scripts/cursor-git.sh`; wire Dev Container `PATH` + `PRODUCT_SLUG`; load stored tokens from
-  postCreate/shell **and** keep wrappers (Kombi); document empty-skip + re-prompt; follow path conventions (#3) with no
-  hard-coded `middleware-api` host dir; persist `GH_TOKEN` and `GITGUARDIAN_API_KEY`
+  `scripts/bin/git`; wire Dev Container `PATH`; load stored tokens from postCreate/shell **and** keep wrappers (Kombi);
+  document empty-skip + re-prompt; host token path `~/.config/<git-repo-name>/` from `origin` (no `PRODUCT_SLUG`);
+  persist `GH_TOKEN` and `GITGUARDIAN_API_KEY`
 - **Issue #5:** Add `.agents/skills/review-fixer/`, `.cursor/commands/review-fixer.md`,
   `.github/prompts/review-fixer.prompt.md` from the API (Variante A: keep GraphQL plumbing; generalize Auth to shared
   wrappers + conventions; cite `openspec/principles.global.md`; inline follow-up issue Markdown — no create-issue skill
@@ -30,7 +30,7 @@ coherent. Policy and Finder entries already live here from #4.
 
 ### Modified Capabilities
 
-- (none)
+- `path-conventions`: Host personal-token path uses git repository name instead of product-slug / `PRODUCT_SLUG`
 
 ## Impact
 
