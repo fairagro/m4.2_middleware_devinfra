@@ -55,8 +55,14 @@ Each comment **must** include:
 - Drive-by issues in files/hunks this PR did not change, unless Blocker
 - Theoretical weaknesses with no reachable path in this service / worker
 - Suggested `T | None`, `Any`, `object`, or `if x is None` when the type already excludes `None`
-- macOS, Homebrew, Windows, or host `PATH` layouts that the Linux Dev Container does not use
-  ([`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment)
+- macOS, Homebrew, Windows, BSD/non-GNU userland differences, host `PATH` layouts, or any failure mode that only appears
+  **outside** the Linux Dev Container (and is not GitHub Actions Linux CI) — see
+  [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. That includes
+  “fix the compatibility fallback” comments when the primary path already works in the Dev Container.
+- **One-shot local migration / ephemeral developer state:** a format or file that exists only on one machine or volume
+  during a brief cutover (e.g. pre-`b64:` lines in a personal `tokens.env` that the author can re-prompt once), is not a
+  shipped lasting contract, and is not the default path for new writes. Do not ask for compatibility parsers,
+  deny-lists, or migration branches for that.
 
 If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severity comments.
 
@@ -66,11 +72,20 @@ If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severit
 
 Stop at the first matching step.
 
-1. **Correct?** If the diagnosis is wrong, already covered by types / Pydantic / the config wrapper / a spec invariant,
-   or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already gate it → `dismiss`. If the path is only macOS,
-   Homebrew, Windows, or an unofficial host install — quote
-   [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment → `dismiss`
-   (practicality **None**).
+1. **Correct? / supported environment? / one-shot local state?** If the diagnosis is wrong, already covered by types /
+   Pydantic / the config wrapper / a spec invariant, or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already
+   gate it → `dismiss`. **Also `dismiss` (practicality None)** when the only realistic bad path is outside the supported
+   environment — quote [`openspec/principles.global.md`](../openspec/principles.global.md) “Supported development
+   environment”. Apply this even if the finding is locally “correct” on that unsupported path, the suggested fix is
+   cheap, or the code already has a defensive fallback for it. Examples: macOS / Windows / Homebrew; BSD vs GNU flag
+   differences (e.g. `base64` without `-w0`); host `PATH` layouts the Dev Container does not use; unofficial
+   bare-Linux-without-container runs. Do **not** take step 5 merely because a host-only hardening is one line. GitHub
+   Actions Linux CI **is** in scope — do not dismiss solely as “host” when the path is Actions. **Also `dismiss`
+   (practicality None)** when the finding only targets a **one-shot local migration** or ephemeral developer state: an
+   old on-disk format that is not the current write path, is not a shipped consumer contract, and is fixed by the
+   developer re-running a documented setup command once (e.g. legacy personal `tokens.env` lines before `b64:`). Do not
+   add compatibility parsers, `eval` deny-lists, or migration branches for that — tell the author to re-prompt /
+   recreate the file instead.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
    `dismiss` or `follow-up` (only if Medium+).
 3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
@@ -78,10 +93,10 @@ Stop at the first matching step.
 4. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
    a separate feature, split or `follow-up` instead of bloating this PR.
 5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
-   **no** new abstraction → `fix` in any round. Round/nit-budget does not defer these.
+   **no** new abstraction → `fix`. Nit-budget does not defer these (any review round).
 6. **Nit.** Otherwise treat as a nit:
-   - Round 1 + cheap + running nit prod-line growth still ≤ ~25 and **no** new abstraction → `fix`
-   - Round 2+ **and** the nit is on code the previous fixer pass introduced → `fix` if cheap
+   - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
+   - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only, typically when expensive or practicality is not High)
 
 If the cheaper fix is unclear, default to `dismiss` rather than adding a layer.
@@ -105,12 +120,12 @@ If nothing matches Blocker/High/Medium → **Low**.
 
 Practicality is not “we have seen this in prod”. It is “a realistic path exists in _this_ system”.
 
-| Level      | Rule                                                                                                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                    |
-| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                         |
-| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                      |
-| **None**   | False positive; the alleged path does not exist. Unsupported host (macOS, Windows, Homebrew, unofficial workstation) — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. |
+| Level      | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **None**   | False positive; the alleged path does not exist in the **Linux Dev Container** (or GitHub Actions Linux CI); **or** the path is only a one-shot local migration / ephemeral personal file format that is not the current write path and not a shipped contract (re-run setup once). Includes macOS/Windows/Homebrew, BSD/non-GNU tool differences, host-only fallbacks when the Dev Container primary path already works, and unofficial bare-Linux-without-container runs — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment when that applies. |
 
 If the fixer cannot write a path sentence, practicality is **Low**, not High.
 
@@ -148,16 +163,24 @@ site is expensive even at 20 lines.
 A **nit** is a correct (or plausible) finding that is **not** high risk and does **not** already qualify as step 5
 (cheap + High practicality + Medium+).
 
-Budget (fixer only):
+Budget (fixer only) is a **soft lifetime cap per PR** of **~15 new production lines** from nit-fixes (never a new
+abstraction). It is **not** gated on Copilot/Bugbot review round — later rounds often surface Low nits after earlier
+Medium/risk findings — and it is **not** reset on each `/review-fixer` run.
 
-1. **Round 1** (first Copilot/Bugbot review on this PR): cheap nits may be fixed until **~25 new production lines** from
-   nit-fixes, and **never** a new abstraction.
-2. **Round 2+**: remaining nits only on surface **introduced by the previous fixer pass** (regression of those fixes).
-   Other Low / lower-practicality nits on already-reviewed surface → `dismiss` or `follow-up` per the decision order.
-3. Risk findings and step-5 (cheap + High practicality + Medium+) findings are **never** budgeted away. A Blocker/High
-   with a real path in round 3 is still a must-fix.
+**Soft tracking** (good enough; not audit-grade):
 
-Round count = number of Copilot and/or Bugbot review submissions on the PR, not “how many comments”.
+1. Before spending on nits, sum every `nit-lines this run: N` (integer N) already posted in fixer replies on this PR
+   (review-thread replies and PR conversation comments). That sum is **prior spend**.
+2. This run may fix cheap nits while `prior spend + lines added this run for nits` ≤ ~15.
+3. Cheap nits on surface **introduced by the previous fixer pass** (regression) may be fixed; they **count toward** the
+   same PR total.
+4. When the PR total would exceed ~15 → `dismiss` remaining Low nits (or `follow-up` for Medium+ per the decision
+   order).
+5. Risk findings and step-5 (cheap + High practicality + Medium+) findings are **never** budgeted away and **do not**
+   consume nit-line budget.
+6. Every nit `fix` reply MUST include `nit-lines this run: N` for the production lines added for nits in **this** run
+   (use `0` only if the nit fix truly added no prod lines, e.g. comment-only). Prefer one aggregate line on the last nit
+   reply or on a summary PR comment when several nits were fixed in the same run.
 
 ---
 
@@ -197,6 +220,7 @@ severity: …
 practicality: … (path or invariant)
 cost: cheap|expensive (chosen fix, not the suggestion)
 reason: …
+nit-lines this run: N   # required on nit fixes; omit for risk / step-5-only replies
 ```
 
 If the chosen fix differs from the suggestion, say what you did instead (e.g. “narrowed return type of `Foo.bar` instead
