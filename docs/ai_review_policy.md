@@ -59,6 +59,10 @@ Each comment **must** include:
   **outside** the Linux Dev Container (and is not GitHub Actions Linux CI) — see
   [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. That includes
   “fix the compatibility fallback” comments when the primary path already works in the Dev Container.
+- **One-shot local migration / ephemeral developer state:** a format or file that exists only on one machine or volume
+  during a brief cutover (e.g. pre-`b64:` lines in a personal `tokens.env` that the author can re-prompt once), is not a
+  shipped lasting contract, and is not the default path for new writes. Do not ask for compatibility parsers,
+  deny-lists, or migration branches for that.
 
 If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severity comments.
 
@@ -68,15 +72,20 @@ If nothing in **Report** applies, leave no comment. Prefer fewer, higher-severit
 
 Stop at the first matching step.
 
-1. **Correct? / supported environment?** If the diagnosis is wrong, already covered by types / Pydantic / the config
-   wrapper / a spec invariant, or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already gate it → `dismiss`.
-   **Also `dismiss` (practicality None)** when the only realistic bad path is outside the supported environment — quote
-   [`openspec/principles.global.md`](../openspec/principles.global.md) “Supported development environment”. Apply this
-   even if the finding is locally “correct” on that unsupported path, the suggested fix is cheap, or the code already
-   has a defensive fallback for it. Examples: macOS / Windows / Homebrew; BSD vs GNU flag differences (e.g. `base64`
-   without `-w0`); host `PATH` layouts the Dev Container does not use; unofficial bare-Linux-without-container runs. Do
-   **not** take step 5 merely because a host-only hardening is one line. GitHub Actions Linux CI **is** in scope — do
-   not dismiss solely as “host” when the path is Actions.
+1. **Correct? / supported environment? / one-shot local state?** If the diagnosis is wrong, already covered by types /
+   Pydantic / the config wrapper / a spec invariant, or Ruff/MyPy/Pylint/Bandit/Prettier/markdownlint/hadolint already
+   gate it → `dismiss`. **Also `dismiss` (practicality None)** when the only realistic bad path is outside the supported
+   environment — quote [`openspec/principles.global.md`](../openspec/principles.global.md) “Supported development
+   environment”. Apply this even if the finding is locally “correct” on that unsupported path, the suggested fix is
+   cheap, or the code already has a defensive fallback for it. Examples: macOS / Windows / Homebrew; BSD vs GNU flag
+   differences (e.g. `base64` without `-w0`); host `PATH` layouts the Dev Container does not use; unofficial
+   bare-Linux-without-container runs. Do **not** take step 5 merely because a host-only hardening is one line. GitHub
+   Actions Linux CI **is** in scope — do not dismiss solely as “host” when the path is Actions. **Also `dismiss`
+   (practicality None)** when the finding only targets a **one-shot local migration** or ephemeral developer state: an
+   old on-disk format that is not the current write path, is not a shipped consumer contract, and is fixed by the
+   developer re-running a documented setup command once (e.g. legacy personal `tokens.env` lines before `b64:`). Do not
+   add compatibility parsers, `eval` deny-lists, or migration branches for that — tell the author to re-prompt /
+   recreate the file instead.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
    `dismiss` or `follow-up` (only if Medium+).
 3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
@@ -111,12 +120,12 @@ If nothing matches Blocker/High/Medium → **Low**.
 
 Practicality is not “we have seen this in prod”. It is “a realistic path exists in _this_ system”.
 
-| Level      | Rule                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                                                                                                                                                                                                   |
-| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                                                                                                                                                                                                        |
-| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                                                                                                                                                                                                     |
-| **None**   | False positive; the alleged path does not exist in the **Linux Dev Container** (or GitHub Actions Linux CI). Includes macOS/Windows/Homebrew, BSD/non-GNU tool differences, host-only fallbacks when the Dev Container primary path already works, and unofficial bare-Linux-without-container runs — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. |
+| Level      | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **None**   | False positive; the alleged path does not exist in the **Linux Dev Container** (or GitHub Actions Linux CI); **or** the path is only a one-shot local migration / ephemeral personal file format that is not the current write path and not a shipped contract (re-run setup once). Includes macOS/Windows/Homebrew, BSD/non-GNU tool differences, host-only fallbacks when the Dev Container primary path already works, and unofficial bare-Linux-without-container runs — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment when that applies. |
 
 If the fixer cannot write a path sentence, practicality is **Low**, not High.
 

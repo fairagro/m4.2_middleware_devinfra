@@ -20,6 +20,11 @@ Linux Dev Container environment (including BSD/non-GNU tool differences and host
 `openspec/principles.global.md` Supported development environment, and MUST NOT treat “cheap fix” as a reason to fix
 those findings. GitHub Actions Linux CI remains in scope.
 
+The policy MUST also require `dismiss` (practicality None) for findings that only harden a **one-shot local migration**
+or ephemeral personal on-disk format that is not the current write path and not a shipped consumer contract (e.g.
+pre-`b64:` personal token file lines fixable by re-running setup once). Finders MUST NOT comment on those; fixers MUST
+NOT add compatibility parsers or deny-lists for them.
+
 #### Scenario: Contributor opens the shared policy
 
 - **WHEN** a contributor opens `docs/ai_review_policy.md`
@@ -38,3 +43,10 @@ those findings. GitHub Actions Linux CI remains in scope.
   the primary Dev Container path already works
 - **THEN** the fixer dismisses with practicality None and quotes Supported development environment
 - **AND** does not apply step 5 merely because the suggested patch is cheap
+
+#### Scenario: One-shot local migration finding is dismissed
+
+- **WHEN** a finder asks to harden or parse a superseded personal on-disk format that is not the current write path
+  (e.g. legacy token lines before `b64:`) and the author can fix it by re-running a documented setup command once
+- **THEN** the fixer dismisses with practicality None
+- **AND** does not add a compatibility parser, `eval` deny-list, or migration branch for that format

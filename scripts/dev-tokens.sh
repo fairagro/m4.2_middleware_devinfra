@@ -70,9 +70,7 @@ _dev_tokens_file() {
   echo "${HOME}/.config/${repo}/tokens.env"
 }
 
-# Decode one stored value without `source` (tokens.env must not run as shell).
-# New writes use b64:<base64>. Legacy bash-%q lines are accepted only if they
-# lack command-substitution / chaining metacharacters.
+# Decode one stored value. Writes use b64:<base64> only — no legacy parsers.
 _dev_tokens_decode_raw() {
   local raw=$1
   local decoded
@@ -84,13 +82,10 @@ _dev_tokens_decode_raw() {
     echo "dev-tokens: ignoring corrupt b64 token entry" >&2
     return 1
   fi
-  if printf '%s' "${raw}" | grep -qE '\$\(|`|\$\{|[[:space:]]\&\&|[[:space:]]\|\||;[[:space:]]|<<|>>'; then
-    echo "dev-tokens: ignoring unsafe legacy token entry" >&2
-    return 1
+  if [ -n "${raw}" ]; then
+    echo "dev-tokens: ignoring non-b64 token entry (re-run: source ./scripts/set-dev-tokens.sh)" >&2
   fi
-  # shellcheck disable=SC2086
-  decoded="$(eval "printf '%s' ${raw}")" || return 1
-  printf '%s' "${decoded}"
+  return 1
 }
 
 _dev_tokens_get_stored() {

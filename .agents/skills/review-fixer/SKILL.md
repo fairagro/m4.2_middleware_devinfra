@@ -122,12 +122,16 @@ budget: nit-in-budget|nit-regression|nit-exhausted|n/a-risk
 
 Decision order (stop at first match) — same as the policy:
 
-1. Incorrect / already gated / no path / **unsupported environment** → `dismiss` (practicality **None**). Quote
+1. Incorrect / already gated / no path / **unsupported environment** / **one-shot local migration** → `dismiss`
+   (practicality **None**). For unsupported hosts, quote
    [`openspec/principles.global.md`](../../../openspec/principles.global.md) “Supported development environment”. The
    Linux Dev Container is the bar (GitHub Actions Linux CI counts). Dismiss even when the finding is “correct” only on
    macOS/Windows/Homebrew/BSD userland, unofficial bare Linux, host `PATH` quirks, or a **compatibility fallback** that
-   never runs when Dev Container tools work (e.g. GNU `base64 -w0`). **Cheap does not override this** — do not take step
-   5 for host-only hardening.
+   never runs when Dev Container tools work (e.g. GNU `base64 -w0`). **Also dismiss** findings that only harden a
+   **one-shot** personal/on-disk format that is not the current write path and not a shipped contract (e.g. pre-`b64:`
+   `tokens.env` lines) — tell the author to re-run `source ./scripts/set-dev-tokens.sh` (or equivalent) once; do **not**
+   add legacy parsers or `eval` deny-lists. **Cheap does not override this** — do not take step 5 for host-only or
+   one-shot-migration hardening.
 2. Not this PR → `dismiss`, or `follow-up` if Medium+
 3. Choose the **cheapest correct** fix. Widening a type is forbidden. `if x is None` is forbidden when the type already
    excludes `None`.
