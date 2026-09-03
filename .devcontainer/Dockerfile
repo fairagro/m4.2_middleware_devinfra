@@ -5,6 +5,7 @@
 # before issue #10 extracts the full product toolchain.
 
 ARG DEVCONTAINER_BASE_IMAGE
+# hadolint ignore=DL3006
 FROM ${DEVCONTAINER_BASE_IMAGE}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -89,27 +90,31 @@ RUN mkdir -p /usr/share/bash-completion/completions && \
     starship completions bash > /usr/share/bash-completion/completions/starship
 
 # ── Shell init (must run each session; not installable as static completions) ─
+# Literal $(…) / ${…} must reach bashrc at runtime (not expand at image build).
+# hadolint ignore=SC2016
 RUN echo 'eval "$(starship init bash)"' >> /etc/bash.bashrc
 
 # ── Shell history persistence (volume-backed; filter agent/bootstrap noise) ──
 # Cursor/VS Code agent shells dump dozens of `set +/-o …` lines into HISTFILE.
 # With default HISTFILESIZE=500 those crowd out real commands after a restart.
 # HISTIGNORE drops that noise; larger size + erasedups keep useful history.
+# Avoid Dockerfile heredoc: hadolint 2.12 cannot parse <<EOF (IDE toast: "unexpected…").
+# hadolint ignore=SC2016
 RUN mkdir -p /commandhistory && \
     touch /commandhistory/.bash_history && \
     chown -R vscode /commandhistory && \
-    cat >> /etc/bash.bashrc <<'EOF'
-# Persistent bash history (/commandhistory volume)
-export HISTFILE=/commandhistory/.bash_history
-export HISTSIZE=100000
-export HISTFILESIZE=100000
-export HISTCONTROL=ignoreboth:erasedups
-# Ignore IDE/agent shell-option bootstrap (set +/-o …) and trivial builtins
-export HISTIGNORE='set *:unset *:shopt *:history *:exit:clear'
-shopt -s histappend
-# Append after each command so kill/rebuild does not lose the session
-PROMPT_COMMAND="history -a${PROMPT_COMMAND:+; ${PROMPT_COMMAND}}"
-EOF
+    { \
+      echo '# Persistent bash history (/commandhistory volume)'; \
+      echo 'export HISTFILE=/commandhistory/.bash_history'; \
+      echo 'export HISTSIZE=100000'; \
+      echo 'export HISTFILESIZE=100000'; \
+      echo 'export HISTCONTROL=ignoreboth:erasedups'; \
+      echo "# Ignore IDE/agent shell-option bootstrap (set +/-o …) and trivial builtins"; \
+      echo "export HISTIGNORE='set *:unset *:shopt *:history *:exit:clear'"; \
+      echo 'shopt -s histappend'; \
+      echo '# Append after each command so kill/rebuild does not lose the session'; \
+      echo 'PROMPT_COMMAND="history -a${PROMPT_COMMAND:+; ${PROMPT_COMMAND}}"'; \
+    } >> /etc/bash.bashrc
 
 # ── Switch to non-root user for uv tool installations
 USER vscode
