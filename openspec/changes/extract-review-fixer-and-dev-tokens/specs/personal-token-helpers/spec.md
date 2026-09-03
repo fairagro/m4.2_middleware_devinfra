@@ -53,6 +53,8 @@ line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourc
 - **WHEN** a user runs `bash scripts/dev-tokens.sh` (or executes the file) instead of sourcing it
 - **THEN** the script exits non-zero with a message to source it
 
+### Requirement: Empty prompt skips until re-prompt
+
 When prompting on a TTY for `GH_TOKEN` or `GITGUARDIAN_API_KEY`, an empty answer MUST persist a skip marker so later
 non-forced loads do not re-prompt. `scripts/set-dev-tokens.sh` MUST force a new prompt (including after a skip) and
 persist non-empty values. Without a TTY, helpers MUST NOT hang; wrappers that need a token MUST fail with a message

@@ -148,7 +148,10 @@ _dev_tokens_ask() {
   IFS= read -r -s val </dev/tty || true
   printf '\n' >/dev/tty
   _dev_tokens_write "${var}" "${val}"
-  [ -n "${val}" ] && export "${var}=${val}"
+  if [ -n "${val}" ]; then
+    export "${var}=${val}"
+  fi
+  return 0
 }
 
 _dev_tokens_ask GH_TOKEN "GitHub PAT (issues + PRs)"
