@@ -1,0 +1,20 @@
+---
+description: OpenSpec/opsx Markdown — format first, then AI fixes lint
+globs: .cursor/commands/**/*.md,.cursor/skills/**/*.md,.github/prompts/**/*.md,.github/skills/**/*.md,openspec/**/*.md
+alwaysApply: false
+---
+
+# OpenSpec / opsx Markdown
+
+Prettier cannot fix every markdownlint finding (e.g. missing `#` H1, structural rules). Required workflow after
+generating or updating OpenSpec/opsx files:
+
+1. **Auto-format first** — `npm run format:md` (Prettier).
+2. **Lint** — `npm run lint:md` (markdownlint-cli2).
+3. **If lint still fails** — the agent MUST edit the files to clear remaining findings. Do not expand ignores to hide
+   them.
+
+Same sequence after `openspec init` / `openspec update`.
+
+When writing change artifacts by hand: start with an `#` H1; let Prettier wrap prose. Do not enable markdownlint
+fix-on-save alongside Prettier.

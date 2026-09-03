@@ -1,0 +1,10 @@
+# Vendor agent skills (`gh skill install`; do not hand-edit).
+.agents/skills/gh/**
+.agents/skills/scan-secrets/**
+
+# Not Markdown documentation
+LICENSE
+
+# Third-party / local environments
+.venv/**
+node_modules/**

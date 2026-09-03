@@ -33,8 +33,12 @@ if [[ -z "${NODE_VERSION:-}" || -z "${OPENSPEC_VERSION:-}" ]]; then
   echo "ERROR: NODE_VERSION and OPENSPEC_VERSION must be set in versions.env" >&2
   return 1 2>/dev/null || exit 1
 fi
+if [[ -z "${PRETTIER_VERSION:-}" || -z "${MARKDOWNLINT_CLI2_VERSION:-}" ]]; then
+  echo "ERROR: PRETTIER_VERSION and MARKDOWNLINT_CLI2_VERSION must be set in versions.env" >&2
+  return 1 2>/dev/null || exit 1
+fi
 
-export PYTHON_VERSION UV_VERSION NODE_VERSION OPENSPEC_VERSION
+export PYTHON_VERSION UV_VERSION NODE_VERSION OPENSPEC_VERSION PRETTIER_VERSION MARKDOWNLINT_CLI2_VERSION
 
 # Keep uv / actions/setup-python pin file aligned with versions.env
 printf '%s\n' "${PYTHON_VERSION}" > "${REPO_ROOT}/.python-version"

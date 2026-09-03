@@ -14,6 +14,8 @@ services:
         YQ_VERSION: ${YQ_VERSION}
         NODE_VERSION: ${NODE_VERSION}
         OPENSPEC_VERSION: ${OPENSPEC_VERSION}
+        PRETTIER_VERSION: ${PRETTIER_VERSION}
+        MARKDOWNLINT_CLI2_VERSION: ${MARKDOWNLINT_CLI2_VERSION}
     volumes:
       - ..:/workspaces/m4.2_middleware_devinfra:cached
     command: sleep infinity

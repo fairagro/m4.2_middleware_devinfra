@@ -1,0 +1,11 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    ".venv/**",
+    "node_modules/**",
+    "LICENSE",
+    // Vendor agent skills (`gh skill install`; do not hand-edit).
+    ".agents/skills/gh/**",
+    ".agents/skills/scan-secrets/**"
+  ]
+}
