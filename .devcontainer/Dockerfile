@@ -16,6 +16,8 @@ ARG HADOLINT_VERSION
 ARG YQ_VERSION
 ARG NODE_VERSION
 ARG OPENSPEC_VERSION
+ARG PRETTIER_VERSION
+ARG MARKDOWNLINT_CLI2_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -69,9 +71,14 @@ RUN curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-lin
             "node-${NODE_VERSION}-linux-x64/share" && \
     node --version && npm --version
 
-# ── OpenSpec CLI (global install into /usr/local with system Node/npm) ────────
-RUN npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}" && \
-    openspec --version
+# ── OpenSpec CLI + Markdown format/lint (global; workspace bind-mount would hide local node_modules)
+RUN npm install -g \
+        "@fission-ai/openspec@${OPENSPEC_VERSION}" \
+        "prettier@${PRETTIER_VERSION}" \
+        "markdownlint-cli2@${MARKDOWNLINT_CLI2_VERSION}" && \
+    openspec --version && \
+    prettier --version && \
+    markdownlint-cli2 --version
 
 # ── Bash completions (build-time, lazy-loaded via bash-completion) ───────────
 RUN mkdir -p /usr/share/bash-completion/completions && \

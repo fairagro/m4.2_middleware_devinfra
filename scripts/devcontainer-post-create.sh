@@ -29,4 +29,5 @@ echo "==> Sync versions from versions.env"
 source "${script_dir}/load-versions-env.sh"
 
 echo "==> Dev Container post-create done"
-echo "    gh=$(command -v gh || echo missing)  openspec=$(command -v openspec || echo missing)  uv=$(command -v uv || echo missing)"
+echo "    gh=$(command -v gh || echo missing)  openspec=$(command -v openspec || echo missing)  uv=$(command -v uv || echo missing)  node=$(command -v node || echo missing)"
+echo "    prettier=$(command -v prettier || echo missing)  markdownlint-cli2=$(command -v markdownlint-cli2 || echo missing)"
