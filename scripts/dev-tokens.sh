@@ -74,9 +74,14 @@ if [ -f "${_DEV_TOKENS_FILE}" ]; then
       continue
     fi
     _dev_tokens_val="$(
+      set +e
       set -a
       # shellcheck disable=SC1090
-      source "${_DEV_TOKENS_FILE}"
+      # Tolerate a corrupt tokens.env so set -e wrappers still reach guidance / re-prompt.
+      if ! source "${_DEV_TOKENS_FILE}" 2>/dev/null; then
+        printf ''
+        exit 0
+      fi
       set +a
       printf '%s' "${!_dev_tokens_var-}"
     )"

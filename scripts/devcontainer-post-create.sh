@@ -36,17 +36,23 @@ marker_end="# <<< m4.2-dev-tokens <<<"
 token_src="${repo_root}/scripts/dev-tokens.sh"
 touch "${bashrc}"
 if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
-  # Refresh block in place only when both markers exist (portable; avoid GNU sed -i).
-  # Begin-without-end would leave awk in skip=1 and truncate the rest of ~/.bashrc.
-  tmp="$(mktemp)"
-  awk -v b="${marker_begin}" -v e="${marker_end}" '
-    $0 == b {skip=1; next}
-    $0 == e {skip=0; next}
-    !skip {print}
-  ' "${bashrc}" >"${tmp}"
-  # Rewrite in place so mode/owner of ~/.bashrc are preserved (mv would adopt mktemp 0600).
-  cat "${tmp}" >"${bashrc}"
-  rm -f "${tmp}"
+  begin_line="$(grep -nF "${marker_begin}" "${bashrc}" | head -n1 | cut -d: -f1)"
+  end_line="$(grep -nF "${marker_end}" "${bashrc}" | head -n1 | cut -d: -f1)"
+  if [ -n "${begin_line}" ] && [ -n "${end_line}" ] && [ "${begin_line}" -lt "${end_line}" ]; then
+    # Refresh block in place only when begin appears before end (portable; avoid GNU sed -i).
+    # Out-of-order or begin-without-end would leave awk in skip=1 and truncate ~/.bashrc.
+    tmp="$(mktemp)"
+    awk -v b="${marker_begin}" -v e="${marker_end}" '
+      $0 == b {skip=1; next}
+      $0 == e {skip=0; next}
+      !skip {print}
+    ' "${bashrc}" >"${tmp}"
+    # Rewrite in place so mode/owner of ~/.bashrc are preserved (mv would adopt mktemp 0600).
+    cat "${tmp}" >"${bashrc}"
+    rm -f "${tmp}"
+  else
+    echo "WARNING: out-of-order m4.2-dev-tokens markers in ${bashrc}; skipping refresh" >&2
+  fi
 fi
 if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
   {
