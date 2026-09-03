@@ -3,7 +3,7 @@ schema: spec-driven
 # Project context for OpenSpec agents (not copied into artifacts).
 context: |
   Markdown: Prettier formats; markdownlint lints (extends
-  markdownlint/style/prettier). After openspec init/update or editing opsx
-  Markdown: (1) npm run format:md (2) npm run lint:md (3) if lint still fails,
+  markdownlint/style/prettier). After openspec init/update or editing opsx Markdown:
+  (1) npm run format:md (2) npm run lint:md (3) if lint still fails,
   the agent must fix remaining issues by hand — Prettier cannot fix everything.
   Do not use ignore lists to leave generated files dirty.
