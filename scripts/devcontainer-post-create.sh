@@ -36,8 +36,9 @@ marker_end="# <<< m4.2-dev-tokens <<<"
 token_src="${repo_root}/scripts/dev-tokens.sh"
 touch "${bashrc}"
 if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
-  begin_line="$(grep -nF "${marker_begin}" "${bashrc}" | head -n1 | cut -d: -f1)"
-  end_line="$(grep -nF "${marker_end}" "${bashrc}" | head -n1 | cut -d: -f1)"
+  # First match via awk+exit (not grep|head): under pipefail, head closing early can SIGPIPE grep and abort.
+  begin_line="$(awk -v b="${marker_begin}" '$0 == b { print NR; exit }' "${bashrc}")"
+  end_line="$(awk -v e="${marker_end}" '$0 == e { print NR; exit }' "${bashrc}")"
   if [ -n "${begin_line}" ] && [ -n "${end_line}" ] && [ "${begin_line}" -lt "${end_line}" ]; then
     # Refresh block in place only when begin appears before end (portable; avoid GNU sed -i).
     # Out-of-order or begin-without-end would leave awk in skip=1 and truncate ~/.bashrc.
