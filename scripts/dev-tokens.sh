@@ -118,19 +118,21 @@ if [ -f "${_DEV_TOKENS_FILE}" ]; then
 fi
 
 _dev_tokens_write() {
-  local var=$1 val=$2 b64
+  local var=$1 val=$2 b64 tmp
   (
     umask 077
     touch "${_DEV_TOKENS_FILE}"
     chmod 600 "${_DEV_TOKENS_FILE}"
-    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${_DEV_TOKENS_FILE}.tmp" 2>/dev/null || true
+    # Per-process temp file — fixed "${file}.tmp" races if two shells write concurrently.
+    tmp="$(mktemp "${_DEV_TOKENS_FILE}.XXXXXX")"
+    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || true
     # -w0 is GNU; BSD/other base64 may wrap at 76 cols — collapse to one line for KEY=value storage.
     b64="$(printf '%s' "${val}" | base64 -w0 2>/dev/null || printf '%s' "${val}" | base64)"
     b64="$(printf '%s' "${b64}" | tr -d '\n\r')"
-    printf '%s=b64:%s\n' "${var}" "${b64}" >>"${_DEV_TOKENS_FILE}.tmp"
+    printf '%s=b64:%s\n' "${var}" "${b64}" >>"${tmp}"
     # Rewrite in place to preserve mode/owner of the token file.
-    cat "${_DEV_TOKENS_FILE}.tmp" >"${_DEV_TOKENS_FILE}"
-    rm -f "${_DEV_TOKENS_FILE}.tmp"
+    cat "${tmp}" >"${_DEV_TOKENS_FILE}"
+    rm -f "${tmp}"
   )
 }
 

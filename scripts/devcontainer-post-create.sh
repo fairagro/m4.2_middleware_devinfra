@@ -36,12 +36,14 @@ marker_end="# <<< m4.2-dev-tokens <<<"
 token_src="${repo_root}/scripts/dev-tokens.sh"
 touch "${bashrc}"
 if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
-  # First match via awk+exit (not grep|head): under pipefail, head closing early can SIGPIPE grep and abort.
+  begin_count="$(awk -v b="${marker_begin}" '$0 == b { c++ } END { print c+0 }' "${bashrc}")"
+  end_count="$(awk -v e="${marker_end}" '$0 == e { c++ } END { print c+0 }' "${bashrc}")"
   begin_line="$(awk -v b="${marker_begin}" '$0 == b { print NR; exit }' "${bashrc}")"
   end_line="$(awk -v e="${marker_end}" '$0 == e { print NR; exit }' "${bashrc}")"
-  if [ -n "${begin_line}" ] && [ -n "${end_line}" ] && [ "${begin_line}" -lt "${end_line}" ]; then
-    # Refresh block in place only when begin appears before end (portable; avoid GNU sed -i).
-    # Out-of-order or begin-without-end would leave awk in skip=1 and truncate ~/.bashrc.
+  # Exactly one begin and one end, begin before end — duplicate/partial markers would let awk
+  # skip-toggle truncate everything after a later unpaired begin.
+  if [ "${begin_count}" -eq 1 ] && [ "${end_count}" -eq 1 ] &&
+    [ -n "${begin_line}" ] && [ -n "${end_line}" ] && [ "${begin_line}" -lt "${end_line}" ]; then
     tmp="$(mktemp)"
     awk -v b="${marker_begin}" -v e="${marker_end}" '
       $0 == b {skip=1; next}
@@ -52,7 +54,7 @@ if grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null && grep -qF "${marker_end}
     cat "${tmp}" >"${bashrc}"
     rm -f "${tmp}"
   else
-    echo "WARNING: out-of-order m4.2-dev-tokens markers in ${bashrc}; skipping refresh" >&2
+    echo "WARNING: unexpected m4.2-dev-tokens markers in ${bashrc} (begin=${begin_count} end=${end_count}); skipping refresh" >&2
   fi
 fi
 if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
