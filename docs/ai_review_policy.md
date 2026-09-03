@@ -95,8 +95,8 @@ Stop at the first matching step.
 5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
    **no** new abstraction → `fix`. Nit-budget does not defer these (any review round).
 6. **Nit.** Otherwise treat as a nit:
-   - Cheap + running nit prod-line growth **this fixer run** still ≤ ~15 and **no** new abstraction → `fix`
-   - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward this run’s ~15)
+   - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
+   - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only, typically when expensive or practicality is not High)
 
 If the cheaper fix is unclear, default to `dismiss` rather than adding a layer.
@@ -163,19 +163,24 @@ site is expensive even at 20 lines.
 A **nit** is a correct (or plausible) finding that is **not** high risk and does **not** already qualify as step 5
 (cheap + High practicality + Medium+).
 
-Budget (fixer only), **per `/review-fixer` run** (not gated on Copilot/Bugbot review round — later rounds often surface
-Low nits after earlier Medium/risk findings):
+Budget (fixer only) is a **soft lifetime cap per PR** of **~15 new production lines** from nit-fixes (never a new
+abstraction). It is **not** gated on Copilot/Bugbot review round — later rounds often surface Low nits after earlier
+Medium/risk findings — and it is **not** reset on each `/review-fixer` run.
 
-1. Cheap nits may be fixed until **~15 new production lines** from nit-fixes **in this run**, and **never** a new
-   abstraction.
-2. Cheap nits on surface **introduced by the previous fixer pass** (regression of those fixes) may also be fixed; they
-   **count toward** this run’s ~15.
-3. When this run’s nit budget is exhausted → `dismiss` remaining Low nits (or `follow-up` for Medium+ per the decision
+**Soft tracking** (good enough; not audit-grade):
+
+1. Before spending on nits, sum every `nit-lines this run: N` (integer N) already posted in fixer replies on this PR
+   (review-thread replies and PR conversation comments). That sum is **prior spend**.
+2. This run may fix cheap nits while `prior spend + lines added this run for nits` ≤ ~15.
+3. Cheap nits on surface **introduced by the previous fixer pass** (regression) may be fixed; they **count toward** the
+   same PR total.
+4. When the PR total would exceed ~15 → `dismiss` remaining Low nits (or `follow-up` for Medium+ per the decision
    order).
-4. Risk findings and step-5 (cheap + High practicality + Medium+) findings are **never** budgeted away.
-
-Do not try to sum nit lines across the whole PR lifetime — only this run is trackable. Repeated fixer runs can spend
-another ~15 each; rely on humans not to loop forever.
+5. Risk findings and step-5 (cheap + High practicality + Medium+) findings are **never** budgeted away and **do not**
+   consume nit-line budget.
+6. Every nit `fix` reply MUST include `nit-lines this run: N` for the production lines added for nits in **this** run
+   (use `0` only if the nit fix truly added no prod lines, e.g. comment-only). Prefer one aggregate line on the last nit
+   reply or on a summary PR comment when several nits were fixed in the same run.
 
 ---
 
@@ -215,6 +220,7 @@ severity: …
 practicality: … (path or invariant)
 cost: cheap|expensive (chosen fix, not the suggestion)
 reason: …
+nit-lines this run: N   # required on nit fixes; omit for risk / step-5-only replies
 ```
 
 If the chosen fix differs from the suggestion, say what you did instead (e.g. “narrowed return type of `Foo.bar` instead

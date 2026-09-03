@@ -31,7 +31,8 @@ coherent. Policy and Finder entries already live here from #4.
 ### Modified Capabilities
 
 - `path-conventions`: Host personal-token path uses git repository name instead of product-slug / `PRODUCT_SLUG`
-- `ai-review-policy`: Nit-budget is per fixer run (~15 lines), not gated on Copilot/Bugbot review round
+- `ai-review-policy`: Soft PR-lifetime nit-budget (~15 lines via `nit-lines this run`); not per-run reset; not
+  review-round gated
 
 ## Impact
 

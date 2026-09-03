@@ -100,8 +100,10 @@ Ignore resolved threads completely (do not reply on them again).
 
 If open work is empty, say so in one sentence and stop.
 
-Nit-budget is **per this `/review-fixer` run** (~15 prod lines), not by Copilot/Bugbot review round. See
-`docs/ai_review_policy.md`.
+**Nit-budget (soft PR lifetime):** Before fixing nits, sum prior `nit-lines this run: N` from fixer replies already on
+this PR (thread replies + PR conversation). Cap is **~15** for `prior + this run`. Not reset per `/review-fixer`
+invocation; not gated by Copilot/Bugbot review round. Risk and step-5 fixes do not consume the budget. Every nit `fix`
+reply must include `nit-lines this run: N`. See `docs/ai_review_policy.md`.
 
 ## Per-thread procedure
 
@@ -140,11 +142,12 @@ Decision order (stop at first match) — same as the policy:
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
    nit-budget)
 6. Else nit:
-   - Cheap + running nit prod-line growth this run still ≤ ~15 and **no** new abstraction → `fix`
-   - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward this run’s ~15)
+   - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
+   - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only when expensive or practicality is not High)
 
-Running nit growth is the sum of production lines you add for nits **this run**, not the whole PR.
+Sum prior `nit-lines this run: N` from existing fixer replies on the PR, then add lines you introduce for nits **this
+run**.
 
 ## Implement fixes
 
@@ -178,6 +181,7 @@ severity: …
 practicality: … (path or invariant)
 cost: cheap|expensive
 reason: …
+nit-lines this run: N   # on nit fixes; required for soft PR budget tracking
 ```
 
 If the fix differs from the suggestion, state the alternative (“narrowed `Foo.bar` return type instead of a
