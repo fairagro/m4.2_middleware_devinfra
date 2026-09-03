@@ -36,7 +36,22 @@ The helpers MUST NOT require `PRODUCT_SLUG` and MUST NOT hard-code a single prod
 - **THEN** it exits with a non-zero status and an error explaining the host path needs a git clone/remote
 - **AND** it does not invent a name or require `PRODUCT_SLUG`
 
-### Requirement: Empty prompt skips until re-prompt
+### Requirement: Token file is never executed as shell
+
+`scripts/dev-tokens.sh` MUST NOT `source` the token store file. It MUST load only known keys (`GH_TOKEN`,
+`GITGUARDIAN_API_KEY`) by parsing lines. New writes MUST use a non-shell encoding (e.g. `b64:` + base64). Executing
+`dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error.
+
+#### Scenario: Corrupt tokens.env cannot run arbitrary commands via source
+
+- **WHEN** `tokens.env` contains shell metacharacters intended as command substitution
+- **THEN** loading does not execute those commands as part of sourcing the file
+- **AND** known-key values still load when stored in the supported encoding
+
+#### Scenario: Direct execution of dev-tokens.sh fails clearly
+
+- **WHEN** a user runs `bash scripts/dev-tokens.sh` (or executes the file) instead of sourcing it
+- **THEN** the script exits non-zero with a message to source it
 
 When prompting on a TTY for `GH_TOKEN` or `GITGUARDIAN_API_KEY`, an empty answer MUST persist a skip marker so later
 non-forced loads do not re-prompt. `scripts/set-dev-tokens.sh` MUST force a new prompt (including after a skip) and
@@ -58,7 +73,8 @@ pointing at `set-dev-tokens.sh`.
 ### Requirement: gh wrapper loads token then execs real gh
 
 `scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN` (or `GITHUB_TOKEN`), and exec the
-real system `gh` binary (not itself). It MUST NOT read tokens from the git worktree.
+real system `gh` binary (not itself). Real-binary discovery MUST prefer `command -v -p gh` (excluding the wrapper) and
+fall back to common absolute paths. It MUST NOT read tokens from the git worktree.
 
 #### Scenario: gh succeeds with stored token
 
