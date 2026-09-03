@@ -69,8 +69,10 @@ elif ! grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
 fi
 
 echo "==> Load stored personal tokens into this postCreate environment (no TTY prompt)"
-# shellcheck disable=SC1091
-source "${token_src}" || true
+if [ -f "${token_src}" ]; then
+  # shellcheck disable=SC1091
+  source "${token_src}" || true
+fi
 
 echo "==> Dev Container post-create done"
 echo "    gh=$(command -v gh || echo missing)  openspec=$(command -v openspec || echo missing)  uv=$(command -v uv || echo missing)  node=$(command -v node || echo missing)"
