@@ -29,8 +29,11 @@ hard-code a product slug such as `middleware-api` or a product-specific bashhist
 #### Scenario: Missing token without TTY
 
 - **WHEN** `gh` cannot obtain `GH_TOKEN` and there is no TTY for prompting
-- **THEN** the skill tells the agent to skip GitHub writes, print intended replies, and point at
-  `./scripts/set-dev-tokens.sh`
+- **THEN** the skill tells the agent to ask the user (in chat) to run `source ./scripts/set-dev-tokens.sh` in a real
+  terminal and wait for confirmation before continuing GitHub writes
+- **AND** it MUST NOT ask the user to paste a PAT into chat
+- **AND** if the user declines or auth still fails, the agent skips GitHub writes, prints intended replies, and may
+  still apply local `fix` changes
 
 ### Requirement: Supported environment cites principles.global.md
 

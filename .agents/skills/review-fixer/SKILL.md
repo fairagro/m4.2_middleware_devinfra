@@ -41,9 +41,24 @@ Do **not** commit unless the user asks. Do **not** push.
 `gh` is wrapped (`scripts/bin/gh`, on `PATH` in the Dev Container via `remoteEnv`). Missing `GH_TOKEN` prompts on
 `/dev/tty` and is saved to `/commandhistory/tokens.env` in a Dev Container, or `~/.config/<git-repo-name>/tokens.env` on
 a local clone (repository name from `origin` — see `docs/conventions.md`). Interactive shells also source
-`scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git worktree; do not invent them. If there
-is no TTY, skip GitHub writes, print the intended replies, and tell the user to open a terminal or run
-`source ./scripts/set-dev-tokens.sh`.
+`scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git worktree; do not invent them. Never
+ask the user to paste a PAT into chat.
+
+**Agent / no TTY:** `/dev/tty` is unavailable in chat, so the wrapper cannot prompt. Before skipping GitHub writes:
+
+1. Tell the user `GH_TOKEN` is missing and that the agent cannot open an interactive prompt here.
+2. Ask them to run in a **Dev Container / IDE terminal** (not chat):
+
+   ```bash
+   source ./scripts/set-dev-tokens.sh
+   ```
+
+   Then reply here when done (or decline).
+
+3. After they confirm, retry `gh` (e.g. `gh auth status` or the GraphQL fetch). If auth works, continue with fetch /
+   replies / resolves as usual.
+4. Only if they decline or auth still fails: skip GitHub writes, print the intended replies/resolves, and stop that
+   part. Still apply local code fixes when triage says `fix`.
 
 ## Fetch open work (when a PR is known)
 

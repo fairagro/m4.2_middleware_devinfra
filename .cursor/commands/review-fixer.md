@@ -20,5 +20,7 @@ threads when `gh` can; for summary-only items, comment on the PR conversation in
 
 1. Read and follow `.agents/skills/review-fixer/SKILL.md`.
 2. Use `docs/ai_review_policy.md` as the decision source of truth.
-3. If a PR is known: fetch once, triage open work only, reply/resolve as the skill specifies.
+3. If a PR is known: fetch once, triage open work only, reply/resolve as the skill specifies. If `GH_TOKEN` is missing
+   and there is no TTY, ask the user to run `source ./scripts/set-dev-tokens.sh` in a terminal and wait — do not paste
+   tokens into chat.
 4. Do not commit or push unless the user asks.
