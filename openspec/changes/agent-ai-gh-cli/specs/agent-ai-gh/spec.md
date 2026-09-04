@@ -7,10 +7,10 @@ code.
 
 ### Requirement: CLI package under scripts/ai
 
-The repository MUST provide a Python CLI under `scripts/ai/` runnable with `uv` (e.g. `uv run --project scripts/ai
-m42-ai …`). Runtime MUST use `gh` (and `git` where needed) from `PATH` for auth and GitHub/git operations — MUST NOT
-introduce a second credential model. Host-environment policy (Linux Dev Container / GHA Linux) MUST remain outside the
-CLI (fixer policy only).
+The repository MUST provide a Python CLI under `scripts/ai/` runnable with `uv` (e.g.
+`uv run --project scripts/ai m42-ai …`). Runtime MUST use `gh` (and `git` where needed) from `PATH` for auth and
+GitHub/git operations — MUST NOT introduce a second credential model. Host-environment policy (Linux Dev Container / GHA
+Linux) MUST remain outside the CLI (fixer policy only).
 
 #### Scenario: Agent invokes review-open
 
@@ -44,10 +44,10 @@ items, and resolving a review thread by GraphQL thread id. Multiline bodies MUST
 
 ### Requirement: issue-create
 
-`issue-create` MUST create a GitHub issue with exactly one org issue type and allowlisted triage labels
-(`severity:*`, `practicality:*`, `cost:*`), ensuring missing allowlisted labels are created. Optional `--parent` MUST
-attach a native sub-issue. Fallback to a linked create MUST occur only when no issue URL was produced; MUST NOT create a
-second issue after a partial success.
+`issue-create` MUST create a GitHub issue with exactly one org issue type and allowlisted triage labels (`severity:*`,
+`practicality:*`, `cost:*`), ensuring missing allowlisted labels are created. Optional `--parent` MUST attach a native
+sub-issue. Fallback to a linked create MUST occur only when no issue URL was produced; MUST NOT create a second issue
+after a partial success.
 
 #### Scenario: Parent failure without URL falls back once
 
@@ -57,8 +57,9 @@ second issue after a partial success.
 
 ### Requirement: issue-start
 
-`issue-start` MUST, on a clean working tree/index: create branch `issue-<n>-<slug>` from `main`, create exactly one empty
-commit `Start issue #<n>`, push it, and open a draft PR whose body includes `Fixes #<n>`. It MUST NOT mark the PR ready.
+`issue-start` MUST, on a clean working tree/index: create branch `issue-<n>-<slug>` from `main`, create exactly one
+empty commit `Start issue #<n>`, push it, and open a draft PR whose body includes `Fixes #<n>`. It MUST NOT mark the PR
+ready.
 
 #### Scenario: Dirty tree refuses issue-start
 

@@ -86,13 +86,13 @@ implementation: **always** run `/opsx-propose`.
 
 1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
-2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md)
-   (same as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
+2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
+   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
 3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
-4. **Spec-review pause:** After artifacts exist, **stop**. Show the change name/path and ask the user to review
-   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, or start implementation until
-   they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run
-   `/opsx-update` (or edit artifacts) and pause again.
+4. **Spec-review pause:** After artifacts exist, **stop**. Show the change name/path and ask the user to review proposal
+   / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, or start implementation until they
+   confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run `/opsx-update` (or
+   edit artifacts) and pause again.
 5. Only after that confirmation: proceed to branch + draft PR, then implement (prefer `/opsx-apply` against that
    change’s `tasks.md`).
 

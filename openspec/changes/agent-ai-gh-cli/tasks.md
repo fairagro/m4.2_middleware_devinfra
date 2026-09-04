@@ -22,5 +22,5 @@
 ## 4. OpenSpec / verify
 
 - [x] 4.1 Propose change `agent-ai-gh-cli` (this change)
-- [ ] 4.2 Sync or archive related `extract-issue-fixer` leftovers if still open after merge
-- [ ] 4.3 Sanity: `m42-ai --help`; format/lint touched Markdown if needed
+- [x] 4.2 Archive related `extract-issue-fixer` leftovers (`--skip-specs`; issue-fixer lands via this change)
+- [x] 4.3 Sanity: `m42-ai --help`; format/lint touched Markdown if needed

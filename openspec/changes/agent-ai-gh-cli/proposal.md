@@ -1,8 +1,8 @@
 ## Why
 
-Agent slash commands spend context on deterministic GitHub/git plumbing. Skills need a small CLI so models keep
-judgment while fetch/filter/post/create/start become JSON in/out. Separately, `/issue-fixer` must always plan via
-`/opsx-propose` before branch/PR/implement — optional “spec-worthy” skips were wrong.
+Agent slash commands spend context on deterministic GitHub/git plumbing. Skills need a small CLI so models keep judgment
+while fetch/filter/post/create/start become JSON in/out. Separately, `/issue-fixer` must always plan via `/opsx-propose`
+before branch/PR/implement — optional “spec-worthy” skips were wrong.
 
 ## What Changes
 

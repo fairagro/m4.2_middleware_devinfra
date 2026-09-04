@@ -97,8 +97,8 @@ The JSON already filters to unresolved AI threads, AI review round count, and th
 
 1. **Unresolved** AI threads from `unresolved_ai_threads` (Copilot / Bugbot / Cursor). Skip human threads unless the
    user asked.
-2. The **latest** AI review `body` / `suppressed_comments` when findings are not already an unresolved thread. Suppressed
-   comments have **no** resolve button and **no** thread id — still triage them; reply with
+2. The **latest** AI review `body` / `suppressed_comments` when findings are not already an unresolved thread.
+   Suppressed comments have **no** resolve button and **no** thread id — still triage them; reply with
    `m42-ai review-reply --pr PR --conversation` (not `review-resolve`).
 
 Ignore resolved threads completely (do not reply on them again).

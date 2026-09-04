@@ -9,8 +9,8 @@ Issue: [#5](https://github.com/fairagro/m4.2_middleware_devinfra/issues/5).
 
 ## Workflow (summary)
 
-- Process **open** AI work only — start with
-  `uv run --project scripts/ai m42-ai review-open --pr <n>` (not raw GraphQL).
+- Process **open** AI work only — start with `uv run --project scripts/ai m42-ai review-open --pr <n>` (not raw
+  GraphQL).
 - Two phases when anything is `fix`: local fixes + dismiss/follow-up replies first (**no commit**); `Fixed in <sha>`
   only after the user commits.
 - Follow-ups open via [`/create-issue`](create-issue.md): **linked** by default; `relation: sub-of #<issue_number>` only

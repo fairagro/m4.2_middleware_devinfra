@@ -48,27 +48,27 @@ steps.
 
 ## Layout
 
-| Path                               | Role                                                           |
-| ---------------------------------- | -------------------------------------------------------------- |
-| `docs/`                            | Feature documentation (grows over time)                        |
-| `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                      |
-| `docs/review-fixer.md`             | Thin index for `/review-fixer`                                 |
-| `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue` |
-| `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                  |
+| Path                               | Role                                                                |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `docs/`                            | Feature documentation (grows over time)                             |
+| `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                           |
+| `docs/review-fixer.md`             | Thin index for `/review-fixer`                                      |
+| `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue`      |
+| `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                       |
 | `scripts/ai/`                      | `m42-ai` CLI (review-open / reply / resolve / issue-create / start) |
-| `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)   |
-| `openspec/principles.md`           | Repo-local principles extension (points at `.global`)          |
-| `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                             |
-| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                           |
-| `.agents/skills/issue-fixer/`      | Shared `/issue-fixer` Fixer skill                              |
-| `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                          |
-| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                          |
-| `.cursor/commands/issue-fixer.md`  | Cursor slash command for issue-fixer                           |
-| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue, issue-fixer)      |
-| `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                       |
-| `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`)   |
-| `scripts/dev-tokens.sh`            | Personal token load / prompt                                   |
-| `scripts/bin/`                     | `gh` / `git` PATH wrappers                                     |
-| `scripts/`                         | Shared scripts                                                 |
-| `.devcontainer/`                   | Dev Container definition                                       |
-| `versions.env`                     | Toolchain version pins                                         |
+| `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)        |
+| `openspec/principles.md`           | Repo-local principles extension (points at `.global`)               |
+| `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                                  |
+| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                                |
+| `.agents/skills/issue-fixer/`      | Shared `/issue-fixer` Fixer skill                                   |
+| `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                               |
+| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                               |
+| `.cursor/commands/issue-fixer.md`  | Cursor slash command for issue-fixer                                |
+| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue, issue-fixer)           |
+| `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                            |
+| `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`)        |
+| `scripts/dev-tokens.sh`            | Personal token load / prompt                                        |
+| `scripts/bin/`                     | `gh` / `git` PATH wrappers                                          |
+| `scripts/`                         | Shared scripts                                                      |
+| `.devcontainer/`                   | Dev Container definition                                            |
+| `versions.env`                     | Toolchain version pins                                              |

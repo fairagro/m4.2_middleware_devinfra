@@ -1,7 +1,7 @@
 ## Purpose
 
-Canonical `/issue-fixer` triage → explore → OpenSpec propose → spec-review pause → draft PR from empty bootstrap →
-local implement without auto-committing fix commits.
+Canonical `/issue-fixer` triage → explore → OpenSpec propose → spec-review pause → draft PR from empty bootstrap → local
+implement without auto-committing fix commits.
 
 ## ADDED Requirements
 

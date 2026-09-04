@@ -15,13 +15,13 @@ Auth: uses `gh` on `PATH` (Dev Container: `scripts/bin/gh` + `GH_TOKEN`). No sec
 
 ## Commands
 
-| Command | Role |
-| ------- | ---- |
-| `review-open --pr N` | One GraphQL fetch; JSON of unresolved AI threads + latest AI review body / suppressed |
-| `review-reply` | `in_reply_to` on a review comment, or `--conversation` PR comment |
-| `review-resolve --thread-id ID` | `resolveReviewThread` |
-| `issue-create` | Type + triage labels (+ optional `--parent`) |
-| `issue-start --issue N` | Branch, empty bootstrap commit, draft PR with `Fixes #N` |
+| Command                         | Role                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `review-open --pr N`            | One GraphQL fetch; JSON of unresolved AI threads + latest AI review body / suppressed |
+| `review-reply`                  | `in_reply_to` on a review comment, or `--conversation` PR comment                     |
+| `review-resolve --thread-id ID` | `resolveReviewThread`                                                                 |
+| `issue-create`                  | Type + triage labels (+ optional `--parent`)                                          |
+| `issue-start --issue N`         | Branch, empty bootstrap commit, draft PR with `Fixes #N`                              |
 
 ## Tests
 

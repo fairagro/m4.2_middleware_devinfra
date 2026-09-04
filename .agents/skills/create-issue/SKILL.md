@@ -130,8 +130,8 @@ uv run --project scripts/ai m42-ai issue-create \
   [--parent 42]
 ```
 
-See [`scripts/ai/README.md`](../../../scripts/ai/README.md). Fall back to raw `gh` only if the CLI is unavailable in
-the checkout.
+See [`scripts/ai/README.md`](../../../scripts/ai/README.md). Fall back to raw `gh` only if the CLI is unavailable in the
+checkout.
 
 ### Relation: sub-of vs linked
 
