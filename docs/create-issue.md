@@ -1,8 +1,8 @@
 # Create-issue conventions
 
 Shared `/create-issue` classifies new GitHub issues for the m4.2 product repos and this Devinfra repo. Canonical skill:
-[`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md). `/review-fixer` uses the same skill
-for its single Medium+ follow-up issue per PR.
+[`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md). `/review-fixer` and `/issue-fixer`
+use the same skill for deferred work (follow-ups and splits).
 
 Issue: [#14](https://github.com/fairagro/m4.2_middleware_devinfra/issues/14).
 
@@ -33,6 +33,17 @@ Core meanings of severity / practicality / cost come from [`ai_review_policy.md`
 extensions: `practicality:seen-in-the-wild`, `cost:medium` (see the skill).
 
 Do **not** invent other triage label names in the skill. Free-text labels are forbidden.
+
+## Relation: sub-of vs linked
+
+Callers pass a relation when opening deferred work:
+
+| Relation      | When                                                                                                 | Effect                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `sub-of #<n>` | New work is still part of parent `#n` acceptance criteria / done-when (typical `/issue-fixer` split) | GitHub native sub-issue (`gh issue create --parent`) |
+| `linked`      | Distinct follow-up problem (typical `/review-fixer` deferral; “discovered while …”)                  | Standalone issue; Links in the body only             |
+
+Unclear → prefer **linked**. If `--parent` fails, fall back to linked and report the error.
 
 ## Auth
 

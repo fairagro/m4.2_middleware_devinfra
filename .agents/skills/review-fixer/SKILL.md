@@ -228,8 +228,8 @@ mutation($id:ID!) {
 At most **one** per PR, and only if at least one `follow-up` item is Medium+. Low nits never become issues.
 
 Open it by reading and following [`.agents/skills/create-issue/SKILL.md`](../create-issue/SKILL.md) (type, triage
-labels, create-if-missing allowlist, Auth, body template). Do **not** call `gh issue create` with a review-fixer-only
-inline template.
+labels, create-if-missing allowlist, Auth, body template, **relation**). Do **not** call `gh issue create` with a
+review-fixer-only inline template.
 
 When invoking create-issue from here:
 
@@ -238,10 +238,13 @@ When invoking create-issue from here:
    under **Problem** / **Why not now?**; link the PR under **Links**.
 3. Pick org type + severity/practicality/cost labels from the deferred set (typical: `Task`; use max severity among
    items; cost from why it was deferred). Prefer fields already on your private checklists — do not re-triage the PR.
-4. Use the returned issue URL in each `Follow-up: <url>.` reply.
+4. **Relation:** `linked` by default (standalone issue). Use `relation: sub-of #<issue>` only when the PR body includes
+   `Fixes #<issue>` (or equivalent) **and** the deferred item is clearly remaining acceptance criteria of that issue.
+   When unclear, prefer `linked`.
+5. Use the returned issue URL in each `Follow-up: <url>.` reply.
 
 If create-issue is missing in a consumer checkout, say so and print the intended create-issue inputs (title, body draft,
-type, labels) for the user — still do not invent a non-allowlisted create path.
+type, labels, relation) for the user — still do not invent a non-allowlisted create path.
 
 ## Output to the user
 

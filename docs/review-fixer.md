@@ -1,0 +1,20 @@
+# Review-fixer conventions
+
+Shared `/review-fixer` triages Copilot and Bugbot PR review comments using the AI review policy: fix high-risk and
+in-budget nits, dismiss the rest, at most one Medium+ follow-up. Canonical skill:
+[`.agents/skills/review-fixer/SKILL.md`](../.agents/skills/review-fixer/SKILL.md). Policy:
+[`ai_review_policy.md`](ai_review_policy.md).
+
+Issue: [#5](https://github.com/fairagro/m4.2_middleware_devinfra/issues/5).
+
+## Workflow (summary)
+
+- Process **open** AI work only (unresolved Copilot/Bugbot threads + summary-only / suppressed findings).
+- Two phases when anything is `fix`: local fixes + dismiss/follow-up replies first (**no commit**); `Fixed in <sha>`
+  only after the user commits.
+- Follow-ups open via [`/create-issue`](create-issue.md): **linked** by default; **sub-of `#n`** only when the PR has
+  `Fixes #<n>` and the deferred item is remaining acceptance criteria of that issue.
+
+## Auth
+
+Same personal-token helpers — see root README **Personal tokens** and `scripts/bin/gh`.
