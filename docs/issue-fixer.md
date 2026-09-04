@@ -11,15 +11,13 @@ Issue: [#15](https://github.com/fairagro/m4.2_middleware_devinfra/issues/15).
 1. Fetch + triage (type, labels, done-when).
 2. **Explore pause** for `Feature` / `Refactoring` (wait for lock-in / `go` / `skip explore`) — no branch/PR yet.
    `/opsx-explore` is **optional** (in-skill explore is enough).
-3. **`/opsx-propose` is mandatory** before branch/PR/implement when the run will implement (see
-   [`.cursor/skills/openspec-propose/SKILL.md`](../.cursor/skills/openspec-propose/SKILL.md)).
-4. **Spec-review pause** — stop so you can review proposal / specs / design / tasks; continue only after your `go` /
-   approval (or `/opsx-update` then `go`).
-5. Prefer `uv run --project scripts/ai m42-ai issue-start --issue <n>` (branch + empty commit + draft PR with
-   `Fixes #<n>`). Manual: branch `issue-<issue_number>-<slug>` from `main` → empty commit → `gh pr create --draft`. No
-   `Made with Cursor` (or similar) footers in PR bodies — strip if injected.
-6. Implement in the working tree (prefer `/opsx-apply`); user commits, pushes, marks ready.
-7. Split only on logical blocks; deferred work via [`/create-issue`](create-issue.md) with relation:
+3. **OpenSpec cadence** (mandatory when this run will implement):
+   1. `/opsx-propose` → **pause** (review proposal / specs / design / tasks)
+   2. On continue: draft PR (`m42-ai issue-start` or manual empty bootstrap) + `/opsx-apply` → **pause** (review /
+      commit / push working tree)
+   3. On continue: `/opsx-archive`
+4. No `Made with Cursor` (or similar) footers in PR bodies — strip if injected.
+5. Split only on logical blocks; deferred work via [`/create-issue`](create-issue.md) with relation:
    - **sub-of** — still part of this issue’s acceptance criteria (GitHub native sub-issue)
    - **linked** — distinct follow-up problem
 

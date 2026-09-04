@@ -77,27 +77,45 @@ branches, commits, or PRs. Wait for user lock-in, `go`, or `skip explore`.
 **`/opsx-explore` is optional.** In-skill explore (above) is enough; you MAY offer `/opsx-explore` as a thinking aid,
 but MUST NOT require it and MUST NOT block on it.
 
-## OpenSpec propose (required before branch / PR / implement)
+## OpenSpec cadence (required)
 
-**`/opsx-propose` is mandatory** on every run that will implement.
+On every run that will implement, follow this sequence. **`/opsx-explore` stays optional** (see explore pause above).
 
-After triage and explore lock-in (when explore ran), and **before** any branch, empty commit, draft PR, or
-implementation: **always** run `/opsx-propose`.
+### 1. `/opsx-propose` → pause
+
+**`/opsx-propose` is mandatory** before any branch, empty commit, draft PR, or implementation.
 
 1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
 2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
    as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
 3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
-4. **Spec-review pause:** After artifacts exist, **stop**. Show the change name/path and ask the user to review proposal
-   / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, or start implementation until they
+4. **Pause (spec review):** After artifacts exist, **stop**. Show the change name/path and ask the user to review
+   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, apply, or archive until they
    confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run `/opsx-update` (or
    edit artifacts) and pause again.
-5. Only after that confirmation: proceed to branch + draft PR, then implement (prefer `/opsx-apply` against that
-   change’s `tasks.md`).
 
 Early exits that never implement (missing info, already resolved, `Discussion` without an explicit implement request)
-skip propose. Once the user asks to implement a `Discussion`, propose is required first.
+skip this cadence. Once the user asks to implement a `Discussion`, start at propose.
+
+### 2. On continue: draft PR + `/opsx-apply` → pause
+
+After the user confirms the propose pause:
+
+1. Create the empty-bootstrap draft PR (next section) if it does not exist yet.
+2. Read and follow
+   [`.cursor/skills/openspec-apply-change/SKILL.md`](../../../.cursor/skills/openspec-apply-change/SKILL.md)
+   (`/opsx-apply`) against that change’s `tasks.md`. Implement in the working tree only — do **not** commit or push fix
+   commits.
+3. **Pause (apply review):** When apply tasks for this slice are done (or blocked on the user), **stop**. Summarize what
+   changed, remind them to review / commit / push, and wait for `go` (or equivalent). Do **not** run `/opsx-archive`
+   during this pause.
+
+### 3. On continue: `/opsx-archive`
+
+After the user confirms the apply pause, read and follow
+[`.cursor/skills/openspec-archive-change/SKILL.md`](../../../.cursor/skills/openspec-archive-change/SKILL.md)
+(`/opsx-archive`) for the change. Do **not** archive before that confirmation.
 
 ## Branch + draft PR (empty bootstrap commit)
 
@@ -139,7 +157,7 @@ Manual equivalent if the CLI is unavailable:
 
 ## Implement fixes (locally)
 
-After the draft PR exists:
+Covered by **`/opsx-apply`** in the OpenSpec cadence above (after the propose pause and draft PR). Same rules:
 
 - Implement in the working tree on the PR branch.
 - Do **not** commit or push fix commits.
@@ -148,9 +166,7 @@ After the draft PR exists:
   `uv run ruff format --config pyproject.toml` / `ruff check` on touched files (same bar as `/review-fixer`). This
   Devinfra repo has no product `middleware/` tree — skip those commands here.
 
-### For the user
-
-Ask them to review the working tree, commit, push, then mark the PR ready when the slice is the review surface.
+After apply: **pause** for the user (see OpenSpec cadence §2). After their next `go`: **`/opsx-archive`** (§3).
 
 ## Split / deferred work (via create-issue)
 
@@ -186,7 +202,7 @@ Provide:
 
 - Issue URL + number + org issue type
 - Whether explore ran and what was locked
-- OpenSpec change name / path from `/opsx-propose`, and whether the user approved the spec-review pause
+- OpenSpec change name / path; which cadence pause is next (`propose` / `apply` / `archive` done or pending)
 - Branch name
 - Draft PR URL (or “skipped PR creation” + draft)
 - Created sub-issue / linked-issue URLs (or none)

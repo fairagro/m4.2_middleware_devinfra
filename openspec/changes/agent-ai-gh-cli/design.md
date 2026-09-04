@@ -16,8 +16,8 @@ canonical issue-fixer spec on this change.
 
 - **Package layout:** `scripts/ai/` + hatchling + console script `m42-ai` — isolates from future product packages.
 - **Transport:** subprocess `gh`/`git` on PATH — same wrappers as skills.
-- **issue-fixer propose:** `/opsx-propose` **mandatory**, then **spec-review pause** until user `go`; `/opsx-explore`
-  **optional**; missing `openspec/` → stop.
+- **issue-fixer OpenSpec cadence:** `/opsx-propose` → pause → `/opsx-apply` → pause → `/opsx-archive`;
+  `/opsx-explore` **optional**; missing `openspec/` → stop.
 - **Backfill:** this change’s propose documents work already started on branch `issue-16-ai-gh-cli` / PR #23.
 
 ## Risks / Trade-offs
