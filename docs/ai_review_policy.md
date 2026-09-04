@@ -216,6 +216,10 @@ prose). Then resolve the thread.
 
 Use a short human reply — do **not** restate `correct` / `severity` / `practicality` / `cost` in the comment.
 
+`/review-fixer` runs in **two phases** when any finding is fixed: Phase 1 applies local fixes and posts dismiss /
+follow-up replies; the human commits; Phase 2 posts `Fixed in <commit-sha>.` and resolves those threads. The agent MUST
+NOT commit to create that SHA.
+
 | Outcome                        | Reply shape                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------- |
 | **Fixed** (same as suggestion) | `Fixed in <commit-sha>.`                                                           |

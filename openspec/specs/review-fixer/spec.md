@@ -11,7 +11,8 @@ review comments using the shared AI review policy.
 
 The repository MUST provide `.agents/skills/review-fixer/SKILL.md` as the Fixer procedure for shared consumers. The
 skill MUST treat `docs/ai_review_policy.md` as the decision source of truth, process open Copilot/Bugbot work only
-unless a specific review URL is given, and MUST NOT commit or push unless the user asks.
+unless a specific review URL is given, and MUST NOT commit or push. When any finding is `fix`, the skill MUST use two
+phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>` only after the user has committed.
 
 #### Scenario: Agent runs /review-fixer with a PR number
 
@@ -19,6 +20,13 @@ unless a specific review URL is given, and MUST NOT commit or push unless the us
 - **THEN** the skill instructs fetching open AI review work once and triaging only unresolved AI threads plus
   summary-only / suppressed findings from the latest AI review body
 - **AND** resolved threads are not re-triaged
+
+#### Scenario: Agent pauses for user commit before Fixed replies
+
+- **WHEN** triage yields at least one `fix` action
+- **THEN** the skill applies local code changes without committing
+- **AND** posts dismiss/follow-up replies in that first phase
+- **AND** waits for a user-created commit SHA before posting `Fixed in <sha>.` and resolving those threads
 
 ### Requirement: Auth uses shared gh wrapper and conventions
 
@@ -60,8 +68,8 @@ body template (title pattern, bullets with path / severity / practicality / why 
 ### Requirement: Cursor command and Copilot prompt entrypoints
 
 The repository MUST provide `.cursor/commands/review-fixer.md` and `.github/prompts/review-fixer.prompt.md` that point
-agents at the review-fixer skill and `docs/ai_review_policy.md`, summarizing open-work-only triage and no commit/push
-unless asked.
+agents at the review-fixer skill and `docs/ai_review_policy.md`, summarizing open-work-only triage and that the agent
+does not commit or push (user commits; Fixed replies use that SHA).
 
 #### Scenario: Slash command loads the skill
 

@@ -13,4 +13,4 @@ body that have no thread (including Copilot “Suppressed comments”). Do not r
 **Input:** PR number or URL, optional review permalink, or pasted comments.
 
 Read and follow `.agents/skills/review-fixer/SKILL.md`. Use `docs/ai_review_policy.md` as the decision source of truth.
-Do not commit or push unless asked.
+Do not commit or push. When fixes need a SHA, pause for the user to commit, then post `Fixed in <sha>.` replies.

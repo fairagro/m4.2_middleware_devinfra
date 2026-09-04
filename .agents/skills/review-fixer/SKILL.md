@@ -34,7 +34,28 @@ threads.
 
 If they only pasted text, triage that text and **do not** reply on GitHub unless they also gave a PR.
 
-Do **not** commit unless the user asks. Do **not** push.
+Do **not** commit. Do **not** push. Never create a git commit to obtain a SHA for replies.
+
+## Two phases (when any thread is `fix`)
+
+**Phase 1 — triage and local work**
+
+1. Fetch open work, fill checklists, decide `fix` / `dismiss` / `follow-up`.
+2. Apply all `fix` changes locally only (working tree / index — no commit).
+3. Immediately reply + resolve for **`dismiss`** and **`follow-up`** (and open the follow-up issue if needed). These
+   need no commit SHA.
+4. **Stop** before any `Fixed in …` reply. Show the user table, files changed, suggested commit message, and ask them to
+   commit (and push if the PR should see it). Wait for confirmation or a SHA.
+
+**Phase 2 — after the user commits**
+
+1. Take the commit SHA the user created (they paste it, or you read it from `git log` / the PR once they confirm).
+2. Reply `Fixed in <sha>.` (+ what/why if different; + `nit-lines this run: N` on nit fixes) on each pending `fix`
+   thread, then resolve.
+3. If there were no `fix` items, Phase 2 is skipped.
+
+If the user declines to commit, leave fixes in the working tree, do **not** post `Fixed in …`, and say so. Do not invent
+a SHA.
 
 ## Auth (`gh`)
 
@@ -159,17 +180,19 @@ run**.
 
 ## GitHub replies (PR known)
 
-Required for **open work only**, when `gh` can write. Do not finish after local code changes alone. Do not reply on
-resolved threads.
+Required for **open work only**, when `gh` can write. Do not reply on resolved threads.
 
-**Unresolved threads** (`fix`, `dismiss`, `follow-up`):
+**Timing:** `dismiss` / `follow-up` in Phase 1; `Fixed in …` only in Phase 2 after a **user** commit exists. Do not
+finish Phase 1 by posting fake or premature Fixed replies.
+
+**Unresolved threads:**
 
 1. Reply on the first review comment (`in_reply_to`).
 2. Then resolve the thread if the mutation succeeds.
 3. Do **not** resolve without a reply.
 
 **Summary-only / suppressed comments** (no thread, no resolve button): post one PR conversation comment covering those
-items. Do not invent a thread resolve.
+items. Do not invent a thread resolve. Same timing rules (dismiss/follow-up now; fixed after user commit).
 
 If `gh` lacks auth or `resolveReviewThread` fails (permissions), leave the reply if you posted one, print the remaining
 reply/resolve text for the user, and still apply local code fixes.
@@ -177,17 +200,14 @@ reply/resolve text for the user, and still apply local code fixes.
 Reply body: **normal Markdown prose** (no fenced verbatim/`text` blocks — those do not wrap on GitHub). Do **not** list
 `correct` / `severity` / `practicality` / `cost` in the reply (keep those in your private checklist only).
 
-| Outcome                   | Reply                                          |
-| ------------------------- | ---------------------------------------------- |
-| Fixed, matches suggestion | `Fixed in <commit-sha>.`                       |
-| Fixed, different approach | `Fixed in <commit-sha>.` + brief what/why      |
-| Dismissed                 | `Dismissed.` + short reason                    |
-| Follow-up                 | `Follow-up: <issue-URL>.` + short why deferred |
+| Outcome                   | Reply                                          | When                  |
+| ------------------------- | ---------------------------------------------- | --------------------- |
+| Fixed, matches suggestion | `Fixed in <commit-sha>.`                       | Phase 2 (user commit) |
+| Fixed, different approach | `Fixed in <commit-sha>.` + brief what/why      | Phase 2 (user commit) |
+| Dismissed                 | `Dismissed.` + short reason                    | Phase 1               |
+| Follow-up                 | `Follow-up: <issue-URL>.` + short why deferred | Phase 1               |
 
 On nit fixes only, append a plain line: `nit-lines this run: N` (budget tracking; not a code fence).
-
-Use the commit that contains the fix (short or full SHA). If several commits, cite the one that landed the change (or
-the tip of the fixer push for that batch).
 
 Reply via `gh api` on the pull-review comment, then resolve the thread:
 
@@ -235,7 +255,10 @@ A table, one row per thread:
 | Thread | Severity | Practicality | Cost | Action | Reason |
 | ------ | -------- | ------------ | ---- | ------ | ------ |
 
-Then: files changed, tests run, whether GitHub replies/resolves succeeded, follow-up issue URL or “none”, remaining
-**risk** count (should be 0).
+**End of Phase 1:** files changed, tests run, dismiss/follow-up reply status, follow-up issue URL or “none”, remaining
+**risk** count, and — if any `fix` — “paused for your commit” with a suggested message. Do not claim Fixed replies are
+done yet.
+
+**End of Phase 2:** which Fixed replies/resolves succeeded and the SHA used.
 
 If risk findings remain because you need a product decision, list them explicitly and do not claim the PR is ready.
