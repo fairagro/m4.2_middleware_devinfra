@@ -83,43 +83,35 @@ ask the user to paste a PAT into chat.
 
 ## Fetch open work (when a PR is known)
 
-Be fast. One GraphQL query. Then **filter in memory**.
+**Start from the CLI** (do not dump raw GraphQL into context):
 
 ```bash
-gh api graphql -f query='
-query($owner:String!,$name:String!,$n:Int!) {
-  repository(owner:$owner, name:$name) {
-    pullRequest(number:$n) {
-      url
-      reviews(first: 50) {
-        nodes { databaseId author { login } submittedAt state body }
-      }
-      reviewThreads(first: 100) {
-        nodes {
-          id
-          isResolved
-          comments(first: 20) {
-            nodes { databaseId author { login } body path originalPosition }
-          }
-        }
-      }
-    }
-  }
-}' -F owner=OWNER -F name=REPO -F n=PR
+uv run --project scripts/ai m42-ai review-open --pr PR
+# optional, when the user gave /pull/N#pullrequestreview-ID:
+uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
 ```
+
+The JSON already filters to unresolved AI threads and **summary-only findings from every AI review body**
+(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed
+comments” often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional
+`--review-id` scopes review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
+[`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **Open work** (this is the only set you triage unless the user pasted a specific review URL):
 
-1. **Unresolved** review threads whose first comment author is Copilot or Bugbot (`copilot-pull-request-reviewer`,
-   `copilot[bot]`, `cursor[bot]`, `bugbot`, or similar). Skip human threads unless the user asked.
-2. The **latest** Copilot or Bugbot **review submission** `body`, if it contains findings that are **not** already an
-   unresolved thread. Copilot Lite often puts “Needs a closer look” and **Suppressed comments** only in that summary.
-   Suppressed comments have **no** resolve button and **no** thread id — still triage them; reply on the PR conversation
-   (`issues/PR/comments`), not via `resolveReviewThread`.
+1. **Unresolved** AI threads from `unresolved_ai_threads` (Copilot / Bugbot / Cursor). Skip human threads unless the
+   user asked.
+2. **`summary_only_findings`** — open summary-only / suppressed items from **at most one** AI review
+   (`open_summary_review_id`): the latest suppressed AI review that is not yet answered. Older suppressed reviews are
+   treated as closed when a triage reply exists after them (PR conversation comment or non-AI review body starting with
+   `Fixed in` / `Dismissed.` / `Follow-up:`, ideally including `#pullrequestreview-<id>`). These findings have **no**
+   resolve button — **never** call `review-resolve` on them; reply with
+   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later
+   `review-open` marks that review answered.
 
 Ignore resolved threads completely (do not reply on them again).
 
-If open work is empty, say so in one sentence and stop.
+If `open_work_empty` is true (no unresolved AI threads and no summary-only findings), say so in one sentence and stop.
 
 **Nit-budget (soft PR lifetime):** Before fixing nits, sum prior `nit-lines this run: N` from fixer replies already on
 this PR (thread replies + PR conversation). Cap is **~15** for `prior + this run`. Not reset per `/review-fixer`
@@ -192,7 +184,8 @@ finish Phase 1 by posting fake or premature Fixed replies.
 3. Do **not** resolve without a reply.
 
 **Summary-only / suppressed comments** (no thread, no resolve button): post one PR conversation comment covering those
-items. Do not invent a thread resolve. Same timing rules (dismiss/follow-up now; fixed after user commit).
+items. Include `#pullrequestreview-<review_database_id>` so `review-open` can treat that review as answered. Do **not**
+invent a thread resolve. Same timing rules (dismiss/follow-up now; fixed after user commit).
 
 If `gh` lacks auth or `resolveReviewThread` fails (permissions), leave the reply if you posted one, print the remaining
 reply/resolve text for the user, and still apply local code fixes.
@@ -209,18 +202,13 @@ Reply body: **normal Markdown prose** (no fenced verbatim/`text` blocks — thos
 
 On nit fixes only, append a plain line: `nit-lines this run: N` (budget tracking; not a code fence).
 
-Reply via `gh api` on the pull-review comment, then resolve the thread:
+Prefer the CLI (auth still via `scripts/bin/gh` / `GH_TOKEN`):
 
 ```bash
-# reply (REST in_reply_to)
-gh api "repos/OWNER/REPO/pulls/PR/comments" \
-  -f body='...' -F in_reply_to=COMMENT_DATABASE_ID
-
-# resolve
-gh api graphql -f query='
-mutation($id:ID!) {
-  resolveReviewThread(input:{threadId:$id}) { thread { isResolved } }
-}' -F id=THREAD_NODE_ID
+uv run --project scripts/ai m42-ai review-reply --pr PR --in-reply-to COMMENT_DATABASE_ID --body-file /tmp/reply.md
+uv run --project scripts/ai m42-ai review-resolve --thread-id THREAD_NODE_ID
+# summary-only / suppressed:
+uv run --project scripts/ai m42-ai review-reply --pr PR --conversation --body-file /tmp/reply.md
 ```
 
 ## Follow-up issue

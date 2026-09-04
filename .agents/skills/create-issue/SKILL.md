@@ -115,6 +115,24 @@ labels.
 | `cost:medium`                   | `#FEF2C0` | Moderate issue-planning cost               |
 | `cost:expensive`                | `#F9D0C4` | Large or cross-cutting work                |
 
+## Create via CLI
+
+Prefer the plumbing CLI (still uses `gh` on `PATH` / `GH_TOKEN`):
+
+```bash
+uv run --project scripts/ai m42-ai issue-create \
+  --title "..." \
+  --type Task \
+  --severity severity:high \
+  --practicality practicality:high \
+  --cost cost:cheap \
+  --body-file /tmp/issue.md \
+  [--parent 42]
+```
+
+See [`scripts/ai/README.md`](../../../scripts/ai/README.md). Fall back to raw `gh` only if the CLI is unavailable in the
+checkout.
+
 ### Relation: sub-of vs linked
 
 Callers (or the user) may pass `relation`:

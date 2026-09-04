@@ -61,25 +61,82 @@ ask the user to paste a PAT into chat.
    - Type `Security` → may implement, but require clear acceptance criteria and a realistic path; prefer the smallest
      correct fix; no speculative hardening with no path.
 
-## Explore pause (before any branch / commit / PR)
+## Explore (when required): `/opsx-explore`
 
-After triage, **before** GitHub writes:
+After triage, **before** `/opsx-propose` / branch / commit / PR, decide whether explore runs:
 
-| Type                      | Explore?                                                                  |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `Feature`, `Refactoring`  | **Required** — surface open threads, recommend defaults, wait for lock-in |
-| `Discussion`              | Explore is the whole response (no implement by default)                   |
-| `Bug`, `Security`, `Task` | Only if criteria missing, multiple plausible fixes, or user asks          |
+| Type                      | Explore?                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `Feature`, `Refactoring`  | **Required**                                                     |
+| `Discussion`              | Explore is the whole response (no implement by default)          |
+| `Bug`, `Security`, `Task` | Only if criteria missing, multiple plausible fixes, or user asks |
 
-During explore: read the codebase, open numbered decision threads, recommend defaults as proposals. **Do not** create
-branches, commits, or PRs. Wait for user lock-in, `go`, or `skip explore`.
+When explore **is** required (or the user asked for it): read and follow
+[`.cursor/skills/openspec-explore/SKILL.md`](../../../.cursor/skills/openspec-explore/SKILL.md) (same as
+`/opsx-explore`). Do **not** substitute a parallel in-skill explore procedure. **Do not** create branches, commits, or
+PRs during explore. Wait for user lock-in, `go`, or `skip explore`.
 
-If `openspec/` exists and the work is spec-worthy, you **may** offer an OpenSpec proposal (`/opsx-propose`); do **not**
-require it for every run. Do **not** hard-depend on `/opsx-explore`.
+When explore is **not** required, skip `/opsx-explore` and continue to the OpenSpec cadence (propose → …).
+
+**Scope:** OpenSpec (`/opsx-explore`, `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-update`) is **only** for
+`/issue-fixer`. `/review-fixer` and `/create-issue` MUST NOT invoke OpenSpec commands.
+
+## OpenSpec cadence (required when implementing)
+
+On every run that will implement, after explore (when it ran) or immediately when explore was skipped:
+
+### 1. `/opsx-propose` → pause
+
+**`/opsx-propose` is mandatory** before any branch, empty commit, draft PR, or implementation.
+
+1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
+   anyway.
+2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
+   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
+3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
+4. **Pause (spec review):** After artifacts exist, **stop**. Show the change name/path and ask the user to review
+   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, apply, or archive until they
+   confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run `/opsx-update` (or
+   edit artifacts) and pause again.
+
+Early exits that never implement (missing info, already resolved, `Discussion` without an explicit implement request)
+skip this cadence. Once the user asks to implement a `Discussion`, start at propose.
+
+### 2. On continue: draft PR + `/opsx-apply` → pause
+
+After the user confirms the propose pause:
+
+1. Create the empty-bootstrap draft PR (next section) if it does not exist yet.
+2. Read and follow
+   [`.cursor/skills/openspec-apply-change/SKILL.md`](../../../.cursor/skills/openspec-apply-change/SKILL.md)
+   (`/opsx-apply`) against that change’s `tasks.md`. Implement in the working tree only — do **not** commit or push fix
+   commits.
+3. **Pause (apply review):** When apply tasks for this slice are done (or blocked on the user), **stop**. Summarize what
+   changed, remind them to review / commit / push, and wait for `go` (or equivalent). Do **not** run `/opsx-archive`
+   during this pause.
+
+### 3. On continue: `/opsx-archive`
+
+After the user confirms the apply pause, read and follow
+[`.cursor/skills/openspec-archive-change/SKILL.md`](../../../.cursor/skills/openspec-archive-change/SKILL.md)
+(`/opsx-archive`) for the change. Do **not** archive before that confirmation.
 
 ## Branch + draft PR (empty bootstrap commit)
 
-Assumptions: base branch is `main`.
+Assumptions: base branch is `main`. Prefer the plumbing CLI when the tree is clean:
+
+```bash
+uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]
+```
+
+That creates `issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a
+**draft** PR with `Fixes #<issue_number>`. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+
+**PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
+is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
+immediately with `gh pr edit` (or equivalent) before moving on.
+
+Manual equivalent if the CLI is unavailable:
 
 1. Create local branch: `issue-<issue_number>-<slug>` from `main`.
 2. Ensure working tree **and** index are clean. Then create **exactly one** empty commit (do **not** use `--no-verify`):
@@ -104,7 +161,7 @@ Assumptions: base branch is `main`.
 
 ## Implement fixes (locally)
 
-After the draft PR exists:
+Covered by **`/opsx-apply`** in the OpenSpec cadence above (after the propose pause and draft PR). Same rules:
 
 - Implement in the working tree on the PR branch.
 - Do **not** commit or push fix commits.
@@ -113,9 +170,7 @@ After the draft PR exists:
   `uv run ruff format --config pyproject.toml` / `ruff check` on touched files (same bar as `/review-fixer`). This
   Devinfra repo has no product `middleware/` tree — skip those commands here.
 
-### For the user
-
-Ask them to review the working tree, commit, push, then mark the PR ready when the slice is the review surface.
+After apply: **pause** for the user (see OpenSpec cadence §2). After their next `go`: **`/opsx-archive`** (§3).
 
 ## Split / deferred work (via create-issue)
 
@@ -150,7 +205,8 @@ create-issue inputs — do not invent an off-allowlist create path.
 Provide:
 
 - Issue URL + number + org issue type
-- Whether explore ran and what was locked
+- Whether `/opsx-explore` ran and what was locked
+- OpenSpec change name / path; which cadence pause is next (`propose` / `apply` / `archive` done or pending)
 - Branch name
 - Draft PR URL (or “skipped PR creation” + draft)
 - Created sub-issue / linked-issue URLs (or none)
