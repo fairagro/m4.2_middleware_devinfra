@@ -72,6 +72,9 @@ def test_view_issue_shapes_triage() -> None:
             {"name": "practicality:high"},
             {"name": "cost:cheap"},
             {"name": "other"},
+            {"name": None},
+            {"name": "  "},
+            "also-ok",
         ],
         "author": {"login": "alice"},
     }
@@ -85,13 +88,16 @@ def test_view_issue_shapes_triage() -> None:
         "cost": "cost:cheap",
     }
     assert "other" in out["labels"]
+    assert "also-ok" in out["labels"]
+    assert "None" not in out["labels"]
+    assert "" not in out["labels"]
 
 
 def test_branch_ahead_ok_and_not() -> None:
     def fake_git(args: list[str], **kwargs: object) -> MagicMock:
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
-        if args[:2] == ["rev-list", "--count"] and args[2].startswith("main.."):
+        if args[:2] == ["rev-list", "--count"] and args[2].startswith("origin/main.."):
             return MagicMock(stdout="2\n")
         if args[:2] == ["rev-list", "--count"]:
             return MagicMock(stdout="0\n")
@@ -101,6 +107,7 @@ def test_branch_ahead_ok_and_not() -> None:
         out = branch_ahead(base="main")
     assert out["ok"] is True
     assert out["ahead"] == 2
+    assert out["upstream"] == "origin/main"
 
     def fake_git_zero(args: list[str], **kwargs: object) -> MagicMock:
         if args[:2] == ["branch", "--show-current"]:

@@ -165,6 +165,18 @@ def _parse_issue_type(raw: Any) -> str | None:
     return None
 
 
+def _label_names(labels_raw: list[Any]) -> list[str]:
+    names: list[str] = []
+    for item in labels_raw:
+        raw = item.get("name") if isinstance(item, dict) else item
+        if raw is None:
+            continue
+        name = str(raw).strip()
+        if name:
+            names.append(name)
+    return names
+
+
 def _triage_from_labels(label_names: list[str]) -> dict[str, str | None]:
     severity = next((n for n in label_names if n.startswith("severity:")), None)
     practicality = next((n for n in label_names if n.startswith("practicality:")), None)
@@ -186,7 +198,7 @@ def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
     )
     meta = json.loads(proc.stdout)
     labels_raw = meta.get("labels") or []
-    label_names = [str(x.get("name") if isinstance(x, dict) else x) for x in labels_raw]
+    label_names = _label_names(labels_raw if isinstance(labels_raw, list) else [])
     author = meta.get("author") or {}
     author_login = author.get("login") if isinstance(author, dict) else None
     return {
@@ -203,15 +215,17 @@ def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
 
 
 def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, Any]:
-    """Report how far HEAD is ahead/behind of `base` (local ref)."""
+    """Report how far HEAD is ahead/behind of `origin/<base>` (remote-tracking ref)."""
     root = cwd or Path.cwd()
+    upstream = f"origin/{base}"
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
-    ahead_s = run_git(["rev-list", "--count", f"{base}..HEAD"], cwd=root).stdout.strip()
-    behind_s = run_git(["rev-list", "--count", f"HEAD..{base}"], cwd=root).stdout.strip()
+    ahead_s = run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip()
+    behind_s = run_git(["rev-list", "--count", f"HEAD..{upstream}"], cwd=root).stdout.strip()
     ahead = int(ahead_s or "0")
     behind = int(behind_s or "0")
     return {
         "base": base,
+        "upstream": upstream,
         "current_branch": current,
         "ahead": ahead,
         "behind": behind,
