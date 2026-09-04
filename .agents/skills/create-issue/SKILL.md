@@ -124,8 +124,11 @@ Callers (or the user) may pass `relation`:
 | `sub-of #<issue_number>`                 | Still part of parent `#<issue_number>` acceptance criteria / done-when | `gh issue create ... --parent <issue_number>` (native sub-issue); also link parent under **Links** |
 | `linked` (default if omitted or unclear) | Distinct follow-up                                                     | Standalone issue; put source issue/PR under **Links** only — do **not** set `--parent`             |
 
-If `--parent` fails (unsupported `gh`, permissions, API error), fall back to a linked create (body Links), report the
-failure clearly, and do **not** invent a second create path outside this skill.
+If native sub-issue attachment fails **before** any issue is created (unsupported `gh`, permissions, or API error that
+left no issue URL), fall back to **one** linked create (body Links), report the failure clearly, and do **not** invent a
+second create path outside this skill. If `gh issue create` (with or without `--parent`) already printed an issue URL /
+number and a later step fails (labels, `--type`, parent mutation, network), **do not** create again — report the partial
+failure and return the existing issue URL.
 
 Example ensure + create pattern:
 

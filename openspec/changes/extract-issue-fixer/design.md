@@ -88,8 +88,8 @@ the deltas from a 1:1 API copy.
 - **[Risk] Explore pause ignored by hurried agents** → Mitigation: command/prompt restate wait; specs require no
   branch/PR during pause
 - **[Risk] Wrong relation (sub vs linked)** → Mitigation: default linked when unclear; explicit heuristics in skills
-- **[Risk] `gh issue create --parent` unsupported on older gh / org** → Mitigation: skill documents flag; on failure
-  fall back to linked body + report error
+- **[Risk] `gh issue create --parent` unsupported on older gh / org** → Mitigation: skill documents flag; fall back to
+  one linked create only when no issue URL exists yet; never create again after a partial post-create failure
 - **[Trade-off] create-issue + review-fixer docs/behavior touch in this change** → Acceptable for parity and G
 
 ## Migration Plan

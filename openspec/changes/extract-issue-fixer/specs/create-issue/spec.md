@@ -27,8 +27,11 @@ When a caller supplies a relation, create-issue MUST apply it as follows:
 - `linked` (default when omitted or unclear): create a standalone issue; put the source issue and/or PR under Links only
   — MUST NOT set a GitHub parent.
 
-If native sub-issue attachment fails (unsupported `gh`, permissions, or API error), the skill MUST fall back to a linked
-issue (body Links), report the failure, and MUST NOT invent a second create path outside create-issue.
+If native sub-issue attachment fails **before** any issue is created (unsupported `gh`, permissions, or API error with
+no issue URL), the skill MUST fall back to **one** linked issue (body Links), report the failure, and MUST NOT invent a
+second create path outside create-issue. If create already produced an issue URL/number and a later step fails (labels,
+type, parent mutation), the skill MUST NOT create again — it MUST report the partial failure and return the existing
+URL.
 
 #### Scenario: sub-of attaches parent
 
@@ -41,6 +44,13 @@ issue (body Links), report the failure, and MUST NOT invent a second create path
 - **WHEN** create-issue is invoked with `relation: linked` and a source PR or issue URL
 - **THEN** it creates a standalone issue with Links to that source
 - **AND** it does not set a GitHub parent
+
+#### Scenario: no duplicate create after partial failure
+
+- **WHEN** `gh issue create` (with or without `--parent`) already returned an issue URL
+- **AND** a later step fails
+- **THEN** create-issue does not open a second issue
+- **AND** it reports the partial failure with the existing URL
 
 ## MODIFIED Requirements
 

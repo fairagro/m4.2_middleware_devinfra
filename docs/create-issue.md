@@ -43,7 +43,8 @@ Callers pass a relation when opening deferred work:
 | `sub-of #<issue_number>` | New work is still part of parent `#<issue_number>` acceptance criteria / done-when (typical `/issue-fixer` split) | GitHub native sub-issue (`gh issue create --parent`) |
 | `linked`                 | Distinct follow-up problem (typical `/review-fixer` deferral; “discovered while …”)                               | Standalone issue; Links in the body only             |
 
-Unclear → prefer **linked**. If `--parent` fails, fall back to linked and report the error.
+Unclear → prefer **linked**. If `--parent` fails **and no issue was created**, fall back to one linked create and report
+the error. If an issue URL already exists and a later step fails, do **not** create a second issue.
 
 ## Auth
 
