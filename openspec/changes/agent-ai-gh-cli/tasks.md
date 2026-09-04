@@ -1,3 +1,5 @@
+# Agent AI GitHub CLI — Tasks
+
 ## 1. CLI package
 
 - [x] 1.1 Add `scripts/ai/` pyproject, package `m42_ai`, console script `m42-ai`, README

@@ -1,3 +1,5 @@
+# Agent AI GitHub CLI — Design
+
 ## Context
 
 See proposal.md — Why. Issue #16; explore lock-ins: all four CLI commands in one PR; package under `scripts/ai/` with

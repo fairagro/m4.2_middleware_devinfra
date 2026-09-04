@@ -1,3 +1,5 @@
+# agent-ai-gh Specification
+
 ## Purpose
 
 Deterministic GitHub and git plumbing for agent skills: JSON in/out via a small CLI, no AI review policy encoded as

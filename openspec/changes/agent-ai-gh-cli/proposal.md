@@ -1,3 +1,5 @@
+# Agent AI GitHub CLI — Proposal
+
 ## Why
 
 Agent slash commands spend context on deterministic GitHub/git plumbing. Skills need a small CLI so models keep judgment

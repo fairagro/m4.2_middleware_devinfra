@@ -1,3 +1,5 @@
+# issue-fixer Specification
+
 ## Purpose
 
 Canonical `/issue-fixer` triage → explore → OpenSpec propose → spec-review pause → draft PR from empty bootstrap → local
