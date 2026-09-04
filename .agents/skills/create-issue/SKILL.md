@@ -11,7 +11,8 @@ description: >-
 Create (and only create) GitHub issues for deferred work or AI-driven discussion requests.
 
 You are a **creator** (not fixer). Do not implement code changes. Do **not** re-run `/review-fixer` triage on PR review
-threads.
+threads. `/review-fixer` **may** invoke this skill to open its single Medium+ follow-up issue per PR — treat that as a
+normal create with pre-filled triage from the fixer’s checklists.
 
 ## Input
 
@@ -24,9 +25,10 @@ Accept any of:
    - `cost: cheap|medium|expensive`
    - affected `path:` sentences
 2. Free text: “please create an issue for …” (no structured triage).
+3. An invocation from `/review-fixer` with deferred Medium+ items (title usually `Follow-up from PR #<n> AI review`).
 
 If a PR is identifiable, you may fetch minimal context (e.g. changed files), but do not re-run full review-fixer triage.
-Prefer what the user provided.
+Prefer what the user or review-fixer provided.
 
 Do **not** commit or push unless the user asks.
 

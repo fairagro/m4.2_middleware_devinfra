@@ -71,6 +71,17 @@ the draft), the selected issue type, and the attached labels.
 - **WHEN** issue creation succeeds
 - **THEN** the user receives the issue URL, the org issue type, and the label set
 
+### Requirement: review-fixer may invoke create-issue for follow-ups
+
+The skill MUST accept invocation from `/review-fixer` with pre-filled Medium+ deferred items (typical title
+`Follow-up from PR #<n> AI review`) without re-running full PR review triage.
+
+#### Scenario: review-fixer hands off a bundled follow-up
+
+- **WHEN** review-fixer requests one follow-up issue with deferred Medium+ findings and triage fields
+- **THEN** create-issue creates that issue using its type/label/body rules
+- **AND** it does not re-fetch and re-triage all Copilot/Bugbot threads
+
 ### Requirement: Cursor command and Copilot prompt entrypoints
 
 The repository MUST provide `.cursor/commands/create-issue.md` and `.github/prompts/create-issue.prompt.md` that point

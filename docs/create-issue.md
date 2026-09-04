@@ -1,7 +1,8 @@
 # Create-issue conventions
 
 Shared `/create-issue` classifies new GitHub issues for the m4.2 product repos and this Devinfra repo. Canonical skill:
-[`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md).
+[`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md). `/review-fixer` uses the same skill
+for its single Medium+ follow-up issue per PR.
 
 Issue: [#14](https://github.com/fairagro/m4.2_middleware_devinfra/issues/14).
 

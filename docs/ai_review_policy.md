@@ -204,8 +204,10 @@ These rules apply to writing code and to reviewing it
 - At most **one** follow-up issue per PR.
 - Include only deferred items that are **Medium or higher**.
 - Low nits that miss the budget get a dismissal reply, not an issue.
-- Title: `Follow-up from PR # AI review`. Body: bullet list of deferred findings with path, severity, practicality, and
-  why they are out of this PR.
+- Title: `Follow-up from PR # AI review`.
+- Open via `/create-issue` (org type + triage labels + body template in
+  [`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md)); include deferred findings (path,
+  severity, practicality, why out of this PR) in that body.
 
 ---
 

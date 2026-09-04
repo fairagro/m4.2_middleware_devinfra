@@ -23,3 +23,8 @@
 - [x] 4.1 Sanity-check: skill/command/prompt coherent; Auth matches review-fixer; allowlist complete; no bootstrap
       script
 - [x] 4.2 Run `npm run format:md` and `npm run lint:md`; fix remaining findings by hand
+
+## 5. review-fixer integration
+
+- [x] 5.1 Point review-fixer Medium+ follow-ups at create-issue (skill + policy + review-fixer spec); drop inline-only
+      create template

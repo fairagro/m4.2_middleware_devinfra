@@ -21,7 +21,8 @@ allowlisted labels in the skill (no bootstrap script).
 - Org-level Issue Type provisioning
 - Dedicated `ensure-triage-labels.sh` / postCreate label bootstrap
 - Product-repo sync PRs or smoke tests in this change
-- Replacing review-fixer’s inline Medium+ follow-up template (stays independent)
+
+**Amended:** `/review-fixer` MUST open Medium+ follow-ups via create-issue (no parallel inline template).
 
 ## Decisions
 

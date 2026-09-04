@@ -227,26 +227,21 @@ mutation($id:ID!) {
 
 At most **one** per PR, and only if at least one `follow-up` item is Medium+. Low nits never become issues.
 
-```bash
-gh issue create --title "Follow-up from PR #<n> AI review" --body-file /tmp/follow-up-pr-n.md
-```
+Open it by reading and following [`.agents/skills/create-issue/SKILL.md`](../create-issue/SKILL.md) (type, triage
+labels, create-if-missing allowlist, Auth, body template). Do **not** call `gh issue create` with a review-fixer-only
+inline template.
 
-Body **must** be GitHub Markdown. Use this template (inline — do not require a create-issue skill):
+When invoking create-issue from here:
 
-```markdown
-## Follow-up from PR #<n> AI review
+1. Title: `Follow-up from PR #<n> AI review`.
+2. Include **every** Medium+ `follow-up` item in the create-issue body (paths, severities, practicality, why deferred)
+   under **Problem** / **Why not now?**; link the PR under **Links**.
+3. Pick org type + severity/practicality/cost labels from the deferred set (typical: `Task`; use max severity among
+   items; cost from why it was deferred). Prefer fields already on your private checklists — do not re-triage the PR.
+4. Use the returned issue URL in each `Follow-up: <url>.` reply.
 
-Deferred from AI review on <PR URL>. Not fixed in that PR.
-
-### Deferred items
-
-- **path:** `path/to/file`
-  - **severity:** Medium|High|Blocker
-  - **practicality:** …
-  - **why not this PR:** …
-```
-
-Include every Medium+ `follow-up` item. Link the PR. Do not open an issue for Low-only nits.
+If create-issue is missing in a consumer checkout, say so and print the intended create-issue inputs (title, body draft,
+type, labels) for the user — still do not invent a non-allowlisted create path.
 
 ## Output to the user
 
