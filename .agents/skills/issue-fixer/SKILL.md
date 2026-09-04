@@ -74,12 +74,43 @@ After triage, **before** GitHub writes:
 During explore: read the codebase, open numbered decision threads, recommend defaults as proposals. **Do not** create
 branches, commits, or PRs. Wait for user lock-in, `go`, or `skip explore`.
 
-If `openspec/` exists and the work is spec-worthy, you **may** offer an OpenSpec proposal (`/opsx-propose`); do **not**
-require it for every run. Do **not** hard-depend on `/opsx-explore`.
+**`/opsx-explore` is optional.** In-skill explore (above) is enough; you MAY offer `/opsx-explore` as a thinking aid,
+but MUST NOT require it and MUST NOT block on it.
+
+## OpenSpec propose (required before branch / PR / implement)
+
+**`/opsx-propose` is mandatory** on every run that will implement.
+
+After triage and explore lock-in (when explore ran), and **before** any branch, empty commit, draft PR, or
+implementation: **always** run `/opsx-propose`.
+
+1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
+   anyway.
+2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md)
+   (same as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
+3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
+4. **Spec-review pause:** After artifacts exist, **stop**. Show the change name/path and ask the user to review
+   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, or start implementation until
+   they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run
+   `/opsx-update` (or edit artifacts) and pause again.
+5. Only after that confirmation: proceed to branch + draft PR, then implement (prefer `/opsx-apply` against that
+   change’s `tasks.md`).
+
+Early exits that never implement (missing info, already resolved, `Discussion` without an explicit implement request)
+skip propose. Once the user asks to implement a `Discussion`, propose is required first.
 
 ## Branch + draft PR (empty bootstrap commit)
 
-Assumptions: base branch is `main`.
+Assumptions: base branch is `main`. Prefer the plumbing CLI when the tree is clean:
+
+```bash
+uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]
+```
+
+That creates `issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a
+**draft** PR with `Fixes #<issue_number>`. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+
+Manual equivalent if the CLI is unavailable:
 
 1. Create local branch: `issue-<issue_number>-<slug>` from `main`.
 2. Ensure working tree **and** index are clean. Then create **exactly one** empty commit (do **not** use `--no-verify`):
@@ -151,6 +182,7 @@ Provide:
 
 - Issue URL + number + org issue type
 - Whether explore ran and what was locked
+- OpenSpec change name / path from `/opsx-propose`, and whether the user approved the spec-review pause
 - Branch name
 - Draft PR URL (or “skipped PR creation” + draft)
 - Created sub-issue / linked-issue URLs (or none)

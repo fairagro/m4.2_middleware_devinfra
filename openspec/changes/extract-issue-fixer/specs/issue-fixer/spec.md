@@ -27,9 +27,7 @@ After successful triage and before any branch, empty commit, or PR creation, the
 issue types `Feature` and `Refactoring`: surface open decision threads, recommend defaults as proposals, and wait for
 user lock-in, “go”, or “skip explore”. The skill MUST NOT create branches, commits, or PRs during that pause. For `Bug`,
 `Security`, and `Task`, explore is required only when actionable criteria are missing, multiple plausible fixes exist,
-or the user asks to explore first. `Discussion` MUST NOT proceed to implement by default (see type gates). The skill MAY
-offer an OpenSpec proposal when `openspec/` exists and the work is spec-worthy; it MUST NOT require OpenSpec for every
-run.
+or the user asks to explore first. `Discussion` MUST NOT proceed to implement by default (see type gates).
 
 #### Scenario: Feature issue pauses for lock-in
 
@@ -41,7 +39,32 @@ run.
 
 - **WHEN** the issue type is `Bug` with clear acceptance criteria and a realistic path
 - **AND** the user did not ask to explore first
-- **THEN** the skill may proceed to the branch/PR workflow without an explore pause
+- **THEN** the skill may proceed past explore without an explore pause
+- **AND** it still MUST run `/opsx-propose` before branch/PR/implement (see OpenSpec propose requirement)
+
+### Requirement: OpenSpec propose before implement
+
+Before any branch, empty bootstrap commit, draft PR, or implementation on a run that will implement, the skill MUST run
+`/opsx-propose` by following `.cursor/skills/openspec-propose/SKILL.md`: create a change and generate proposal, specs,
+design, and tasks. The repository MUST have a local `openspec/` tree; if it is missing, the skill MUST stop and MUST NOT
+implement without propose. Early exits that never implement (missing info, already resolved, `Discussion` without an
+explicit implement request) MAY skip propose. Prefer `/opsx-apply` against that change’s tasks after the draft PR exists.
+The skill MUST NOT hard-depend on `/opsx-explore` (`/opsx-explore` is **optional**). **`/opsx-propose` is mandatory**
+before branch/PR/implement on runs that will implement. After propose artifacts exist, the skill MUST pause for user
+spec review and MUST NOT proceed to branch/PR/implement until the user confirms (e.g. `go` / `approved`, or
+`/opsx-update` then `go`).
+
+#### Scenario: Implement run always proposes
+
+- **WHEN** triage completes and the run will open a draft PR and implement
+- **THEN** the skill creates an OpenSpec change via `/opsx-propose` before the empty bootstrap commit
+- **AND** it does not skip propose because the work seemed “small” or not “spec-worthy”
+
+#### Scenario: Spec-review pause after propose
+
+- **WHEN** `/opsx-propose` has finished writing artifacts
+- **THEN** the skill stops for user review of proposal / specs / design / tasks
+- **AND** it does not create a branch or draft PR until the user confirms
 
 ### Requirement: Discussion and Security type gates
 

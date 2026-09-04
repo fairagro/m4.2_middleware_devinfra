@@ -21,7 +21,7 @@ the deltas from a 1:1 API copy.
 - #16 `issue-start` CLI (skill text should stay compatible with a later CLI wrap)
 - Deep nested epic hierarchies beyond one parent level for a split
 - Product-repo sync PRs or smoke tests
-- Hard dependency on `/opsx-explore` or OpenSpec for every run
+- Hard dependency on `/opsx-explore` (**optional**; `/opsx-propose` is required; in-skill explore is enough)
 
 ## Decisions
 
@@ -48,10 +48,10 @@ the deltas from a 1:1 API copy.
 
 ### 4. Explore stance inlined (not `/opsx-explore` dependency)
 
-- **Choice:** Skill embeds explore stance (open threads, wait for lock-in); optionally offer OpenSpec propose when
-  `openspec/` exists; user may `skip explore` / `go`
-- **Alternatives:** Always invoke `/opsx-explore`; always require OpenSpec change
-- **Why:** Portable across product repos; matches how #15 was run without hard-wiring Cursor OpenSpec commands
+- **Choice:** In-skill explore (open threads, wait for lock-in); `/opsx-explore` **optional**; `/opsx-propose`
+  **mandatory**, then a **spec-review pause** before branch/PR/implement; user may `skip explore` / `go`
+- **Alternatives:** Always invoke `/opsx-explore`; optional propose only when “spec-worthy”; auto-continue after propose
+- **Why:** Propose always yields planning artifacts; pause lets the human review specs before any GitHub writes
 
 ### 5. Deferred issues via create-issue; docs parity trio
 

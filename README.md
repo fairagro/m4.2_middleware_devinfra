@@ -9,9 +9,9 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
 consumers — land shared changes in this repo first. That includes the AI review policy, Finder entries
 (`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer`, `/create-issue`, and `/issue-fixer` (skills,
-Cursor commands, Copilot prompts), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`,
-`scripts/bin/gh`, `scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
-[epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
+Cursor commands, Copilot prompts), the agent GitHub CLI (`scripts/ai/`, `m42-ai`), personal-token helpers
+(`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`, `scripts/bin/git`), and
+`openspec/principles.global.md`. Roadmap: [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
@@ -55,6 +55,7 @@ steps.
 | `docs/review-fixer.md`             | Thin index for `/review-fixer`                                 |
 | `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue` |
 | `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                  |
+| `scripts/ai/`                      | `m42-ai` CLI (review-open / reply / resolve / issue-create / start) |
 | `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)   |
 | `openspec/principles.md`           | Repo-local principles extension (points at `.global`)          |
 | `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                             |

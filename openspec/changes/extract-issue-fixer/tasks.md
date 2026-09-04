@@ -7,7 +7,8 @@
       `Fixes #<issue_number>`; local implement; no fix commit/push; split rule (~50 guideline); Auth matching
       review-fixer
 - [x] 1.2 Deferred work only via create-issue (max 3–6): `relation: sub-of` for acceptance-criteria splits, `linked` for
-      distinct follow-ups; missing create-issue → print inputs, no parallel template; optional OpenSpec propose offer
+      distinct follow-ups; missing create-issue → print inputs, no parallel template; **required** `/opsx-propose`
+      before branch/PR/implement
 - [x] 1.3 Quality-check wording when consumer has `middleware/` (aligned with review-fixer)
 
 ## 2. Entrypoints (#15)
