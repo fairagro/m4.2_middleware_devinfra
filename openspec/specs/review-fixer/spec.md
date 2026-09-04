@@ -11,7 +11,8 @@ review comments using the shared AI review policy.
 
 The repository MUST provide `.agents/skills/review-fixer/SKILL.md` as the Fixer procedure for shared consumers. The
 skill MUST treat `docs/ai_review_policy.md` as the decision source of truth, process open Copilot/Bugbot work only
-unless a specific review URL is given, and MUST NOT commit or push unless the user asks.
+unless a specific review URL is given, and MUST NOT commit or push. When any finding is `fix`, the skill MUST use two
+phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>` only after the user has committed.
 
 #### Scenario: Agent runs /review-fixer with a PR number
 
@@ -19,6 +20,13 @@ unless a specific review URL is given, and MUST NOT commit or push unless the us
 - **THEN** the skill instructs fetching open AI review work once and triaging only unresolved AI threads plus
   summary-only / suppressed findings from the latest AI review body
 - **AND** resolved threads are not re-triaged
+
+#### Scenario: Agent pauses for user commit before Fixed replies
+
+- **WHEN** triage yields at least one `fix` action
+- **THEN** the skill applies local code changes without committing
+- **AND** posts dismiss/follow-up replies in that first phase
+- **AND** waits for a user-created commit SHA before posting `Fixed in <sha>.` and resolving those threads
 
 ### Requirement: Auth uses shared gh wrapper and conventions
 
@@ -45,23 +53,30 @@ When dismissing unsupported-host findings (macOS, Windows, Homebrew, unofficial 
 - **WHEN** a finder comments on Homebrew or macOS host PATH breakage
 - **THEN** the skill's decision path dismisses with practicality None citing `openspec/principles.global.md`
 
-### Requirement: Follow-up issue Markdown is inline
+### Requirement: Follow-up issues use create-issue
 
-When opening at most one follow-up issue for Medium+ deferred items, the skill MUST include an inline GitHub Markdown
-body template (title pattern, bullets with path / severity / practicality / why not this PR). It MUST NOT require
-`.agents/skills/create-issue/` to be present.
+When opening at most one follow-up issue for Medium+ deferred items, the skill MUST instruct agents to read and follow
+`.agents/skills/create-issue/SKILL.md` (org issue type, allowlisted triage labels, body template, Auth). Title MUST be
+`Follow-up from PR #<n> AI review`. Low nits MUST NOT become issues. The skill MUST NOT use a separate inline-only
+`gh issue create` template that bypasses create-issue.
 
-#### Scenario: Follow-up without create-issue skill
+#### Scenario: Medium+ deferral opens one create-issue follow-up
 
-- **WHEN** the fixer defers at least one Medium+ item and create-issue is not installed
-- **THEN** the skill still specifies how to create one follow-up issue with a Markdown body
-- **AND** Low nits still do not become issues
+- **WHEN** the fixer defers at least one Medium+ item
+- **THEN** the skill directs opening one issue via the create-issue procedure
+- **AND** Low-only nits still do not become issues
+
+#### Scenario: create-issue missing in consumer checkout
+
+- **WHEN** create-issue artifacts are absent
+- **THEN** the skill tells the agent to report that and print intended create-issue inputs
+- **AND** it still MUST NOT invent off-allowlist labels or a parallel create path
 
 ### Requirement: Cursor command and Copilot prompt entrypoints
 
 The repository MUST provide `.cursor/commands/review-fixer.md` and `.github/prompts/review-fixer.prompt.md` that point
-agents at the review-fixer skill and `docs/ai_review_policy.md`, summarizing open-work-only triage and no commit/push
-unless asked.
+agents at the review-fixer skill and `docs/ai_review_policy.md`, summarizing open-work-only triage and that the agent
+does not commit or push (user commits; Fixed replies use that SHA).
 
 #### Scenario: Slash command loads the skill
 

@@ -1,0 +1,39 @@
+# Create-issue conventions
+
+Shared `/create-issue` classifies new GitHub issues for the m4.2 product repos and this Devinfra repo. Canonical skill:
+[`.agents/skills/create-issue/SKILL.md`](../.agents/skills/create-issue/SKILL.md). `/review-fixer` uses the same skill
+for its single Medium+ follow-up issue per PR.
+
+Issue: [#14](https://github.com/fairagro/m4.2_middleware_devinfra/issues/14).
+
+## Org issue types
+
+Use GitHub **Issue Types** (org-configured), not `kind:*` labels. Pick exactly one:
+
+| Type          | Use for                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `Bug`         | Wrong results, data loss, broken contracts                              |
+| `Security`    | Secrets/PII leakage, authz/authn weakness                               |
+| `Feature`     | New intended capability                                                 |
+| `Task`        | Bounded follow-up (tech-debt, cleanup, docs) — not major structure work |
+| `Refactoring` | Multi-module / structural restructure                                   |
+| `Discussion`  | Open question or trade-off without a clear change                       |
+
+Provisioning the types in the GitHub org is out of band (org admin).
+
+## Triage labels
+
+Allowlisted families (created on demand by `/create-issue` if missing — one-shot per repo):
+
+- `severity:blocker|high|medium|low`
+- `practicality:high|medium|low|none|seen-in-the-wild`
+- `cost:cheap|medium|expensive`
+
+Core meanings of severity / practicality / cost come from [`ai_review_policy.md`](ai_review_policy.md). Issue-only
+extensions: `practicality:seen-in-the-wild`, `cost:medium` (see the skill).
+
+Do **not** invent other triage label names in the skill. Free-text labels are forbidden.
+
+## Auth
+
+Same personal-token helpers as `/review-fixer` — see root README **Personal tokens** and `scripts/bin/gh`.

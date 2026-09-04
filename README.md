@@ -8,9 +8,9 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
 consumers — land shared changes in this repo first. That includes the AI review policy, Finder entries
-(`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer` (`.agents/skills/review-fixer/`, Cursor
-command, Copilot prompt), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`,
-`scripts/bin/gh`, `scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
+(`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer` and `/create-issue` (skills, Cursor commands,
+Copilot prompts), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`,
+`scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
 [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
@@ -40,6 +40,7 @@ steps.
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
+- [Create-issue](docs/create-issue.md) — org issue types + triage labels for `/create-issue`
 - [Shared principles](openspec/principles.global.md) — synced foundation; extend via
   [`openspec/principles.md`](openspec/principles.md)
 
@@ -49,11 +50,14 @@ steps.
 | ---------------------------------- | ------------------------------------------------------------ |
 | `docs/`                            | Feature documentation (grows over time)                      |
 | `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                    |
+| `docs/create-issue.md`             | Org issue types + triage labels for `/create-issue`          |
 | `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers) |
 | `openspec/principles.md`           | Repo-local principles extension (points at `.global`)        |
 | `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                           |
+| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                         |
 | `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                        |
-| `.github/prompts/`                 | Copilot prompts (incl. review-fixer)                         |
+| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                        |
+| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue)                 |
 | `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                     |
 | `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`) |
 | `scripts/dev-tokens.sh`            | Personal token load / prompt                                 |
