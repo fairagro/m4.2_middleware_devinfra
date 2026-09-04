@@ -149,7 +149,10 @@ def build_parser() -> argparse.ArgumentParser:
     ic.add_argument("--body-file")
     ic.set_defaults(func=cmd_issue_create)
 
-    ist = sub.add_parser("issue-start", help="Empty bootstrap commit + draft PR for an issue")
+    ist = sub.add_parser(
+        "issue-start",
+        help="Push issue branch + draft PR when tip is ahead of base (no empty commit)",
+    )
     ist.add_argument("--issue", type=int, required=True)
     ist.add_argument("--slug")
     ist.add_argument("--base", default="main")

@@ -161,6 +161,7 @@ def issue_start(
     cwd: Path | None = None,
     draft_title: str | None = None,
 ) -> dict[str, Any]:
+    """Push issue branch and open a draft PR — requires commits ahead of base (no empty bootstrap)."""
     root = cwd or Path.cwd()
     status = run_git(["status", "--porcelain"], cwd=root)
     if status.stdout.strip():
@@ -173,10 +174,22 @@ def issue_start(
     branch = f"issue-{issue}-{branch_slug}"
 
     run_git(["fetch", "origin", base], cwd=root)
-    run_git(["checkout", base], cwd=root)
-    run_git(["pull", "--ff-only", "origin", base], cwd=root)
-    run_git(["checkout", "-b", branch], cwd=root)
-    run_git(["commit", "--allow-empty", "-m", f"Start issue #{issue}"], cwd=root)
+    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
+    if current != branch:
+        local = run_git(["branch", "--list", branch], cwd=root).stdout.strip()
+        if local:
+            run_git(["checkout", branch], cwd=root)
+        else:
+            run_git(["checkout", base], cwd=root)
+            run_git(["pull", "--ff-only", "origin", base], cwd=root)
+            run_git(["checkout", "-b", branch], cwd=root)
+
+    ahead = run_git(["rev-list", "--count", f"{base}..HEAD"], cwd=root).stdout.strip()
+    if ahead == "0":
+        raise RuntimeError(
+            f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)"
+        )
+
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)
 
     pr_title = draft_title or title

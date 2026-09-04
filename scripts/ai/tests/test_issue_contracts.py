@@ -88,3 +88,36 @@ def test_issue_start_refuses_dirty_tree(tmp_path: Path) -> None:
         with pytest.raises(RuntimeError, match="clean"):
             issue_start(issue=16, cwd=tmp_path)
         assert run_git.call_count == 1
+
+
+def test_issue_start_refuses_when_not_ahead(tmp_path: Path) -> None:
+    git_calls: list[list[str]] = []
+
+    def fake_git(args: list[str], **kwargs: object) -> MagicMock:
+        git_calls.append(list(args))
+        if args[:2] == ["status", "--porcelain"]:
+            return MagicMock(stdout="")
+        if args[:2] == ["fetch", "origin"]:
+            return MagicMock(stdout="")
+        if args[:2] == ["branch", "--show-current"]:
+            return MagicMock(stdout="issue-16-example\n")
+        if args[:2] == ["rev-list", "--count"]:
+            return MagicMock(stdout="0\n")
+        raise AssertionError(f"unexpected git call: {args}")
+
+    def fake_gh(args: list[str], **kwargs: object) -> MagicMock:
+        if args[:2] == ["issue", "view"]:
+            return MagicMock(
+                stdout='{"title":"Example","url":"https://github.com/o/r/issues/16","number":16}'
+            )
+        raise AssertionError(f"unexpected gh call: {args}")
+
+    with (
+        patch("m42_ai.issue.run_git", side_effect=fake_git),
+        patch("m42_ai.issue.run_gh", side_effect=fake_gh),
+    ):
+        with pytest.raises(RuntimeError, match="no commits ahead"):
+            issue_start(issue=16, slug="example", cwd=tmp_path)
+
+    assert not any(c[:2] == ["commit", "--allow-empty"] for c in git_calls)
+    assert not any(c[:1] == ["push"] for c in git_calls)

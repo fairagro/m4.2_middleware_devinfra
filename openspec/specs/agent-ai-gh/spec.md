@@ -77,15 +77,21 @@ default page size are not treated as missing.
 
 ### Requirement: issue-start
 
-`issue-start` MUST, on a clean working tree/index: create branch `issue-<n>-<slug>` from `main`, create exactly one
-empty commit `Start issue #<n>`, push it, and open a draft PR whose body includes `Fixes #<n>`. It MUST NOT mark the PR
-ready. The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”. Fetch + fast-forward pull
-of the base branch MUST succeed before creating the issue branch (MUST NOT ignore pull failures).
+`issue-start` MUST, on a clean working tree/index: ensure branch `issue-<n>-<slug>` exists (create from `main` if
+needed after fetch + fast-forward pull of the base), refuse when `HEAD` is not ahead of the base, push the tip, and open
+a draft PR whose body includes `Fixes #<n>`. It MUST NOT create empty bootstrap commits. It MUST NOT mark the PR ready.
+The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”. Fetch + fast-forward pull of the
+base branch MUST succeed before creating a missing issue branch (MUST NOT ignore pull failures).
 
 #### Scenario: Dirty tree refuses issue-start
 
 - **WHEN** `issue-start` is invoked with a dirty working tree or index
 - **THEN** it exits non-zero without creating a branch or PR
+
+#### Scenario: Tip equals base refuses issue-start
+
+- **WHEN** `issue-start` is invoked and `HEAD` has no commits ahead of the base
+- **THEN** it exits non-zero without creating an empty commit or opening a PR
 
 #### Scenario: issue-start PR body has no Cursor footer
 

@@ -23,7 +23,7 @@ Auth: uses `gh` on `PATH` (Dev Container: `scripts/bin/gh` + `GH_TOKEN`). No sec
 | `review-reply`                  | `in_reply_to` on a review comment, or `--conversation` PR comment                       |
 | `review-resolve --thread-id ID` | `resolveReviewThread`                                                                   |
 | `issue-create`                  | Type + triage labels (+ optional `--parent`)                                            |
-| `issue-start --issue N`         | Branch, empty bootstrap commit, draft PR with `Fixes #N` (no “Made with Cursor” footer) |
+| `issue-start --issue N`         | Ensure issue branch, push when ahead of base, draft PR with `Fixes #N` (no empty commit) |
 
 ## Tests
 
