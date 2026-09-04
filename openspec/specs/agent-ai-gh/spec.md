@@ -127,10 +127,10 @@ NOT introduce a second credential model.
 ### Requirement: issue-branch and branch-ahead
 
 `issue-branch` MUST, on a clean working tree/index: ensure `issue-<n>-<slug>` exists (create from base after fetch +
-fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST print JSON
-with `base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, `behind`, and `ok` (`true` iff `ahead > 0`),
-comparing against the remote-tracking ref (MUST NOT rely on a possibly stale local base tip alone), and MUST exit
-non-zero when not ahead.
+fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST fetch
+`origin/<base>` before counting, print JSON with `base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`,
+`behind`, and `ok` (`true` iff `ahead > 0`), comparing against that remote-tracking ref (MUST NOT rely on a possibly
+stale local or remote-tracking tip without fetching), and MUST exit non-zero when not ahead.
 
 #### Scenario: issue-branch creates without PR
 

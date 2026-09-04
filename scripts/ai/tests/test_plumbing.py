@@ -95,6 +95,8 @@ def test_view_issue_shapes_triage() -> None:
 
 def test_branch_ahead_ok_and_not() -> None:
     def fake_git(args: list[str], **kwargs: object) -> MagicMock:
+        if args[:3] == ["fetch", "origin", "main"]:
+            return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
         if args[:2] == ["rev-list", "--count"] and args[2].startswith("origin/main.."):
@@ -110,6 +112,8 @@ def test_branch_ahead_ok_and_not() -> None:
     assert out["upstream"] == "origin/main"
 
     def fake_git_zero(args: list[str], **kwargs: object) -> MagicMock:
+        if args[:3] == ["fetch", "origin", "main"]:
+            return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
         return MagicMock(stdout="0\n")

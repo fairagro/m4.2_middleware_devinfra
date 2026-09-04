@@ -218,6 +218,7 @@ def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, An
     """Report how far HEAD is ahead/behind of `origin/<base>` (remote-tracking ref)."""
     root = cwd or Path.cwd()
     upstream = f"origin/{base}"
+    run_git(["fetch", "origin", base], cwd=root)
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     ahead_s = run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip()
     behind_s = run_git(["rev-list", "--count", f"HEAD..{upstream}"], cwd=root).stdout.strip()
