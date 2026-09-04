@@ -150,7 +150,12 @@ def test_pr_strip_footer_edits_when_changed() -> None:
     assert any(c[:2] == ["pr", "edit"] for c in calls)
 
 
-def test_pr_strip_footer_noop_skips_edit() -> None:
+def test_pr_strip_footer_rejects_partial_repo_override() -> None:
+    with pytest.raises(ValueError, match="both --owner and --repo"):
+        pr_strip_footer(25, owner="only-owner")
+    with pytest.raises(ValueError, match="both --owner and --repo"):
+        pr_strip_footer(25, repo="only-repo")
+
     clean = "## Summary\n\nFixes #6\n"
     calls: list[list[str]] = []
 

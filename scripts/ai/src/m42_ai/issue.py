@@ -244,7 +244,7 @@ def ensure_issue_branch(
     root = cwd or Path.cwd()
     status = run_git(["status", "--porcelain"], cwd=root)
     if status.stdout.strip():
-        raise RuntimeError("working tree/index must be clean before issue-branch")
+        raise RuntimeError("working tree/index must be clean before issue branch / start")
 
     viewed = view_issue(issue, cwd=root)
     title = viewed["title"]

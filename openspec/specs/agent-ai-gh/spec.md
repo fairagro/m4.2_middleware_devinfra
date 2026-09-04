@@ -161,6 +161,12 @@ non-zero when not ahead.
 - **THEN** it does not call `gh pr edit`
 - **AND** JSON reports `changed: false`
 
+#### Scenario: Partial owner/repo override fails
+
+- **WHEN** `pr-strip-footer` is invoked with only `--owner` or only `--repo`
+- **THEN** it exits non-zero with a clear error
+- **AND** it does not fall back to the cwd repo silently
+
 ### Requirement: Fixture tests without live GitHub
 
 Unit tests MUST cover JSON shaping/filtering with recorded fixtures and MUST NOT call live GitHub in CI.
