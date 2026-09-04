@@ -4,7 +4,9 @@ Small Python CLI for deterministic GitHub/git work used by `/review-fixer`, `/cr
 
 ## Run
 
-From the repo root (or any cwd; `--project` points at this package):
+From a clone of this repo (or another git checkout where `gh` can resolve the GitHub remote). `--project` may point at
+this package from any path; GitHub commands still need a repo context (`gh` cwd / remotes), unless you pass `--owner` /
+`--repo` where the command supports them:
 
 ```bash
 uv run --project scripts/ai m42-ai --help

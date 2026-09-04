@@ -88,45 +88,58 @@ def create_issue(
 
     relation = f"sub-of #{parent}" if parent is not None else "linked"
     parent_failed: str | None = None
-    created_url: str | None = None
+
+    def _result(
+        *,
+        url: str,
+        relation_out: str,
+        parent_fallback: bool,
+        parent_error: str | None,
+        partial_failure: bool,
+    ) -> dict[str, Any]:
+        return {
+            "url": url,
+            "type": issue_type,
+            "labels": labels,
+            "relation": relation_out,
+            "parent_fallback": parent_fallback,
+            "parent_error": parent_error,
+            "partial_failure": partial_failure,
+        }
 
     if parent is not None:
         try:
             proc = run_gh(_args(True), input_text=body, cwd=cwd)
             created_url = _extract_issue_url(proc.stdout) or proc.stdout.strip()
-            return {
-                "url": created_url,
-                "type": issue_type,
-                "labels": labels,
-                "relation": relation,
-                "parent_fallback": False,
-                "parent_error": None,
-            }
+            return _result(
+                url=created_url,
+                relation_out=relation,
+                parent_fallback=False,
+                parent_error=None,
+                partial_failure=False,
+            )
         except GhError as exc:
             # Only fall back when no issue URL was produced.
             maybe = _extract_issue_url(exc.stderr) or _extract_issue_url(str(exc))
             if maybe:
-                return {
-                    "url": maybe,
-                    "type": issue_type,
-                    "labels": labels,
-                    "relation": relation,
-                    "parent_fallback": False,
-                    "parent_error": exc.stderr.strip(),
-                    "partial_failure": True,
-                }
+                return _result(
+                    url=maybe,
+                    relation_out=relation,
+                    parent_fallback=False,
+                    parent_error=exc.stderr.strip(),
+                    partial_failure=True,
+                )
             parent_failed = exc.stderr.strip()
 
     proc = run_gh(_args(False), input_text=body, cwd=cwd)
     created_url = _extract_issue_url(proc.stdout) or proc.stdout.strip()
-    return {
-        "url": created_url,
-        "type": issue_type,
-        "labels": labels,
-        "relation": "linked" if parent_failed else relation,
-        "parent_fallback": bool(parent_failed),
-        "parent_error": parent_failed,
-    }
+    return _result(
+        url=created_url,
+        relation_out="linked" if parent_failed else relation,
+        parent_fallback=bool(parent_failed),
+        parent_error=parent_failed,
+        partial_failure=bool(parent_failed),
+    )
 
 
 def issue_start(
@@ -150,8 +163,7 @@ def issue_start(
 
     run_git(["fetch", "origin", base], cwd=root)
     run_git(["checkout", base], cwd=root)
-    run_git(["pull", "--ff-only", "origin", base], cwd=root, check=False)
-    # pull may fail if already up to date with different remote config; ensure on base tip
+    run_git(["pull", "--ff-only", "origin", base], cwd=root)
     run_git(["checkout", "-b", branch], cwd=root)
     run_git(["commit", "--allow-empty", "-m", f"Start issue #{issue}"], cwd=root)
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)

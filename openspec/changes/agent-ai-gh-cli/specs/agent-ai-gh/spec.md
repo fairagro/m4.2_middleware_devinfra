@@ -49,7 +49,8 @@ items, and resolving a review thread by GraphQL thread id. Multiline bodies MUST
 `issue-create` MUST create a GitHub issue with exactly one org issue type and allowlisted triage labels (`severity:*`,
 `practicality:*`, `cost:*`), ensuring missing allowlisted labels are created. Optional `--parent` MUST attach a native
 sub-issue. Fallback to a linked create MUST occur only when no issue URL was produced; MUST NOT create a second issue
-after a partial success.
+after a partial success. Success JSON MUST always include `partial_failure` (false on full success; true on degraded /
+partial outcomes such as parent fallback or post-create errors with an existing URL).
 
 #### Scenario: Parent failure without URL falls back once
 
@@ -61,7 +62,8 @@ after a partial success.
 
 `issue-start` MUST, on a clean working tree/index: create branch `issue-<n>-<slug>` from `main`, create exactly one
 empty commit `Start issue #<n>`, push it, and open a draft PR whose body includes `Fixes #<n>`. It MUST NOT mark the PR
-ready. The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”.
+ready. The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”. Fetch + fast-forward pull
+of the base branch MUST succeed before creating the issue branch (MUST NOT ignore pull failures).
 
 #### Scenario: Dirty tree refuses issue-start
 
