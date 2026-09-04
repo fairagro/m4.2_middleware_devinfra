@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from m42_ai.issue import slugify
-from m42_ai.review import extract_suppressed_comments, is_ai_author, shape_review_open
+from m42_ai.review import extract_suppressed_comments, is_ai_author, is_submitted_review, shape_review_open
 
 FIXTURE = Path(__file__).parent / "fixtures" / "review_pr.json"
 
@@ -45,6 +45,31 @@ def test_is_ai_author() -> None:
     assert not is_ai_author(None)
 
 
+def test_is_submitted_review() -> None:
+    assert is_submitted_review({"submittedAt": "2026-09-04T12:00:00Z", "state": "COMMENTED"})
+    assert not is_submitted_review({"submittedAt": None, "state": "PENDING"})
+    assert not is_submitted_review({"submittedAt": "2026-09-04T12:00:00Z", "state": "PENDING"})
+    assert not is_submitted_review({"state": "COMMENTED"})
+
+
+def test_shape_ignores_pending_ai_reviews() -> None:
+    payload = _payload()
+    nodes = payload["data"]["repository"]["pullRequest"]["reviews"]["nodes"]
+    before = shape_review_open(payload)["round_count"]
+    nodes.append(
+        {
+            "databaseId": 999,
+            "author": {"login": "copilot-pull-request-reviewer"},
+            "submittedAt": None,
+            "state": "PENDING",
+            "body": "## Suppressed comments\n\n- phantom",
+        }
+    )
+    shaped = shape_review_open(payload)
+    assert shaped["round_count"] == before
+    assert all(r["database_id"] != 999 for r in shaped["ai_reviews"])
+
+
 def test_extract_suppressed_comments() -> None:
     body = "## Suppressed comments\n\n- One\n- Two\n\n## Next\n\n- ignore"
     assert extract_suppressed_comments(body) == [
@@ -80,7 +105,7 @@ def test_shape_keeps_suppressed_when_later_cursor_review_has_none() -> None:
     nodes = payload["data"]["repository"]["pullRequest"]["reviews"]["nodes"]
     for n in nodes:
         if n["author"]["login"] == "cursor":
-            n["submittedAt"] = "2026-09-04T99:00:00Z"
+            n["submittedAt"] = "2026-09-04T23:00:00Z"
             n["body"] = "Bugbot found 1 issue."
         if "copilot" in n["author"]["login"]:
             n["body"] = COPILOT_SUPPRESSED_BODY

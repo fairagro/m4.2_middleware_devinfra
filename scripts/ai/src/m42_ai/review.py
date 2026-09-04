@@ -119,6 +119,14 @@ def _event_time(node: dict[str, Any], *keys: str) -> str:
     return ""
 
 
+def is_submitted_review(review: dict[str, Any]) -> bool:
+    """True when GitHub has a real submission time (excludes PENDING / unsubmitted drafts)."""
+    if not review.get("submittedAt"):
+        return False
+    state = (review.get("state") or "").upper()
+    return state != "PENDING"
+
+
 def answered_suppressed_review_ids(
     suppressed_reviews: list[dict[str, Any]],
     *,
@@ -218,7 +226,9 @@ def shape_review_open(
     all_ai = [
         r
         for r in all_reviews
-        if r.get("author") and is_ai_author((r["author"] or {}).get("login"))
+        if r.get("author")
+        and is_ai_author((r["author"] or {}).get("login"))
+        and is_submitted_review(r)
     ]
     all_ai.sort(key=lambda r: (_event_time(r, "submittedAt"), r.get("databaseId") or 0))
 

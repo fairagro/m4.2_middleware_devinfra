@@ -25,19 +25,26 @@ Linux) MUST remain outside the CLI (fixer policy only).
 `review-open` MUST emit JSON including: PR number/url, AI review round count, unresolved AI review threads (first
 comment author matching Copilot/Bugbot/Cursor heuristics), **every** AI review body with heuristically extracted
 suppressed / summary-only findings (`ai_reviews`, `summary_only_findings`), and a convenience `latest_ai_review`.
-Resolved threads and non-AI threads MUST be omitted from the unresolved list. Summary-only findings MUST NOT be limited
-to the single latest AI review (a later Bugbot/Cursor submission MUST NOT hide earlier Copilot suppressed comments).
-Only the latest **unanswered** suppressed AI review contributes to `summary_only_findings` (at most one open summary
-review); a triage reply (`Fixed in` / `Dismissed.` / `Follow-up:`, optionally with `#pullrequestreview-<id>`) after a
-suppressed review MUST mark it answered. An optional `--review-id` MAY force that review’s suppressed items into the
-open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with a clear error naming
-owner/repo/PR. Summary-only findings MUST be marked non-resolvable.
+Resolved threads and non-AI threads MUST be omitted from the unresolved list. Round count and AI-review lists MUST
+include only **submitted** reviews (non-null `submittedAt`, state not `PENDING`). Summary-only findings MUST NOT be
+limited to the single latest AI review (a later Bugbot/Cursor submission MUST NOT hide earlier Copilot suppressed
+comments). Only the latest **unanswered** suppressed AI review contributes to `summary_only_findings` (at most one open
+summary review); a triage reply (`Fixed in` / `Dismissed.` / `Follow-up:`, optionally with `#pullrequestreview-<id>`)
+after a suppressed review MUST mark it answered. An optional `--review-id` MAY force that review’s suppressed items into
+the open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with a clear error
+naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable.
 
 #### Scenario: Fixture filters resolved and human threads
 
 - **WHEN** `review-open` shaping runs on a recorded GraphQL fixture with resolved AI, open AI, and open human threads
 - **THEN** only the open AI thread appears under unresolved AI threads
 - **AND** round_count counts AI review submissions only
+
+#### Scenario: Pending AI reviews are excluded
+
+- **WHEN** GraphQL includes an AI review with null `submittedAt` or state `PENDING`
+- **THEN** that review is omitted from `round_count` and `ai_reviews`
+- **AND** it does not affect suppressed-review selection
 
 ### Requirement: review-reply and review-resolve
 
@@ -59,8 +66,8 @@ sub-issue. Fallback to a linked create MUST occur only when no issue URL was pro
 after a partial success. Success JSON MUST always include `partial_failure` (false on full success; true on degraded /
 partial outcomes such as parent fallback or post-create errors with an existing URL). When `gh issue create --parent`
 exits non-zero, the CLI MUST inspect **both** stdout and stderr for an issue URL before any linked fallback create.
-`ensure_labels` MUST list existing labels with a high enough limit (or equivalent) so allowlisted labels past the default
-page size are not treated as missing.
+`ensure_labels` MUST list existing labels with a high enough limit (or equivalent) so allowlisted labels past the
+default page size are not treated as missing.
 
 #### Scenario: Parent failure without URL falls back once
 
