@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Canonical `/issue-fixer` triage → `/opsx-explore` when required → `/opsx-propose` → pause → `/opsx-apply` → pause →
-`/opsx-archive`, with a draft PR from an empty bootstrap commit and no auto-committing of fix commits. OpenSpec commands
-are exclusive to this skill.
+Canonical `/issue-fixer` triage → `/opsx-explore` when required → create issue branch → `/opsx-propose` → pause → draft
+PR + `/opsx-apply` → pause → `/opsx-archive`, with no auto-committing of fix commits. OpenSpec commands are exclusive to
+this skill.
 
 ## Requirements
 
@@ -50,15 +50,16 @@ cadence.
 
 - **WHEN** the issue type is `Bug` with clear acceptance criteria and a realistic path
 - **AND** the user did not ask to explore first
-- **THEN** the skill skips `/opsx-explore` and proceeds to `/opsx-propose`
+- **THEN** the skill skips `/opsx-explore` and proceeds to create the issue branch and `/opsx-propose`
 
 ### Requirement: OpenSpec cadence propose then apply then archive with pauses
 
 On every run that will implement, the skill MUST follow this cadence:
 
-1. **`/opsx-propose`** (`.cursor/skills/openspec-propose/SKILL.md`) → **pause** until the user confirms after reviewing
-   proposal / specs / design / tasks.
-2. On continue: create the draft bootstrap PR (when needed), then **`/opsx-apply`**
+1. Create local branch `issue-<issue_number>-<slug>` from `main` → **`/opsx-propose`**
+   (`.cursor/skills/openspec-propose/SKILL.md`) → **pause** until the user confirms after reviewing proposal / specs /
+   design / tasks. The agent MUST NOT auto-commit. The skill MUST NOT open a draft PR during this step.
+2. On continue: ensure a draft bootstrap PR exists when needed, then **`/opsx-apply`**
    (`.cursor/skills/openspec-apply-change/SKILL.md`) → **pause** until the user confirms after reviewing the working
    tree (they commit/push; the agent MUST NOT auto-commit fix commits).
 3. On continue: **`/opsx-archive`** (`.cursor/skills/openspec-archive-change/SKILL.md`).
@@ -67,10 +68,17 @@ If `openspec/` is missing, the skill MUST stop and MUST NOT implement. Early exi
 cadence. The skill MUST NOT skip propose because the work seemed small or not “spec-worthy”. The skill MUST NOT run
 apply before the propose pause confirmation, and MUST NOT run archive before the apply pause confirmation.
 
+#### Scenario: Branch before propose
+
+- **WHEN** the run will implement after explore (or after skipping explore)
+- **THEN** the skill creates `issue-<issue_number>-<slug>` from `main` before `/opsx-propose`
+- **AND** it does not open a draft PR yet
+- **AND** it does not auto-commit
+
 #### Scenario: Propose pause before apply
 
-- **WHEN** `/opsx-propose` has finished writing artifacts
-- **THEN** the skill stops and asks the user to review the change
+- **WHEN** `/opsx-propose` has finished writing artifacts on the issue branch
+- **THEN** the skill asks the user to review the change (and commit if they want)
 - **AND** it does not open a draft PR or run `/opsx-apply` until the user confirms
 
 #### Scenario: Apply pause before archive
@@ -86,28 +94,30 @@ apply before the propose pause confirmation, and MUST NOT run archive before the
 
 ### Requirement: Empty bootstrap commit and draft PR via CLI preferred
 
-After the propose-pause confirmation and before or as part of starting `/opsx-apply`, the skill MUST create branch
-`issue-<issue_number>-<slug>` from `main`, one empty commit on a clean tree with `Start issue #<issue_number>`, push,
-and open a draft PR with `Fixes #<issue_number>`. Prefer `m42-ai issue-start` when available. MUST NOT mark the PR
-ready; MUST NOT create fix commits. PR bodies MUST NOT include tool marketing footers such as “Made with Cursor”; if
-injected, the skill MUST strip them before continuing.
+After the propose-pause confirmation and before or as part of starting `/opsx-apply`, the skill MUST ensure a **draft**
+PR exists with `Fixes #<issue_number>`. If the issue branch already exists from before propose, complete any missing
+empty bootstrap commit and/or `gh pr create --draft` rather than recreating the branch. When using end-to-end
+`m42-ai issue-start` on a clean tree, that tool MAY create the empty commit, push, and draft PR on the existing issue
+branch (it MUST NOT recreate the branch if already on it). MUST NOT mark the PR ready; MUST NOT create fix commits. PR
+bodies MUST NOT include tool marketing footers such as “Made with Cursor”; if injected, the skill MUST strip them before
+continuing.
 
 #### Scenario: Draft PR from empty bootstrap commit
 
 - **WHEN** the agent is ready to open the PR after propose and user spec-review approval
-- **THEN** it creates one empty commit on a clean tree, pushes it, and opens a draft PR with `Fixes #<issue_number>`
+- **THEN** it ensures a draft PR with `Fixes #<issue_number>` exists (empty bootstrap on a clean tip when required)
 - **AND** it does not mark the PR ready
 - **AND** the PR body does not contain a “Made with Cursor” footer
 
 ### Requirement: Thin docs and entrypoints
 
 The repository MUST provide thin Cursor command and Copilot prompt entrypoints and `docs/issue-fixer.md` that state
-`/opsx-explore` when required → `/opsx-propose` → pause → `/opsx-apply` → pause → `/opsx-archive`, and that OpenSpec is
-issue-fixer-only.
+`/opsx-explore` when required → create issue branch → `/opsx-propose` → pause → draft PR + `/opsx-apply` → pause →
+`/opsx-archive`, and that OpenSpec is issue-fixer-only.
 
 #### Scenario: Contributor reads issue-fixer docs
 
 - **WHEN** a contributor opens `docs/issue-fixer.md`
 - **THEN** they learn explore uses `/opsx-explore` when required
-- **AND** they learn the propose → pause → apply → pause → archive cadence
+- **AND** they learn the branch → propose → pause → apply → pause → archive cadence
 - **AND** they learn OpenSpec is not used by `/review-fixer` or `/create-issue`

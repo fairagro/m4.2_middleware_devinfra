@@ -85,28 +85,34 @@ When explore is **not** required, skip `/opsx-explore` and continue to the OpenS
 
 On every run that will implement, after explore (when it ran) or immediately when explore was skipped:
 
-### 1. `/opsx-propose` → pause
+### 1. Issue branch → `/opsx-propose` → pause
 
-**`/opsx-propose` is mandatory** before any branch, empty commit, draft PR, or implementation.
-
-1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
+1. **Create the issue branch first** from `main`: `issue-<issue_number>-<slug>`. Do **not** create the empty bootstrap
+   commit or draft PR yet, and do **not** auto-commit. If already on the correct issue branch, skip creating it again.
+2. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
-2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
-   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
-3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
-4. **Pause (spec review):** After artifacts exist, **stop**. Show the change name/path and ask the user to review
-   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, apply, or archive until they
-   confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run `/opsx-update` (or
-   edit artifacts) and pause again.
+3. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
+   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks on that
+   branch.
+4. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
+5. **Pause (spec review):** **Stop**. Show the change name/path and branch name; ask the user to review proposal /
+   specs / design / tasks and to **commit** (and optionally push) as they wish. Do **not** open a draft PR, run apply,
+   or archive until they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes,
+   run `/opsx-update` (or edit artifacts) and pause again.
+
+**`/opsx-propose` is mandatory** before empty commit, draft PR, or implementation (always after the issue branch
+exists).
 
 Early exits that never implement (missing info, already resolved, `Discussion` without an explicit implement request)
-skip this cadence. Once the user asks to implement a `Discussion`, start at propose.
+skip this cadence. Once the user asks to implement a `Discussion`, start at branch + propose.
 
 ### 2. On continue: draft PR + `/opsx-apply` → pause
 
 After the user confirms the propose pause:
 
-1. Create the empty-bootstrap draft PR (next section) if it does not exist yet.
+1. Ensure a **draft** PR exists for the issue branch (next section): empty bootstrap + `gh pr create --draft` /
+   `m42-ai issue-start` when the branch still needs a distinct tip for GitHub; if the user already pushed commits, open
+   the draft PR from the current branch tip. Strip any `Made with Cursor` footer.
 2. Read and follow
    [`.cursor/skills/openspec-apply-change/SKILL.md`](../../../.cursor/skills/openspec-apply-change/SKILL.md)
    (`/opsx-apply`) against that change’s `tasks.md`. Implement in the working tree only — do **not** commit or push fix
@@ -123,14 +129,20 @@ After the user confirms the apply pause, read and follow
 
 ## Branch + draft PR (empty bootstrap commit)
 
-Assumptions: base branch is `main`. Prefer the plumbing CLI when the tree is clean:
+**Branch early:** create `issue-<issue_number>-<slug>` from `main` **before** `/opsx-propose`, so propose artifacts land
+on the issue branch and the user can commit during the spec-review pause. That step does **not** open the PR yet.
+
+**Draft PR later:** after the propose-pause confirmation (and before or as part of starting `/opsx-apply`). Assumptions:
+base branch is `main`. Prefer the plumbing CLI when the tree is clean:
 
 ```bash
 uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]
 ```
 
-That creates `issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a
-**draft** PR with `Fixes #<issue_number>`. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+If the issue branch already exists locally, do **not** re-run a full `issue-start` that recreates it — push if needed
+and `gh pr create --draft` (or complete any missing empty bootstrap) instead. `issue-start` creates
+`issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a **draft** PR with
+`Fixes #<issue_number>` when used end-to-end. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
 is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
