@@ -82,20 +82,29 @@ creation, print a draft, and may still work locally when appropriate.
 ### Requirement: Split rule and create-issue for sub-issues
 
 The skill MUST split only when ≥2 logically independent, independently mergeable blocks exist. Within a block, ~50 new
-production lines is a guideline, not a hard cap. When splitting, the skill MUST create at most 3–6 sub-issues by reading
-and following `.agents/skills/create-issue/SKILL.md` (one invocation per sub-issue), MUST NOT use a parallel inline-only
-`gh issue create` template, and MUST implement only the MVP slice in the current PR while linking sub-issues from the PR
-body (and parent issue when practical). Sub-issue types MUST use real org types: `Refactoring` when the slice is
-structural; `Task` when the parent is only subdivided; other types when the slice retains that nature. If create-issue
-artifacts are missing, the skill MUST report that and print intended create-issue inputs without inventing an
-off-allowlist create path.
+production lines is a guideline, not a hard cap. When splitting work that remains part of the current issue’s acceptance
+criteria / done-when, the skill MUST create at most 3–6 issues by reading and following
+`.agents/skills/create-issue/SKILL.md` (one invocation per slice) with `relation: sub-of #<current-issue>`, MUST NOT use
+a parallel inline-only `gh issue create` template, and MUST implement only the MVP slice in the current PR while also
+referencing those issues from the PR body. If deferred work is a **distinct** problem (not covered by the current
+issue’s done-when), the skill MUST use `relation: linked` instead of `sub-of`. Sub-issue types MUST use real org types:
+`Refactoring` when the slice is structural; `Task` when the parent is only subdivided; other types when the slice
+retains that nature. If create-issue artifacts are missing, the skill MUST report that and print intended create-issue
+inputs without inventing an off-allowlist create path.
 
-#### Scenario: Split uses create-issue
+#### Scenario: Split uses create-issue as native sub-issues
 
-- **WHEN** the agent identifies ≥2 independently mergeable blocks and must defer some
-- **THEN** it opens each deferred sub-issue via the create-issue procedure
+- **WHEN** the agent identifies ≥2 independently mergeable blocks that are still part of the current issue’s acceptance
+  criteria and must defer some
+- **THEN** it opens each deferred slice via create-issue with `relation: sub-of` that issue
 - **AND** the current PR implements only the MVP slice
 - **AND** it does not bypass create-issue with an inline-only create template
+
+#### Scenario: Distinct follow-up is linked not sub-of
+
+- **WHEN** while fixing the current issue the agent must file work that is not part of that issue’s done-when
+- **THEN** it opens the issue via create-issue with `relation: linked`
+- **AND** it does not set the current issue as GitHub parent
 
 #### Scenario: No logical split keeps one PR
 

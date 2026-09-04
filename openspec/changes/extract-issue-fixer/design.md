@@ -4,7 +4,7 @@
 
 See proposal.md. Source behavior lives in `fairagro/m4.2_advanced_middleware_api` `.agents/skills/issue-fixer/` plus
 Cursor command and Copilot prompt. Devinfra already has shared Auth, `/review-fixer`, and `/create-issue` on `main`.
-Explore lock-ins A–F from `/opsx-explore` on [#15](https://github.com/fairagro/m4.2_middleware_devinfra/issues/15) drive
+Explore lock-ins A–G from `/opsx-explore` on [#15](https://github.com/fairagro/m4.2_middleware_devinfra/issues/15) drive
 the deltas from a 1:1 API copy.
 
 ## Goals / Non-Goals
@@ -12,24 +12,24 @@ the deltas from a 1:1 API copy.
 **Goals:**
 
 - Land canonical issue-fixer skill, command, prompt, and thin docs
-- Match Auth to review-fixer/create-issue; sub-issues via create-issue only
+- Match Auth to review-fixer/create-issue; deferred issues only via create-issue
 - Same docs/README pattern for review-fixer, create-issue, and issue-fixer (add missing `docs/review-fixer.md`)
-- Encode empty bootstrap commit + draft PR + explore pause + type gates in the skill
+- Encode empty bootstrap commit + draft PR + explore pause + type gates + sub-vs-linked relation in the skills
 
 **Non-Goals:**
 
 - #16 `issue-start` CLI (skill text should stay compatible with a later CLI wrap)
-- Native GitHub parent/child sub-issue GraphQL (body + PR links are enough)
+- Deep nested epic hierarchies beyond one parent level for a split
 - Product-repo sync PRs or smoke tests
 - Hard dependency on `/opsx-explore` or OpenSpec for every run
 
 ## Decisions
 
-### 1. Variante: API procedure + Devinfra Auth + lock-ins A–F
+### 1. Variante: API procedure + Devinfra Auth + lock-ins A–G
 
 - **Choice:** Copy API skill shape; rewrite Auth like create-issue; replace vague “empty head” with one
   `git commit --allow-empty` on a clean tree; draft PR; explore before writes for Feature/Refactoring;
-  Discussion/Security gates; create-issue for splits
+  Discussion/Security gates; create-issue for deferred work with relation G
 - **Alternatives:** 1:1 API copy; defer explore to a separate slash command
 - **Why:** GitHub cannot open a PR with identical SHAs; #16 already says draft; user workflow is explore-then-implement
 
@@ -53,10 +53,10 @@ the deltas from a 1:1 API copy.
 - **Alternatives:** Always invoke `/opsx-explore`; always require OpenSpec change
 - **Why:** Portable across product repos; matches how #15 was run without hard-wiring Cursor OpenSpec commands
 
-### 5. Sub-issues via create-issue; docs parity trio
+### 5. Deferred issues via create-issue; docs parity trio
 
 - **Choice:** Same amendment pattern as review-fixer→create-issue; add `docs/issue-fixer.md` and `docs/review-fixer.md`;
-  update `docs/create-issue.md` + README
+  update `docs/create-issue.md` + README; document relation G in create-issue docs
 - **Alternatives:** Inline `gh issue create` in issue-fixer; README-only for issue-fixer
 - **Why:** One creator skill; user required identical documentation pattern for all three
 
@@ -66,6 +66,20 @@ the deltas from a 1:1 API copy.
   has none
 - **Why:** Skill is shared; API “skip quality unless debugging” was too weak for a code-writing fixer
 
+### 7. Sub-issue vs linked relation (lock-in G)
+
+- **Choice:** Callers pass `relation: sub-of #<n> | linked` into create-issue.
+  - **Sub-issue** (`gh issue create --parent` / equivalent): new work is still part of the parent’s acceptance criteria
+    / done-when (issue-fixer splits of the issue being fixed).
+  - **Linked** (body Links + optional related mention only): distinct follow-up problem not covered by that parent
+    (typical review-fixer deferral; “discovered while working on #N”).
+  - Unclear → ask once; default **linked** (do not pollute hierarchy).
+  - review-fixer: **linked** by default; **sub-of #<n>** only when the PR body has `Fixes #<n>` and the deferred item is
+    clearly remaining acceptance criteria of that issue.
+- **Alternatives:** Markdown links only (previous Non-Goal); always sub-issue under PR or epic
+- **Why:** User lock-in; GitHub CLI supports `--parent` / `--add-sub-issue`; hierarchy should mean “same work split,”
+  not “related topic”
+
 ## Risks / Trade-offs
 
 - **[Risk] Empty commit triggers CI minutes on drafts** → Mitigation: document that draft is a review gate, not a CI
@@ -73,7 +87,10 @@ the deltas from a 1:1 API copy.
 - **[Risk] Hooks fail on empty commit (commit-msg)** → Mitigation: do not `--no-verify`; fix message; fail clearly
 - **[Risk] Explore pause ignored by hurried agents** → Mitigation: command/prompt restate wait; specs require no
   branch/PR during pause
-- **[Trade-off] create-issue + review-fixer docs touch in this change** → Acceptable for parity; keeps #15 coherent
+- **[Risk] Wrong relation (sub vs linked)** → Mitigation: default linked when unclear; explicit heuristics in skills
+- **[Risk] `gh issue create --parent` unsupported on older gh / org** → Mitigation: skill documents flag; on failure
+  fall back to linked body + report error
+- **[Trade-off] create-issue + review-fixer docs/behavior touch in this change** → Acceptable for parity and G
 
 ## Migration Plan
 
@@ -84,4 +101,4 @@ the deltas from a 1:1 API copy.
 
 ## Open Questions
 
-None — A–F locked in explore.
+None — A–G locked in explore.
