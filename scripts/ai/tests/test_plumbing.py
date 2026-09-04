@@ -95,7 +95,7 @@ def test_view_issue_shapes_triage() -> None:
 
 def test_branch_ahead_ok_and_not() -> None:
     def fake_git(args: list[str], **kwargs: object) -> MagicMock:
-        if args[:3] == ["fetch", "origin", "main"]:
+        if args[:4] == ["fetch", "origin", "--", "main"]:
             return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
@@ -112,7 +112,7 @@ def test_branch_ahead_ok_and_not() -> None:
     assert out["upstream"] == "origin/main"
 
     def fake_git_zero(args: list[str], **kwargs: object) -> MagicMock:
-        if args[:3] == ["fetch", "origin", "main"]:
+        if args[:4] == ["fetch", "origin", "--", "main"]:
             return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
@@ -122,6 +122,69 @@ def test_branch_ahead_ok_and_not() -> None:
         out0 = branch_ahead(base="main")
     assert out0["ok"] is False
     assert out0["ahead"] == 0
+
+
+def test_validate_git_ref_name_rejects_option_like() -> None:
+    from m42_ai.issue import validate_git_ref_name
+
+    with pytest.raises(ValueError, match="must not start"):
+        validate_git_ref_name("--all", what="base")
+    with pytest.raises(ValueError, match="empty"):
+        validate_git_ref_name("  ", what="base")
+    assert validate_git_ref_name("main") == "main"
+
+
+def test_branch_ahead_rejects_bad_base() -> None:
+    with pytest.raises(ValueError, match="must not start"):
+        branch_ahead(base="--all")
+
+
+def test_ensure_issue_branch_tracks_remote_only_branch(tmp_path: Path) -> None:
+    git_calls: list[list[str]] = []
+
+    def fake_git(args: list[str], **kwargs: object) -> MagicMock:
+        git_calls.append(list(args))
+        check = kwargs.get("check", True)
+        if args[:2] == ["status", "--porcelain"]:
+            return MagicMock(stdout="", returncode=0)
+        if args[:2] == ["fetch", "origin"]:
+            return MagicMock(stdout="", returncode=0)
+        if args[:2] == ["branch", "--show-current"]:
+            return MagicMock(stdout="main\n", returncode=0)
+        if args[:2] == ["branch", "--list"]:
+            return MagicMock(stdout="", returncode=0)
+        if args[:3] == ["rev-parse", "--verify", "--quiet"]:
+            return MagicMock(stdout="abc\n", returncode=0)
+        if args[:3] == ["checkout", "--track", "-b"]:
+            return MagicMock(stdout="", returncode=0)
+        if args[:2] == ["rev-list", "--count"]:
+            return MagicMock(stdout="1\n", returncode=0)
+        if not check:
+            return MagicMock(stdout="", returncode=1)
+        raise AssertionError(args)
+
+    issue_json = {
+        "number": 6,
+        "title": "Pin",
+        "url": "https://github.com/o/r/issues/6",
+        "body": "",
+        "state": "OPEN",
+        "issueType": None,
+        "labels": [],
+        "author": {"login": "a"},
+    }
+
+    with (
+        patch("m42_ai.issue.run_git", side_effect=fake_git),
+        patch("m42_ai.issue.run_gh") as run_gh,
+    ):
+        run_gh.return_value = MagicMock(stdout=__import__("json").dumps(issue_json))
+        out = ensure_issue_branch(issue=6, slug="pin", cwd=tmp_path)
+
+    assert out["branch"] == "issue-6-pin"
+    assert out["created"] is True
+    assert any(c[:3] == ["checkout", "--track", "-b"] for c in git_calls)
+    assert not any(c[:3] == ["checkout", "-b", "issue-6-pin"] and "--track" not in c for c in git_calls)
 
 
 def test_ensure_issue_branch_refuses_dirty(tmp_path: Path) -> None:

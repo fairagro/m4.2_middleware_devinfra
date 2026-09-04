@@ -29,6 +29,18 @@ ORG_TYPES = frozenset({"Bug", "Security", "Feature", "Task", "Discussion", "Refa
 ISSUE_URL_RE = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/issues/\d+")
 
 
+def validate_git_ref_name(name: str, *, what: str = "base") -> str:
+    """Reject empty / option-like refs before passing them to git as positional args."""
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError(f"invalid {what}: empty")
+    if cleaned.startswith("-"):
+        raise ValueError(f"invalid {what}: must not start with '-' ({cleaned!r})")
+    if any(c.isspace() for c in cleaned) or ".." in cleaned:
+        raise ValueError(f"invalid {what}: {cleaned!r}")
+    return cleaned
+
+
 def slugify(text: str, *, max_len: int = 48) -> str:
     s = text.lower().strip()
     s = re.sub(r"[^a-z0-9]+", "-", s)
@@ -217,8 +229,9 @@ def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
 def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, Any]:
     """Report how far HEAD is ahead/behind of `origin/<base>` (remote-tracking ref)."""
     root = cwd or Path.cwd()
+    base = validate_git_ref_name(base, what="base")
     upstream = f"origin/{base}"
-    run_git(["fetch", "origin", base], cwd=root)
+    run_git(["fetch", "origin", "--", base], cwd=root)
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     ahead_s = run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip()
     behind_s = run_git(["rev-list", "--count", f"HEAD..{upstream}"], cwd=root).stdout.strip()
@@ -243,6 +256,7 @@ def ensure_issue_branch(
 ) -> dict[str, Any]:
     """Ensure local `issue-<n>-<slug>` exists and is checked out. No commit, push, or PR."""
     root = cwd or Path.cwd()
+    base = validate_git_ref_name(base, what="base")
     status = run_git(["status", "--porcelain"], cwd=root)
     if status.stdout.strip():
         raise RuntimeError("working tree/index must be clean before issue branch / start")
@@ -252,7 +266,13 @@ def ensure_issue_branch(
     branch_slug = slugify(slug) if slug else slugify(title)
     branch = f"issue-{issue}-{branch_slug}"
 
-    run_git(["fetch", "origin", base], cwd=root)
+    run_git(["fetch", "origin", "--", base], cwd=root)
+    # Refresh remote-tracking tip for the issue branch when it already exists on origin.
+    run_git(
+        ["fetch", "origin", "--", f"+refs/heads/{branch}:refs/remotes/origin/{branch}"],
+        cwd=root,
+        check=False,
+    )
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     created = False
     if current != branch:
@@ -260,10 +280,19 @@ def ensure_issue_branch(
         if local:
             run_git(["checkout", branch], cwd=root)
         else:
-            run_git(["checkout", base], cwd=root)
-            run_git(["pull", "--ff-only", "origin", base], cwd=root)
-            run_git(["checkout", "-b", branch], cwd=root)
-            created = True
+            remote = run_git(
+                ["rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}"],
+                cwd=root,
+                check=False,
+            )
+            if remote.returncode == 0:
+                run_git(["checkout", "--track", "-b", branch, f"origin/{branch}"], cwd=root)
+                created = True
+            else:
+                run_git(["checkout", base], cwd=root)
+                run_git(["pull", "--ff-only", "origin", base], cwd=root)
+                run_git(["checkout", "-b", branch], cwd=root)
+                created = True
 
     ahead_info = branch_ahead(base=base, cwd=root)
     return {
@@ -291,6 +320,7 @@ def issue_start(
 ) -> dict[str, Any]:
     """Push issue branch and open a draft PR — requires commits ahead of base (no empty bootstrap)."""
     root = cwd or Path.cwd()
+    base = validate_git_ref_name(base, what="base")
     ensured = ensure_issue_branch(issue=issue, slug=slug, base=base, cwd=root)
     branch = str(ensured["branch"])
     title = str(ensured["issue"]["title"])
