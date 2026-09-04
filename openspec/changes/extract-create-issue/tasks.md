@@ -1,0 +1,25 @@
+# Extract create-issue — Tasks
+
+## 1. Skill (#14)
+
+- [ ] 1.1 Add `.agents/skills/create-issue/SKILL.md` from API: creator-only; six org issue types including
+      `Refactoring`; triage labels; body template; clear Task vs Refactoring; cite `docs/ai_review_policy.md`
+- [ ] 1.2 Auth section matching review-fixer (`scripts/bin/gh`, chat ask for `source ./scripts/set-dev-tokens.sh`, no
+      PAT in chat)
+- [ ] 1.3 Create-if-missing for allowlisted triage labels only (fixed colors/descriptions); never free-text labels
+
+## 2. Entrypoints (#14)
+
+- [ ] 2.1 Add `.cursor/commands/create-issue.md` pointing at the skill + policy vocabulary; list all six types
+- [ ] 2.2 Add `.github/prompts/create-issue.prompt.md` (include `Refactoring`)
+
+## 3. Docs (#14)
+
+- [ ] 3.1 Document org issue types and triage label families (incl. create-if-missing) in README and/or short docs
+- [ ] 3.2 Index `/create-issue` among synced agent paths in root README
+
+## 4. Verify
+
+- [ ] 4.1 Sanity-check: skill/command/prompt coherent; Auth matches review-fixer; allowlist complete; no bootstrap
+      script
+- [ ] 4.2 Run `npm run format:md` and `npm run lint:md`; fix remaining findings by hand
