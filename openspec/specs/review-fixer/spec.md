@@ -17,8 +17,8 @@ phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>` only 
 #### Scenario: Agent runs /review-fixer with a PR number
 
 - **WHEN** the user invokes `/review-fixer` with a PR number or URL
-- **THEN** the skill instructs fetching open AI review work once and triaging only unresolved AI threads plus
-  summary-only / suppressed findings from the latest AI review body
+- **THEN** the skill instructs fetching open AI review work once via `m42-ai review-open` and triaging only unresolved
+  AI threads plus summary-only / suppressed findings from that JSON
 - **AND** resolved threads are not re-triaged
 
 #### Scenario: Agent pauses for user commit before Fixed replies
@@ -52,6 +52,18 @@ When dismissing unsupported-host findings (macOS, Windows, Homebrew, unofficial 
 
 - **WHEN** a finder comments on Homebrew or macOS host PATH breakage
 - **THEN** the skill's decision path dismisses with practicality None citing `openspec/principles.global.md`
+
+### Requirement: Fetch open work via review-open CLI
+
+When a PR is known, `/review-fixer` MUST start from `uv run --project scripts/ai m42-ai review-open --pr <n>` (or
+equivalent) and triage the shaped JSON. It MUST NOT dump the raw GraphQL payload into the model as the primary fetch
+path. Replies and resolves SHOULD use `m42-ai review-reply` / `review-resolve` when the CLI is present.
+
+#### Scenario: review-fixer starts from review-open JSON
+
+- **WHEN** the user runs `/review-fixer` with a PR number
+- **THEN** the skill instructs invoking `m42-ai review-open` first
+- **AND** triage uses `unresolved_ai_threads` and summary-only / suppressed fields from that JSON
 
 ### Requirement: Follow-up issues use create-issue
 
