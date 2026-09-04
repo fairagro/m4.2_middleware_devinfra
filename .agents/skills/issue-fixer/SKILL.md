@@ -110,6 +110,10 @@ uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <s
 That creates `issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a
 **draft** PR with `Fixes #<issue_number>`. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
+**PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
+is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
+immediately with `gh pr edit` (or equivalent) before moving on.
+
 Manual equivalent if the CLI is unavailable:
 
 1. Create local branch: `issue-<issue_number>-<slug>` from `main`.

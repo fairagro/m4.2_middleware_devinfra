@@ -61,12 +61,18 @@ after a partial success.
 
 `issue-start` MUST, on a clean working tree/index: create branch `issue-<n>-<slug>` from `main`, create exactly one
 empty commit `Start issue #<n>`, push it, and open a draft PR whose body includes `Fixes #<n>`. It MUST NOT mark the PR
-ready.
+ready. The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”.
 
 #### Scenario: Dirty tree refuses issue-start
 
 - **WHEN** `issue-start` is invoked with a dirty working tree or index
 - **THEN** it exits non-zero without creating a branch or PR
+
+#### Scenario: issue-start PR body has no Cursor footer
+
+- **WHEN** `issue-start` opens a draft PR
+- **THEN** the body contains `Fixes #<n>`
+- **AND** it does not contain “Made with Cursor”
 
 ### Requirement: Fixture tests without live GitHub
 

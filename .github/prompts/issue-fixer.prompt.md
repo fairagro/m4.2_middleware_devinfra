@@ -10,7 +10,8 @@ Triage and fix a GitHub issue following `.agents/skills/issue-fixer/SKILL.md`:
 - **`/opsx-propose` is mandatory** (`.cursor/skills/openspec-propose/SKILL.md`) before branch/PR/implement when this run
   will implement
 - **Pause after propose** for the user to review proposal/specs/design/tasks; continue only after `go` / approval
-- Create one empty bootstrap commit on a clean tree, push it, open a **draft** PR with `Fixes #<issue_number>`
+- Create one empty bootstrap commit on a clean tree, push it, open a **draft** PR with `Fixes #<issue_number>` — no
+  `Made with Cursor` (or similar) footers in the body
 - Implement only in the working tree — do **not** auto-commit or auto-push fix commits
 - Split deferred work via create-issue (`sub-of` vs `linked`)
 

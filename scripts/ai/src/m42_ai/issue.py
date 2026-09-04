@@ -157,6 +157,7 @@ def issue_start(
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)
 
     pr_title = draft_title or title
+    # Keep PR bodies free of tool marketing footers (e.g. "Made with Cursor").
     body = f"## Summary\n- MVP scope: (fill in)\n\nFixes #{issue}\n"
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as tmp:
         tmp.write(body)

@@ -24,6 +24,7 @@ auto-commit or auto-push fix commits.
    not branch/PR/implement during that pause.
 5. Allowed GitHub write before fixes: one empty commit (`Start issue #<issue_number>` on a clean tree) +
    `gh pr create --draft` with `Fixes #<issue_number>` in the body (or `m42-ai issue-start`). Do not mark the PR ready.
+   Do not leave `Made with Cursor` (or similar) footers in the PR body — strip if injected.
 6. Deferred splits via `/create-issue` (`relation: sub-of` for acceptance-criteria slices; `linked` for distinct
    follow-ups).
 7. If `GH_TOKEN` is missing and there is no TTY, ask the user to run `source ./scripts/set-dev-tokens.sh` in a terminal

@@ -62,13 +62,15 @@ or an `/opsx-update` pass then `go`). Prefer `/opsx-apply` only after that confi
 After propose **and** the spec-review confirmation, the skill MUST create branch `issue-<issue_number>-<slug>` from
 `main`, one empty commit on a clean tree with `Start issue #<issue_number>`, push, and open a draft PR with
 `Fixes #<issue_number>`. Prefer `m42-ai issue-start` when available. MUST NOT mark the PR ready; MUST NOT create fix
-commits.
+commits. PR bodies MUST NOT include tool marketing footers such as “Made with Cursor”; if injected, the skill MUST strip
+them before continuing.
 
 #### Scenario: Draft PR from empty bootstrap commit
 
 - **WHEN** the agent is ready to open the PR after propose and user spec-review approval
 - **THEN** it creates one empty commit on a clean tree, pushes it, and opens a draft PR with `Fixes #<issue_number>`
 - **AND** it does not mark the PR ready
+- **AND** the PR body does not contain a “Made with Cursor” footer
 
 ### Requirement: Thin docs and entrypoints
 
