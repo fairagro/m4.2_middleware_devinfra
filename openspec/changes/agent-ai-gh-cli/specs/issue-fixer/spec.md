@@ -2,8 +2,9 @@
 
 ## Purpose
 
-Canonical `/issue-fixer` triage → explore → OpenSpec propose → pause → apply → pause → archive, with a draft PR from an
-empty bootstrap commit and no auto-committing of fix commits.
+Canonical `/issue-fixer` triage → `/opsx-explore` when required → `/opsx-propose` → pause → `/opsx-apply` → pause →
+`/opsx-archive`, with a draft PR from an empty bootstrap commit and no auto-committing of fix commits. OpenSpec commands
+are exclusive to this skill.
 
 ## ADDED Requirements
 
@@ -19,19 +20,37 @@ MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` /
 - **THEN** the skill instructs fetching the issue and triaging type, labels, problem, paths, and acceptance criteria
 - **AND** it does not commit or push product fix commits
 
-### Requirement: Explore pause before GitHub writes for Feature and Refactoring
+### Requirement: OpenSpec is exclusive to issue-fixer
 
-After successful triage and before any branch, empty commit, or PR creation, the skill MUST run an explore pause for org
-issue types `Feature` and `Refactoring`. For `Bug`, `Security`, and `Task`, explore is required only when criteria are
-missing, multiple plausible fixes exist, or the user asks. `Discussion` MUST NOT implement by default. The skill MUST
-NOT hard-depend on `/opsx-explore` (`/opsx-explore` is **optional**; in-skill explore is enough).
+`/issue-fixer` MAY and MUST (per cadence below) use OpenSpec slash skills (`/opsx-explore`, `/opsx-propose`,
+`/opsx-apply`, `/opsx-archive`, `/opsx-update`). `/review-fixer` and `/create-issue` MUST NOT invoke those OpenSpec
+commands as part of their procedures.
 
-#### Scenario: Feature issue pauses for lock-in
+#### Scenario: Sibling skills stay off OpenSpec
+
+- **WHEN** an agent runs `/review-fixer` or `/create-issue`
+- **THEN** it does not run `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore` as part of that skill
+
+### Requirement: Explore via opsx-explore when required
+
+After successful triage and before `/opsx-propose` or any branch/PR, the skill MUST run explore for org issue types
+`Feature` and `Refactoring`. For `Bug`, `Security`, and `Task`, explore is required only when criteria are missing,
+multiple plausible fixes exist, or the user asks. `Discussion` MUST NOT implement by default. When explore runs, the
+skill MUST follow `.cursor/skills/openspec-explore/SKILL.md` (`/opsx-explore`) and MUST NOT use a parallel in-skill
+explore procedure. When explore is not required, the skill MUST skip `/opsx-explore` and continue to the propose
+cadence.
+
+#### Scenario: Feature issue uses opsx-explore
 
 - **WHEN** the issue type is `Feature` and triage finds actionable scope
-- **THEN** the skill surfaces open threads and waits for user lock-in or skip-explore
+- **THEN** the skill runs `/opsx-explore` and waits for user lock-in or skip-explore
 - **AND** it does not create a branch or PR until that pause ends
-- **AND** it does not require `/opsx-explore`
+
+#### Scenario: Clear Bug skips explore
+
+- **WHEN** the issue type is `Bug` with clear acceptance criteria and a realistic path
+- **AND** the user did not ask to explore first
+- **THEN** the skill skips `/opsx-explore` and proceeds to `/opsx-propose`
 
 ### Requirement: OpenSpec cadence propose then apply then archive with pauses
 
@@ -83,9 +102,12 @@ injected, the skill MUST strip them before continuing.
 ### Requirement: Thin docs and entrypoints
 
 The repository MUST provide thin Cursor command and Copilot prompt entrypoints and `docs/issue-fixer.md` that state
-explore → `/opsx-propose` → pause → `/opsx-apply` → pause → `/opsx-archive`.
+`/opsx-explore` when required → `/opsx-propose` → pause → `/opsx-apply` → pause → `/opsx-archive`, and that OpenSpec is
+issue-fixer-only.
 
 #### Scenario: Contributor reads issue-fixer docs
 
 - **WHEN** a contributor opens `docs/issue-fixer.md`
-- **THEN** they learn the propose → pause → apply → pause → archive cadence
+- **THEN** they learn explore uses `/opsx-explore` when required
+- **AND** they learn the propose → pause → apply → pause → archive cadence
+- **AND** they learn OpenSpec is not used by `/review-fixer` or `/create-issue`

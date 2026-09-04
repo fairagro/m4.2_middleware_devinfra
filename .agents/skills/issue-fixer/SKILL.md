@@ -61,25 +61,29 @@ ask the user to paste a PAT into chat.
    - Type `Security` → may implement, but require clear acceptance criteria and a realistic path; prefer the smallest
      correct fix; no speculative hardening with no path.
 
-## Explore pause (before any branch / commit / PR)
+## Explore (when required): `/opsx-explore`
 
-After triage, **before** GitHub writes:
+After triage, **before** `/opsx-propose` / branch / commit / PR, decide whether explore runs:
 
-| Type                      | Explore?                                                                  |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `Feature`, `Refactoring`  | **Required** — surface open threads, recommend defaults, wait for lock-in |
-| `Discussion`              | Explore is the whole response (no implement by default)                   |
-| `Bug`, `Security`, `Task` | Only if criteria missing, multiple plausible fixes, or user asks          |
+| Type                      | Explore?                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `Feature`, `Refactoring`  | **Required**                                                     |
+| `Discussion`              | Explore is the whole response (no implement by default)          |
+| `Bug`, `Security`, `Task` | Only if criteria missing, multiple plausible fixes, or user asks |
 
-During explore: read the codebase, open numbered decision threads, recommend defaults as proposals. **Do not** create
-branches, commits, or PRs. Wait for user lock-in, `go`, or `skip explore`.
+When explore **is** required (or the user asked for it): read and follow
+[`.cursor/skills/openspec-explore/SKILL.md`](../../../.cursor/skills/openspec-explore/SKILL.md) (same as
+`/opsx-explore`). Do **not** substitute a parallel in-skill explore procedure. **Do not** create branches, commits, or
+PRs during explore. Wait for user lock-in, `go`, or `skip explore`.
 
-**`/opsx-explore` is optional.** In-skill explore (above) is enough; you MAY offer `/opsx-explore` as a thinking aid,
-but MUST NOT require it and MUST NOT block on it.
+When explore is **not** required, skip `/opsx-explore` and continue to the OpenSpec cadence (propose → …).
 
-## OpenSpec cadence (required)
+**Scope:** OpenSpec (`/opsx-explore`, `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-update`) is **only** for
+`/issue-fixer`. `/review-fixer` and `/create-issue` MUST NOT invoke OpenSpec commands.
 
-On every run that will implement, follow this sequence. **`/opsx-explore` stays optional** (see explore pause above).
+## OpenSpec cadence (required when implementing)
+
+On every run that will implement, after explore (when it ran) or immediately when explore was skipped:
 
 ### 1. `/opsx-propose` → pause
 
@@ -201,7 +205,7 @@ create-issue inputs — do not invent an off-allowlist create path.
 Provide:
 
 - Issue URL + number + org issue type
-- Whether explore ran and what was locked
+- Whether `/opsx-explore` ran and what was locked
 - OpenSpec change name / path; which cadence pause is next (`propose` / `apply` / `archive` done or pending)
 - Branch name
 - Draft PR URL (or “skipped PR creation” + draft)
