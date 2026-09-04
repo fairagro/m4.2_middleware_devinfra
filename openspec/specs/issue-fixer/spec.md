@@ -97,10 +97,12 @@ apply before the propose pause confirmation, and MUST NOT run archive before the
 
 After the apply-pause confirmation and before or as part of `/opsx-archive`, the skill MUST ensure a **draft** PR exists
 with `Fixes #<issue_number>` when the issue branch tip already has commits ahead of `main`. The skill MUST NOT create
-empty bootstrap commits (`git commit --allow-empty` or equivalent). Prefer `m42-ai issue-start` when available. MUST NOT
-mark the PR ready; MUST NOT create fix commits. If the tip still equals `main`, the skill MUST stop and ask the user to
-commit first. PR bodies MUST NOT include tool marketing footers such as “Made with Cursor”; if injected, the skill MUST
-strip them before continuing.
+empty bootstrap commits (`git commit --allow-empty` or equivalent). Prefer `m42-ai issue-start` when available. Prefer
+`m42-ai issue-view` for triage fetch, `m42-ai issue-branch` for the early branch step, `m42-ai branch-ahead` /
+`m42-ai auth-status` for probes, and `m42-ai pr-strip-footer` after PR create when a marketing footer may be present.
+MUST NOT mark the PR ready; MUST NOT create fix commits. If the tip still equals `main`, the skill MUST stop and ask the
+user to commit first. PR bodies MUST NOT include tool marketing footers such as “Made with Cursor”; if injected, the
+skill MUST strip them before continuing.
 
 #### Scenario: Draft PR requires commits ahead of main
 

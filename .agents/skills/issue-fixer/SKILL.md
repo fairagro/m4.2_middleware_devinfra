@@ -41,16 +41,24 @@ ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `gh` (e.g. `gh auth status`). If auth works, continue with fetch / branch / PR as usual.
+3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status`). If auth works,
+   continue with fetch / branch / PR as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print intended branch/PR drafts, and may still work
    locally when appropriate.
 
 ## Fetch issue & triage
 
-1. Fetch the issue details (body, labels, URL, type if present) with `gh`.
+1. Prefer the CLI for a stable shape:
+
+   ```bash
+   uv run --project scripts/ai m42-ai issue-view --issue <issue_number>
+   ```
+
+   Use `issue_type`, `labels`, `triage`, `body`, and `url` from that JSON (fall back to `gh issue view` only if the CLI
+   is unavailable).
 2. Determine:
-   - org issue type: `Bug|Security|Feature|Task|Discussion|Refactoring`
-   - triage labels: `severity:*`, `practicality:*`, `cost:*` (if set)
+   - org issue type: `Bug|Security|Feature|Task|Discussion|Refactoring` (from `issue_type` when set)
+   - triage labels: `severity:*`, `practicality:*`, `cost:*` (from `triage` / `labels` when set)
    - problem statement; affected paths; acceptance criteria / “done when”
 
 3. Early exits:
@@ -87,8 +95,13 @@ On every run that will implement, after explore (when it ran) or immediately whe
 
 ### 1. Issue branch → `/opsx-propose` → pause
 
-1. **Create the issue branch first** from `main`: `issue-<issue_number>-<slug>`. Do **not** commit, push, or open a
-   draft PR yet. If already on the correct issue branch, skip creating it again.
+1. **Create the issue branch first** from `main` via CLI when possible:
+
+   ```bash
+   uv run --project scripts/ai m42-ai issue-branch --issue <issue_number> [--slug <slug>]
+   ```
+
+   Do **not** commit, push, or open a draft PR yet. If already on the correct issue branch, skip creating it again.
 2. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
 3. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
@@ -122,7 +135,9 @@ After the user confirms the propose pause:
 After the user confirms the apply pause:
 
 1. Ensure a **draft** PR exists for the issue branch (next section) **only if** the branch tip already has real commits
-   ahead of `main`. Never use `--allow-empty`. If tip still equals `main`, stop and ask the user to commit/push first.
+   ahead of `main` (`m42-ai branch-ahead` / `issue-start`). Never use `--allow-empty`. If tip still equals `main`, stop
+   and ask the user to commit/push first. After create (or if a PR already exists), run
+   `m42-ai pr-strip-footer --pr <n>` when a Cursor footer may have been injected.
 2. Read and follow
    [`.cursor/skills/openspec-archive-change/SKILL.md`](../../../.cursor/skills/openspec-archive-change/SKILL.md)
    (`/opsx-archive`) for the change. Do **not** archive before that confirmation.
@@ -143,11 +158,16 @@ uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <s
 are no commits ahead of the base, pushes, and opens a **draft** PR with `Fixes #<issue_number>`. It does **not** create
 empty commits. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
-If a draft PR already exists, skip create. Strip any `Made with Cursor` footer if injected.
+If a draft PR already exists, skip create. Always prefer `m42-ai pr-strip-footer --pr <n>` after create (or when a
+footer may have been injected) instead of hand-editing with ad-hoc `gh` regexes.
 
 **PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
 is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
-immediately with `gh pr edit` (or equivalent) before moving on.
+immediately with:
+
+```bash
+uv run --project scripts/ai m42-ai pr-strip-footer --pr <pr_number>
+```
 
 Manual equivalent if the CLI is unavailable:
 

@@ -153,6 +153,119 @@ def create_issue(
     )
 
 
+def _parse_issue_type(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        name = raw.strip()
+        return name or None
+    if isinstance(raw, dict):
+        name = str(raw.get("name") or "").strip()
+        return name or None
+    return None
+
+
+def _triage_from_labels(label_names: list[str]) -> dict[str, str | None]:
+    severity = next((n for n in label_names if n.startswith("severity:")), None)
+    practicality = next((n for n in label_names if n.startswith("practicality:")), None)
+    cost = next((n for n in label_names if n.startswith("cost:")), None)
+    return {"severity": severity, "practicality": practicality, "cost": cost}
+
+
+def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
+    """Fetch a stable triage-oriented JSON shape for an issue."""
+    proc = run_gh(
+        [
+            "issue",
+            "view",
+            str(issue),
+            "--json",
+            "number,title,url,body,labels,state,author,issueType",
+        ],
+        cwd=cwd,
+    )
+    meta = json.loads(proc.stdout)
+    labels_raw = meta.get("labels") or []
+    label_names = [str(x.get("name") if isinstance(x, dict) else x) for x in labels_raw]
+    author = meta.get("author") or {}
+    author_login = author.get("login") if isinstance(author, dict) else None
+    return {
+        "number": int(meta["number"]),
+        "title": str(meta["title"]),
+        "url": str(meta["url"]),
+        "body": str(meta.get("body") or ""),
+        "state": str(meta.get("state") or ""),
+        "issue_type": _parse_issue_type(meta.get("issueType")),
+        "labels": label_names,
+        "triage": _triage_from_labels(label_names),
+        "author": author_login,
+    }
+
+
+def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, Any]:
+    """Report how far HEAD is ahead/behind of `base` (local ref)."""
+    root = cwd or Path.cwd()
+    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
+    ahead_s = run_git(["rev-list", "--count", f"{base}..HEAD"], cwd=root).stdout.strip()
+    behind_s = run_git(["rev-list", "--count", f"HEAD..{base}"], cwd=root).stdout.strip()
+    ahead = int(ahead_s or "0")
+    behind = int(behind_s or "0")
+    return {
+        "base": base,
+        "current_branch": current,
+        "ahead": ahead,
+        "behind": behind,
+        "ok": ahead > 0,
+    }
+
+
+def ensure_issue_branch(
+    *,
+    issue: int,
+    slug: str | None = None,
+    base: str = "main",
+    cwd: Path | None = None,
+) -> dict[str, Any]:
+    """Ensure local `issue-<n>-<slug>` exists and is checked out. No commit, push, or PR."""
+    root = cwd or Path.cwd()
+    status = run_git(["status", "--porcelain"], cwd=root)
+    if status.stdout.strip():
+        raise RuntimeError("working tree/index must be clean before issue-branch")
+
+    viewed = view_issue(issue, cwd=root)
+    title = viewed["title"]
+    branch_slug = slugify(slug) if slug else slugify(title)
+    branch = f"issue-{issue}-{branch_slug}"
+
+    run_git(["fetch", "origin", base], cwd=root)
+    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
+    created = False
+    if current != branch:
+        local = run_git(["branch", "--list", branch], cwd=root).stdout.strip()
+        if local:
+            run_git(["checkout", branch], cwd=root)
+        else:
+            run_git(["checkout", base], cwd=root)
+            run_git(["pull", "--ff-only", "origin", base], cwd=root)
+            run_git(["checkout", "-b", branch], cwd=root)
+            created = True
+
+    ahead_info = branch_ahead(base=base, cwd=root)
+    return {
+        "issue": {
+            "number": viewed["number"],
+            "url": viewed["url"],
+            "title": title,
+            "issue_type": viewed["issue_type"],
+        },
+        "branch": branch,
+        "created": created,
+        "base": base,
+        "ahead": ahead_info["ahead"],
+        "behind": ahead_info["behind"],
+    }
+
+
 def issue_start(
     *,
     issue: int,
@@ -163,29 +276,12 @@ def issue_start(
 ) -> dict[str, Any]:
     """Push issue branch and open a draft PR — requires commits ahead of base (no empty bootstrap)."""
     root = cwd or Path.cwd()
-    status = run_git(["status", "--porcelain"], cwd=root)
-    if status.stdout.strip():
-        raise RuntimeError("working tree/index must be clean before issue-start")
+    ensured = ensure_issue_branch(issue=issue, slug=slug, base=base, cwd=root)
+    branch = str(ensured["branch"])
+    title = str(ensured["issue"]["title"])
 
-    proc = run_gh(["issue", "view", str(issue), "--json", "title,url,number"], cwd=root)
-    meta = json.loads(proc.stdout)
-    title = str(meta["title"])
-    branch_slug = slugify(slug) if slug else slugify(title)
-    branch = f"issue-{issue}-{branch_slug}"
-
-    run_git(["fetch", "origin", base], cwd=root)
-    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
-    if current != branch:
-        local = run_git(["branch", "--list", branch], cwd=root).stdout.strip()
-        if local:
-            run_git(["checkout", branch], cwd=root)
-        else:
-            run_git(["checkout", base], cwd=root)
-            run_git(["pull", "--ff-only", "origin", base], cwd=root)
-            run_git(["checkout", "-b", branch], cwd=root)
-
-    ahead = run_git(["rev-list", "--count", f"{base}..HEAD"], cwd=root).stdout.strip()
-    if ahead == "0":
+    ahead_info = branch_ahead(base=base, cwd=root)
+    if not ahead_info["ok"]:
         raise RuntimeError(
             f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)"
         )
@@ -219,8 +315,9 @@ def issue_start(
     pr_url = proc.stdout.strip()
     owner, name = repo_owner_name(cwd=root)
     return {
-        "issue": {"number": issue, "url": meta["url"], "title": title},
+        "issue": ensured["issue"],
         "branch": branch,
         "pr_url": pr_url,
         "repo": f"{owner}/{name}",
+        "ahead": ahead_info["ahead"],
     }

@@ -76,8 +76,8 @@ ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `gh` (e.g. `gh auth status` or the GraphQL fetch). If auth works, continue with fetch /
-   replies / resolves as usual.
+3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status` / the GraphQL fetch).
+   If auth works, continue with fetch / replies / resolves as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print the intended replies/resolves, and stop that
    part. Still apply local code fixes when triage says `fix`.
 

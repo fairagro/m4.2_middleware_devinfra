@@ -56,7 +56,8 @@ ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `gh` (e.g. `gh auth status`). If auth works, continue with label ensure + issue create.
+3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status`). If auth works,
+   continue with label ensure + issue create.
 4. Only if they decline or auth still fails: skip GitHub writes, print the draft title/body/type/labels, and stop.
 
 Label create and issue create need a token that can write issues and labels on the target repo. If label create fails

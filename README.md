@@ -76,7 +76,7 @@ steps.
 | `docs/review-fixer.md`             | Thin index for `/review-fixer`                                        |
 | `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue`        |
 | `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                         |
-| `scripts/ai/`                      | `m42-ai` CLI (review-open / reply / resolve / issue-create / start)   |
+| `scripts/ai/`                      | `m42-ai` CLI (auth, review, issue-view/branch/start, pr-strip-footer) |
 | `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)          |
 | `openspec/principles.md`           | Repo-local principles extension (points at `.global`)                 |
 | `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                                    |

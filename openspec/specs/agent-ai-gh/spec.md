@@ -99,6 +99,67 @@ base branch MUST succeed before creating a missing issue branch (MUST NOT ignore
 - **THEN** the body contains `Fixes #<n>`
 - **AND** it does not contain “Made with Cursor”
 
+### Requirement: auth-status
+
+`auth-status` MUST call `gh auth status --json hosts` (or equivalent) and print shaped JSON including `ok`, `hostname`,
+`logged_in`, `login`, `token_source`, and `error`. Exit code MUST be `0` when `ok` is true and non-zero otherwise. MUST
+NOT introduce a second credential model.
+
+#### Scenario: Missing host is not ok
+
+- **WHEN** `auth-status` runs and the requested hostname has no auth entry
+- **THEN** JSON has `ok: false` and a non-empty `error`
+- **AND** the process exits non-zero
+
+### Requirement: issue-view
+
+`issue-view` MUST fetch an issue and print JSON including `number`, `title`, `url`, `body`, `state`, `issue_type` (nullable),
+`labels`, `triage` (`severity` / `practicality` / `cost` extracted from allowlisted label names when present), and
+`author`.
+
+#### Scenario: Triage labels extracted
+
+- **WHEN** `issue-view` runs on an issue with `severity:medium`, `practicality:high`, and `cost:cheap` labels
+- **THEN** `triage.severity` is `severity:medium`
+- **AND** `triage.practicality` is `practicality:high`
+- **AND** `triage.cost` is `cost:cheap`
+
+### Requirement: issue-branch and branch-ahead
+
+`issue-branch` MUST, on a clean working tree/index: ensure `issue-<n>-<slug>` exists (create from base after fetch +
+fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST print JSON
+with `base`, `current_branch`, `ahead`, `behind`, and `ok` (`true` iff `ahead > 0`), and MUST exit non-zero when not
+ahead.
+
+#### Scenario: issue-branch creates without PR
+
+- **WHEN** `issue-branch` runs and the local issue branch is missing
+- **THEN** it creates and checks out `issue-<n>-<slug>` from the base
+- **AND** it does not push or open a PR
+
+#### Scenario: branch-ahead exit code
+
+- **WHEN** `branch-ahead` runs and `HEAD` equals the base tip
+- **THEN** JSON has `ok: false` and `ahead: 0`
+- **AND** the process exits non-zero
+
+### Requirement: pr-strip-footer
+
+`pr-strip-footer` MUST fetch a PR body, remove trailing tool marketing footers such as “Made with Cursor” / “Made with
+[Cursor](…)”, and edit the PR only when the body changed. JSON MUST include `changed` and the resulting `body`.
+
+#### Scenario: Footer stripped when present
+
+- **WHEN** `pr-strip-footer` runs on a PR whose body ends with a Cursor marketing footer
+- **THEN** the edited body no longer contains that footer
+- **AND** JSON reports `changed: true`
+
+#### Scenario: Clean body is a no-op
+
+- **WHEN** `pr-strip-footer` runs on a PR body without a marketing footer
+- **THEN** it does not call `gh pr edit`
+- **AND** JSON reports `changed: false`
+
 ### Requirement: Fixture tests without live GitHub
 
 Unit tests MUST cover JSON shaping/filtering with recorded fixtures and MUST NOT call live GitHub in CI.
