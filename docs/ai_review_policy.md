@@ -211,17 +211,23 @@ These rules apply to writing code and to reviewing it
 
 ## Fixer reply format
 
-Reply on the thread, then resolve:
+Reply on the thread in **normal Markdown** (no fenced/`text` verbatim blocks for the reply body — GitHub will wrap
+prose). Then resolve the thread.
 
-```text
-fix | dismiss | follow-up
-correct: yes/no
-severity: …
-practicality: … (path or invariant)
-cost: cheap|expensive (chosen fix, not the suggestion)
-reason: …
-nit-lines this run: N   # required on nit fixes; omit for risk / step-5-only replies
-```
+Use a short human reply — do **not** restate `correct` / `severity` / `practicality` / `cost` in the comment.
 
-If the chosen fix differs from the suggestion, say what you did instead (e.g. “narrowed return type of `Foo.bar` instead
-of adding a None-guard”).
+| Outcome                        | Reply shape                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| **Fixed** (same as suggestion) | `Fixed in <commit-sha>.`                                                           |
+| **Fixed** (different approach) | `Fixed in <commit-sha>.` plus one or two sentences on what you did instead and why |
+| **Dismissed**                  | `Dismissed.` plus a short textual reason                                           |
+| **Follow-up**                  | `Follow-up: <issue-URL>.` plus a short textual reason why it is deferred           |
+
+Examples:
+
+- `Fixed in a1b2c3d.`
+- `Fixed in a1b2c3d. Narrowed the return type of Foo.bar instead of adding a None-guard.`
+- `Dismissed. Unsupported host path — see openspec/principles.global.md Supported development environment.`
+- `Follow-up: https://github.com/org/repo/issues/123. Medium finding, expensive fix outside this PR.`
+
+On **nit** fixes only, also append a plain line for budget tracking (still not a code fence): `nit-lines this run: N`.

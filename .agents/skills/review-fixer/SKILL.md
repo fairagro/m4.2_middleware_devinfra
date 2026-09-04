@@ -174,18 +174,20 @@ items. Do not invent a thread resolve.
 If `gh` lacks auth or `resolveReviewThread` fails (permissions), leave the reply if you posted one, print the remaining
 reply/resolve text for the user, and still apply local code fixes.
 
-```text
-fix | dismiss | follow-up
-correct: …
-severity: …
-practicality: … (path or invariant)
-cost: cheap|expensive
-reason: …
-nit-lines this run: N   # on nit fixes; required for soft PR budget tracking
-```
+Reply body: **normal Markdown prose** (no fenced verbatim/`text` blocks — those do not wrap on GitHub). Do **not** list
+`correct` / `severity` / `practicality` / `cost` in the reply (keep those in your private checklist only).
 
-If the fix differs from the suggestion, state the alternative (“narrowed `Foo.bar` return type instead of a
-None-guard”).
+| Outcome                   | Reply                                          |
+| ------------------------- | ---------------------------------------------- |
+| Fixed, matches suggestion | `Fixed in <commit-sha>.`                       |
+| Fixed, different approach | `Fixed in <commit-sha>.` + brief what/why      |
+| Dismissed                 | `Dismissed.` + short reason                    |
+| Follow-up                 | `Follow-up: <issue-URL>.` + short why deferred |
+
+On nit fixes only, append a plain line: `nit-lines this run: N` (budget tracking; not a code fence).
+
+Use the commit that contains the fix (short or full SHA). If several commits, cite the one that landed the change (or
+the tip of the fixer push for that batch).
 
 Reply via `gh api` on the pull-review comment, then resolve the thread:
 
