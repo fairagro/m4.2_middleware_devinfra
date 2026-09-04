@@ -102,7 +102,22 @@ _dev_tokens_get_stored() {
 
 _DEV_TOKENS_FILE="$(_dev_tokens_file)" || return 1
 
-# Apply stored tokens without clobbering a caller-set value, and without
+# If the environment already holds a store-encoded value (e.g. someone ran
+# `source /commandhistory/tokens.env`), decode it in place. Otherwise a later
+# "already set → keep" skip would leave GH_TOKEN=b64:… and break gh auth.
+for _dev_tokens_var in GH_TOKEN GITGUARDIAN_API_KEY; do
+  _dev_tokens_cur="${!_dev_tokens_var-}"
+  if [ -n "${_dev_tokens_cur}" ] && [ "${_dev_tokens_cur#b64:}" != "${_dev_tokens_cur}" ]; then
+    if _dev_tokens_val="$(_dev_tokens_decode_raw "${_dev_tokens_cur}")"; then
+      export "${_dev_tokens_var}=${_dev_tokens_val}"
+    else
+      unset "${_dev_tokens_var}"
+    fi
+  fi
+done
+unset _dev_tokens_var _dev_tokens_cur _dev_tokens_val
+
+# Apply stored tokens without clobbering a caller-set *decoded* value, and without
 # exporting empty "skip" markers (GH_TOKEN='') over a live environment.
 if [ -f "${_DEV_TOKENS_FILE}" ]; then
   for _dev_tokens_var in GH_TOKEN GITGUARDIAN_API_KEY; do
