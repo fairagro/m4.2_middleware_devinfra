@@ -20,7 +20,7 @@ Accept any of:
 1. A PR number or URL plus a finding summary. The user may include triage fields in plain text:
    - `type: Bug|Security|Feature|Task|Discussion|Refactoring`
    - `severity: Blocker|High|Medium|Low`
-   - `practicality: High|Medium|Low|None|Seen in the wild`
+   - `practicality: High|Medium|Low|None|seen-in-the-wild`
    - `cost: cheap|medium|expensive`
    - affected `path:` sentences
 2. Free text: “please create an issue for …” (no structured triage).
