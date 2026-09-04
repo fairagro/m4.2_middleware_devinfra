@@ -8,9 +8,9 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
 consumers — land shared changes in this repo first. That includes the AI review policy, Finder entries
-(`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer` and `/create-issue` (skills, Cursor commands,
-Copilot prompts), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`,
-`scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
+(`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer`, `/create-issue`, and `/issue-fixer` (skills,
+Cursor commands, Copilot prompts), personal-token helpers (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`,
+`scripts/bin/gh`, `scripts/bin/git`), and `openspec/principles.global.md`. Roadmap:
 [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
@@ -40,28 +40,34 @@ steps.
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
-- [Create-issue](docs/create-issue.md) — org issue types + triage labels for `/create-issue`
+- [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
+- [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
+- [Issue-fixer](docs/issue-fixer.md) — explore → draft PR → local implement for `/issue-fixer`
 - [Shared principles](openspec/principles.global.md) — synced foundation; extend via
   [`openspec/principles.md`](openspec/principles.md)
 
 ## Layout
 
-| Path                               | Role                                                         |
-| ---------------------------------- | ------------------------------------------------------------ |
-| `docs/`                            | Feature documentation (grows over time)                      |
-| `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                    |
-| `docs/create-issue.md`             | Org issue types + triage labels for `/create-issue`          |
-| `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers) |
-| `openspec/principles.md`           | Repo-local principles extension (points at `.global`)        |
-| `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                           |
-| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                         |
-| `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                        |
-| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                        |
-| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue)                 |
-| `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                     |
-| `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`) |
-| `scripts/dev-tokens.sh`            | Personal token load / prompt                                 |
-| `scripts/bin/`                     | `gh` / `git` PATH wrappers                                   |
-| `scripts/`                         | Shared scripts                                               |
-| `.devcontainer/`                   | Dev Container definition                                     |
-| `versions.env`                     | Toolchain version pins                                       |
+| Path                               | Role                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `docs/`                            | Feature documentation (grows over time)                        |
+| `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                      |
+| `docs/review-fixer.md`             | Thin index for `/review-fixer`                                 |
+| `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue` |
+| `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                  |
+| `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)   |
+| `openspec/principles.md`           | Repo-local principles extension (points at `.global`)          |
+| `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                             |
+| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                           |
+| `.agents/skills/issue-fixer/`      | Shared `/issue-fixer` Fixer skill                              |
+| `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                          |
+| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                          |
+| `.cursor/commands/issue-fixer.md`  | Cursor slash command for issue-fixer                           |
+| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue, issue-fixer)      |
+| `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                       |
+| `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`)   |
+| `scripts/dev-tokens.sh`            | Personal token load / prompt                                   |
+| `scripts/bin/`                     | `gh` / `git` PATH wrappers                                     |
+| `scripts/`                         | Shared scripts                                                 |
+| `.devcontainer/`                   | Dev Container definition                                       |
+| `versions.env`                     | Toolchain version pins                                         |

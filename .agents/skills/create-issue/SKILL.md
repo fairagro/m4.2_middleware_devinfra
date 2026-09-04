@@ -2,8 +2,9 @@
 name: create-issue
 description: >-
   Creates a GitHub issue with one org issue type and triage labels (severity,
-  practicality, cost). Use when the user asks to /create-issue, open a follow-up
-  issue from a finding, or file deferred work — not for implementing fixes.
+  practicality, cost), optionally as a GitHub sub-issue. Use when the user asks
+  to /create-issue, open a follow-up from review-fixer, or split work from
+  issue-fixer — not for implementing fixes.
 ---
 
 # Create issue
@@ -11,8 +12,8 @@ description: >-
 Create (and only create) GitHub issues for deferred work or AI-driven discussion requests.
 
 You are a **creator** (not fixer). Do not implement code changes. Do **not** re-run `/review-fixer` triage on PR review
-threads. `/review-fixer` **may** invoke this skill to open its single Medium+ follow-up issue per PR — treat that as a
-normal create with pre-filled triage from the fixer’s checklists.
+threads. `/review-fixer` and `/issue-fixer` **may** invoke this skill with pre-filled triage — treat those as normal
+creates.
 
 ## Input
 
@@ -24,11 +25,15 @@ Accept any of:
    - `practicality: High|Medium|Low|None|seen-in-the-wild`
    - `cost: cheap|medium|expensive`
    - affected `path:` sentences
+   - `relation: sub-of #<issue_number> | linked` (optional; default `linked`)
 2. Free text: “please create an issue for …” (no structured triage).
-3. An invocation from `/review-fixer` with deferred Medium+ items (title usually `Follow-up from PR #<n> AI review`).
+3. An invocation from `/review-fixer` with deferred Medium+ items (title usually
+   `Follow-up from PR #<pr_number> AI review`).
+4. An invocation from `/issue-fixer` for a split slice (title/body from the deferred block; typically
+   `relation: sub-of #<issue_number>`).
 
-If a PR is identifiable, you may fetch minimal context (e.g. changed files), but do not re-run full review-fixer triage.
-Prefer what the user or review-fixer provided.
+If a PR is identifiable, you may fetch minimal context (e.g. changed files), but do not re-run full review-fixer triage
+or issue-fixer explore. Prefer what the user or caller provided.
 
 Do **not** commit or push unless the user asks.
 
@@ -110,6 +115,21 @@ labels.
 | `cost:medium`                   | `#FEF2C0` | Moderate issue-planning cost               |
 | `cost:expensive`                | `#F9D0C4` | Large or cross-cutting work                |
 
+### Relation: sub-of vs linked
+
+Callers (or the user) may pass `relation`:
+
+| Relation                                 | Meaning                                                                | Create behavior                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `sub-of #<issue_number>`                 | Still part of parent `#<issue_number>` acceptance criteria / done-when | `gh issue create ... --parent <issue_number>` (native sub-issue); also link parent under **Links** |
+| `linked` (default if omitted or unclear) | Distinct follow-up                                                     | Standalone issue; put source issue/PR under **Links** only — do **not** set `--parent`             |
+
+If native sub-issue attachment fails **before** any issue is created (unsupported `gh`, permissions, or API error that
+left no issue URL), fall back to **one** linked create (body Links), report the failure clearly, and do **not** invent a
+second create path outside this skill. If `gh issue create` (with or without `--parent`) already printed an issue URL /
+number and a later step fails (labels, `--type`, parent mutation, network), **do not** create again — report the partial
+failure and return the existing issue URL.
+
 Example ensure + create pattern:
 
 ```bash
@@ -117,7 +137,11 @@ Example ensure + create pattern:
 gh label list --json name --jq '.[].name' | grep -Fxq "$NAME" \
   || gh label create "$NAME" --color "${COLOR#\#}" --description "$DESC"
 
+# Linked (default):
 gh issue create --title "..." --body-file /tmp/issue.md --label "severity:high" --label "practicality:high" --label "cost:cheap" --type Bug
+
+# Sub-issue of parent 42:
+gh issue create --title "..." --body-file /tmp/issue.md --label "severity:high" --label "practicality:high" --label "cost:cheap" --type Task --parent 42
 ```
 
 (`--type` requires org Issue Types configured; if it fails, report clearly — provisioning types is out of skill scope.)
@@ -154,6 +178,7 @@ Bug | Security | Feature | Task | Discussion | Refactoring
 ## Links
 
 - PR: …
+- Parent / related issue: …
 ```
 
 ## Output to the user
@@ -163,6 +188,7 @@ Return:
 - the created issue URL (or “skipped GitHub writes” plus the draft title/body)
 - the selected org issue type
 - the attached labels
+- the relation applied (`sub-of #<issue_number>` or `linked`), and whether `--parent` fell back to linked
 
 ## Guardrails
 

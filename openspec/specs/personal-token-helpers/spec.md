@@ -40,7 +40,9 @@ The helpers MUST NOT require `PRODUCT_SLUG` and MUST NOT hard-code a single prod
 
 `scripts/dev-tokens.sh` MUST NOT `source` the token store file. It MUST load only known keys (`GH_TOKEN`,
 `GITGUARDIAN_API_KEY`) by parsing lines. New writes MUST use a non-shell encoding (e.g. `b64:` + base64) on a **single
-line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error.
+line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error. If the
+current environment already holds a known key whose value is store-encoded (`b64:` prefix), the helper MUST decode it in
+place (or unset it if corrupt) before treating the variable as set.
 
 #### Scenario: Corrupt tokens.env cannot run arbitrary commands via source
 
@@ -52,6 +54,14 @@ line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourc
 
 - **WHEN** a user runs `bash scripts/dev-tokens.sh` (or executes the file) instead of sourcing it
 - **THEN** the script exits non-zero with a message to source it
+
+#### Scenario: Accidental source of tokens.env is sanitized
+
+- **WHEN** the environment already contains `GH_TOKEN` (or `GITGUARDIAN_API_KEY`) whose value starts with `b64:`
+  (typical after mistakenly sourcing the token store file)
+- **AND** `scripts/dev-tokens.sh` is sourced (directly or via `scripts/bin/gh`)
+- **THEN** the helper decodes that value in place (or unsets it if corrupt)
+- **AND** it does not leave the encoded `b64:` form as the live credential
 
 ### Requirement: Empty prompt skips until re-prompt
 

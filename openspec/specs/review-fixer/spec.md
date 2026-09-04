@@ -57,8 +57,8 @@ When dismissing unsupported-host findings (macOS, Windows, Homebrew, unofficial 
 
 When opening at most one follow-up issue for Medium+ deferred items, the skill MUST instruct agents to read and follow
 `.agents/skills/create-issue/SKILL.md` (org issue type, allowlisted triage labels, body template, Auth). Title MUST be
-`Follow-up from PR #<n> AI review`. Low nits MUST NOT become issues. The skill MUST NOT use a separate inline-only
-`gh issue create` template that bypasses create-issue.
+`Follow-up from PR #<pr_number> AI review`. Low nits MUST NOT become issues. The skill MUST NOT use a separate
+inline-only `gh issue create` template that bypasses create-issue.
 
 #### Scenario: Medium+ deferral opens one create-issue follow-up
 
