@@ -42,7 +42,12 @@ def ensure_labels(labels: list[str], *, cwd: Path | None = None) -> None:
     unknown = [n for n in labels if n not in LABEL_SPECS]
     if unknown:
         raise ValueError(f"off-allowlist labels: {unknown}")
-    proc = run_gh(["label", "list", "--json", "name", "--jq", ".[].name"], cwd=cwd)
+    # Default gh page size is 30; triage repos can exceed that. Raise the limit so
+    # existing allowlisted labels are not mistaken for missing.
+    proc = run_gh(
+        ["label", "list", "--limit", "1000", "--json", "name", "--jq", ".[].name"],
+        cwd=cwd,
+    )
     existing = {line.strip() for line in proc.stdout.splitlines() if line.strip()}
     for name in labels:
         if name in existing:
@@ -119,17 +124,23 @@ def create_issue(
                 partial_failure=False,
             )
         except GhError as exc:
-            # Only fall back when no issue URL was produced.
-            maybe = _extract_issue_url(exc.stderr) or _extract_issue_url(str(exc))
+            # Only fall back when no issue URL was produced. Parent attach can fail
+            # after create; URL is often on stdout while stderr explains the error —
+            # GhError keeps both streams so we do not open a second issue.
+            maybe = (
+                _extract_issue_url(exc.stdout)
+                or _extract_issue_url(exc.stderr)
+                or _extract_issue_url(str(exc))
+            )
             if maybe:
                 return _result(
                     url=maybe,
                     relation_out=relation,
                     parent_fallback=False,
-                    parent_error=exc.stderr.strip(),
+                    parent_error=exc.stderr.strip() or str(exc),
                     partial_failure=True,
                 )
-            parent_failed = exc.stderr.strip()
+            parent_failed = exc.stderr.strip() or str(exc)
 
     proc = run_gh(_args(False), input_text=body, cwd=cwd)
     created_url = _extract_issue_url(proc.stdout) or proc.stdout.strip()
@@ -158,7 +169,7 @@ def issue_start(
     proc = run_gh(["issue", "view", str(issue), "--json", "title,url,number"], cwd=root)
     meta = json.loads(proc.stdout)
     title = str(meta["title"])
-    branch_slug = slug or slugify(title)
+    branch_slug = slugify(slug) if slug else slugify(title)
     branch = f"issue-{issue}-{branch_slug}"
 
     run_git(["fetch", "origin", base], cwd=root)

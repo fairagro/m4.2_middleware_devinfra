@@ -19,6 +19,9 @@ query($owner:String!,$name:String!,$n:Int!) {
       reviews(first: 50) {
         nodes { databaseId author { login } submittedAt state body }
       }
+      comments(last: 100) {
+        nodes { databaseId author { login } createdAt body }
+      }
       reviewThreads(first: 100) {
         nodes {
           id
@@ -48,35 +51,143 @@ def is_ai_author(login: str | None) -> bool:
     return bool(AI_AUTHOR_RE.search(login))
 
 
-def extract_suppressed_comments(body: str) -> list[str]:
-    """Heuristic: bullets under a 'Suppressed comments' (or similar) heading."""
+def extract_suppressed_comments(body: str) -> list[dict[str, str | None]]:
+    """Extract summary-only / suppressed findings from a review body.
+
+    Copilot often uses ``**path:line**`` then a ``*`` bullet (no thread). Older fixtures use plain ``-`` lists
+    under a ``Suppressed comments`` heading. Do **not** treat the whole-review title
+    ``Needs a closer look`` as the suppressed section — that would swallow the intro.
+    """
     if not body:
         return []
     lines = body.splitlines()
     collecting = False
-    items: list[str] = []
-    heading_re = re.compile(r"suppressed\s+comments|needs\s+a\s+closer\s+look", re.I)
+    items: list[dict[str, str | None]] = []
+    heading_re = re.compile(r"suppressed\s+comments", re.I)
+    path_re = re.compile(r"^\s*\*\*(.+?)(?::(\d+))?\*\*\s*$")
     bullet_re = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
+    pending_path: str | None = None
+    pending_line: str | None = None
+
     for line in lines:
         if heading_re.search(line):
             collecting = True
+            pending_path = None
+            pending_line = None
             continue
-        if collecting:
-            if re.match(r"^#{1,6}\s+", line) and not heading_re.search(line):
+        if not collecting:
+            continue
+        if re.match(r"^#{1,6}\s+", line) and not heading_re.search(line):
+            break
+        path_m = path_re.match(line)
+        if path_m:
+            pending_path = path_m.group(1).strip()
+            pending_line = path_m.group(2)
+            continue
+        if bullet_re.match(line):
+            text = bullet_re.sub("", line).strip()
+            # After Copilot path+bullet pairs, footer bullets like "- **Files reviewed:**" appear
+            # without a preceding **path** line — stop rather than treating them as findings.
+            if pending_path is None and any(i.get("path") for i in items):
                 break
-            if bullet_re.match(line):
-                items.append(bullet_re.sub("", line).strip())
-            elif line.strip() == "":
-                continue
-            elif items and not line.startswith((" ", "\t")):
-                # left the list block
-                break
+            items.append({"path": pending_path, "line": pending_line, "text": text})
+            pending_path = None
+            pending_line = None
+            continue
+        if line.strip() == "":
+            continue
+        if items and not line.startswith((" ", "\t", "*")):
+            break
     return items
 
 
-def shape_review_open(payload: dict[str, Any]) -> dict[str, Any]:
+TRIAGE_REPLY_RE = re.compile(r"(?is)^\s*(Fixed in |Dismissed\.|Follow-up:)")
+
+
+def is_triage_reply_body(body: str | None) -> bool:
+    """True for review-fixer conversation / review replies (cannot resolve suppressed)."""
+    if not body:
+        return False
+    return bool(TRIAGE_REPLY_RE.match(body.strip()))
+
+
+def _event_time(node: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        val = node.get(key)
+        if val:
+            return str(val)
+    return ""
+
+
+def answered_suppressed_review_ids(
+    suppressed_reviews: list[dict[str, Any]],
+    *,
+    issue_comments: list[dict[str, Any]],
+    all_reviews: list[dict[str, Any]],
+) -> set[int]:
+    """Mark suppressed AI reviews closed when a triage reply appears after them.
+
+    Suppressed Copilot findings have no resolve button. A later PR conversation comment or
+    non-AI review body that looks like Fixed/Dismissed/Follow-up closes the most recent still-open
+    suppressed review (or one explicitly named via ``pullrequestreview-<id>``).
+    """
+    answered: set[int] = set()
+    if not suppressed_reviews:
+        return answered
+
+    by_id = {int(r["databaseId"]): r for r in suppressed_reviews if r.get("databaseId") is not None}
+
+    replies: list[tuple[str, str]] = []
+    for c in issue_comments:
+        body = c.get("body") or ""
+        if not is_triage_reply_body(body) and "pullrequestreview-" not in body:
+            continue
+        replies.append((_event_time(c, "createdAt"), body))
+    for r in all_reviews:
+        author = (r.get("author") or {}).get("login")
+        if is_ai_author(author):
+            continue
+        body = r.get("body") or ""
+        if not is_triage_reply_body(body) and "pullrequestreview-" not in body:
+            continue
+        replies.append((_event_time(r, "submittedAt"), body))
+    replies.sort(key=lambda t: t[0])
+
+    ordered = sorted(
+        suppressed_reviews,
+        key=lambda r: (_event_time(r, "submittedAt"), r.get("databaseId") or 0),
+    )
+
+    for at, body in replies:
+        explicit = re.search(r"pullrequestreview-(\d+)", body)
+        if explicit:
+            rid = int(explicit.group(1))
+            if rid in by_id:
+                answered.add(rid)
+            continue
+        if not is_triage_reply_body(body):
+            continue
+        candidates = [
+            r
+            for r in ordered
+            if int(r["databaseId"]) not in answered and _event_time(r, "submittedAt") <= at
+        ]
+        if candidates:
+            answered.add(int(candidates[-1]["databaseId"]))
+    return answered
+
+
+def shape_review_open(
+    payload: dict[str, Any],
+    *,
+    review_id: int | None = None,
+) -> dict[str, Any]:
     """Turn raw GraphQL into agent-facing open-work JSON (no policy decisions)."""
-    pr = payload["data"]["repository"]["pullRequest"]
+    repo = (payload.get("data") or {}).get("repository") or {}
+    pr = repo.get("pullRequest")
+    if pr is None:
+        raise RuntimeError("pullRequest is null in GraphQL response (wrong number or no access)")
+
     threads_out: list[dict[str, Any]] = []
     for thread in pr["reviewThreads"]["nodes"]:
         if thread.get("isResolved"):
@@ -103,35 +214,89 @@ def shape_review_open(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    ai_reviews = [
+    all_reviews = list(pr["reviews"]["nodes"])
+    all_ai = [
         r
-        for r in pr["reviews"]["nodes"]
+        for r in all_reviews
         if r.get("author") and is_ai_author((r["author"] or {}).get("login"))
     ]
-    ai_reviews.sort(key=lambda r: r.get("submittedAt") or "")
-    latest = ai_reviews[-1] if ai_reviews else None
-    latest_body = (latest.get("body") or "") if latest else ""
-    suppressed = extract_suppressed_comments(latest_body) if latest_body else []
+    all_ai.sort(key=lambda r: (_event_time(r, "submittedAt"), r.get("databaseId") or 0))
 
+    issue_comments = list((pr.get("comments") or {}).get("nodes") or [])
+
+    suppressed_ai = [r for r in all_ai if extract_suppressed_comments(r.get("body") or "")]
+    answered_ids = answered_suppressed_review_ids(
+        suppressed_ai,
+        issue_comments=issue_comments,
+        all_reviews=all_reviews,
+    )
+
+    # Open summary work: at most the latest unanswered suppressed AI review.
+    open_suppressed_id: int | None = None
+    for r in suppressed_ai:
+        rid = int(r["databaseId"])
+        if rid not in answered_ids:
+            open_suppressed_id = rid
+    # Permalink triage: force that review's suppressed into the open set.
+    if review_id is not None:
+        open_suppressed_id = review_id
+
+    scoped_ai = [r for r in all_ai if r.get("databaseId") == review_id] if review_id is not None else all_ai
+
+    reviews_out: list[dict[str, Any]] = []
+    summary_only: list[dict[str, Any]] = []
+    for rev in scoped_ai:
+        body = rev.get("body") or ""
+        suppressed = extract_suppressed_comments(body)
+        rid = rev.get("databaseId")
+        rid_int = int(rid) if rid is not None else None
+        answered = rid_int in answered_ids if rid_int is not None else False
+        summary_open = bool(suppressed) and rid_int == open_suppressed_id
+        entry = {
+            "database_id": rid,
+            "author": (rev.get("author") or {}).get("login"),
+            "submitted_at": rev.get("submittedAt"),
+            "state": rev.get("state"),
+            "body": body,
+            "suppressed_comments": suppressed,
+            "summary_answered": answered,
+            "summary_open": summary_open,
+        }
+        reviews_out.append(entry)
+        if not summary_open:
+            continue
+        for item in suppressed:
+            summary_only.append(
+                {
+                    "review_database_id": rid,
+                    "author": entry["author"],
+                    "path": item.get("path"),
+                    "line": item.get("line"),
+                    "text": item.get("text") or "",
+                    "resolvable": False,
+                }
+            )
+
+    latest = reviews_out[-1] if reviews_out else None
     return {
         "pr": {"number": pr.get("number"), "url": pr.get("url")},
-        "round_count": len(ai_reviews),
+        "round_count": len(all_ai),
         "unresolved_ai_threads": threads_out,
-        "latest_ai_review": None
-        if latest is None
-        else {
-            "database_id": latest.get("databaseId"),
-            "author": (latest.get("author") or {}).get("login"),
-            "submitted_at": latest.get("submittedAt"),
-            "state": latest.get("state"),
-            "body": latest_body,
-            "suppressed_comments": suppressed,
-        },
-        "open_work_empty": len(threads_out) == 0 and not latest_body.strip(),
+        "ai_reviews": reviews_out,
+        "summary_only_findings": summary_only,
+        "open_summary_review_id": open_suppressed_id if summary_only else None,
+        "latest_ai_review": latest,
+        "open_work_empty": len(threads_out) == 0 and len(summary_only) == 0,
     }
 
 
-def fetch_review_open(pr: int, *, owner: str | None = None, repo: str | None = None) -> dict[str, Any]:
+def fetch_review_open(
+    pr: int,
+    *,
+    owner: str | None = None,
+    repo: str | None = None,
+    review_id: int | None = None,
+) -> dict[str, Any]:
     if owner is None or repo is None:
         owner, repo = repo_owner_name()
     proc = run_gh(
@@ -151,7 +316,12 @@ def fetch_review_open(pr: int, *, owner: str | None = None, repo: str | None = N
     payload = json.loads(proc.stdout)
     if payload.get("errors"):
         raise RuntimeError(f"GraphQL errors: {payload['errors']}")
-    return shape_review_open(payload)
+    try:
+        return shape_review_open(payload, review_id=review_id)
+    except RuntimeError:
+        raise RuntimeError(
+            f"pullRequest is null for {owner}/{repo}#{pr} (wrong number or no access)"
+        ) from None
 
 
 def review_reply(

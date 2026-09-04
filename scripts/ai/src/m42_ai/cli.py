@@ -28,7 +28,12 @@ def _read_body(args: argparse.Namespace) -> str:
 
 
 def cmd_review_open(args: argparse.Namespace) -> int:
-    data = fetch_review_open(args.pr, owner=args.owner, repo=args.repo)
+    data = fetch_review_open(
+        args.pr,
+        owner=args.owner,
+        repo=args.repo,
+        review_id=args.review_id,
+    )
     _print_json(data)
     return 0
 
@@ -86,6 +91,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     ro = sub.add_parser("review-open", help="Fetch and shape open AI review work for a PR")
     ro.add_argument("--pr", type=int, required=True)
+    ro.add_argument(
+        "--review-id",
+        type=int,
+        dest="review_id",
+        help="Optional pull-request review database id (from /pull/N#pullrequestreview-ID)",
+    )
     ro.add_argument("--owner")
     ro.add_argument("--repo")
     ro.set_defaults(func=cmd_review_open)

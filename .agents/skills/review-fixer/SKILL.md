@@ -87,23 +87,31 @@ ask the user to paste a PAT into chat.
 
 ```bash
 uv run --project scripts/ai m42-ai review-open --pr PR
+# optional, when the user gave /pull/N#pullrequestreview-ID:
+uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
 ```
 
-The JSON already filters to unresolved AI threads, AI review round count, and the latest Copilot/Bugbot review body
-(plus heuristically extracted “Suppressed comments”). Triage that payload only. Docs:
+The JSON already filters to unresolved AI threads and **summary-only findings from every AI review body**
+(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed
+comments” often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional
+`--review-id` scopes review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
 [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **Open work** (this is the only set you triage unless the user pasted a specific review URL):
 
 1. **Unresolved** AI threads from `unresolved_ai_threads` (Copilot / Bugbot / Cursor). Skip human threads unless the
    user asked.
-2. The **latest** AI review `body` / `suppressed_comments` when findings are not already an unresolved thread.
-   Suppressed comments have **no** resolve button and **no** thread id — still triage them; reply with
-   `m42-ai review-reply --pr PR --conversation` (not `review-resolve`).
+2. **`summary_only_findings`** — open summary-only / suppressed items from **at most one** AI review
+   (`open_summary_review_id`): the latest suppressed AI review that is not yet answered. Older suppressed reviews are
+   treated as closed when a triage reply exists after them (PR conversation comment or non-AI review body starting with
+   `Fixed in` / `Dismissed.` / `Follow-up:`, ideally including `#pullrequestreview-<id>`). These findings have **no**
+   resolve button — **never** call `review-resolve` on them; reply with
+   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later
+   `review-open` marks that review answered.
 
 Ignore resolved threads completely (do not reply on them again).
 
-If `open_work_empty` is true (or both threads and latest body are empty), say so in one sentence and stop.
+If `open_work_empty` is true (no unresolved AI threads and no summary-only findings), say so in one sentence and stop.
 
 **Nit-budget (soft PR lifetime):** Before fixing nits, sum prior `nit-lines this run: N` from fixer replies already on
 this PR (thread replies + PR conversation). Cap is **~15** for `prior + this run`. Not reset per `/review-fixer`
@@ -176,7 +184,8 @@ finish Phase 1 by posting fake or premature Fixed replies.
 3. Do **not** resolve without a reply.
 
 **Summary-only / suppressed comments** (no thread, no resolve button): post one PR conversation comment covering those
-items. Do not invent a thread resolve. Same timing rules (dismiss/follow-up now; fixed after user commit).
+items. Include `#pullrequestreview-<review_database_id>` so `review-open` can treat that review as answered. Do **not**
+invent a thread resolve. Same timing rules (dismiss/follow-up now; fixed after user commit).
 
 If `gh` lacks auth or `resolveReviewThread` fails (permissions), leave the reply if you posted one, print the remaining
 reply/resolve text for the user, and still apply local code fixes.

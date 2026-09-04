@@ -12,11 +12,13 @@ from pathlib import Path
 class GhError(RuntimeError):
     """`gh` or `git` exited non-zero."""
 
-    def __init__(self, cmd: list[str], returncode: int, stderr: str) -> None:
+    def __init__(self, cmd: list[str], returncode: int, stderr: str, stdout: str = "") -> None:
         self.cmd = cmd
         self.returncode = returncode
         self.stderr = stderr
-        super().__init__(f"{cmd[0]} failed ({returncode}): {stderr.strip() or '(no stderr)'}")
+        self.stdout = stdout
+        detail = stderr.strip() or stdout.strip() or "(no output)"
+        super().__init__(f"{cmd[0]} failed ({returncode}): {detail}")
 
 
 def _which(name: str) -> str:
@@ -47,7 +49,7 @@ def run_cmd(
         check=False,
     )
     if check and proc.returncode != 0:
-        raise GhError(argv, proc.returncode, proc.stderr or proc.stdout)
+        raise GhError(argv, proc.returncode, proc.stderr or "", proc.stdout or "")
     return proc
 
 

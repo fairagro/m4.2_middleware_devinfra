@@ -23,8 +23,15 @@ Linux) MUST remain outside the CLI (fixer policy only).
 ### Requirement: review-open shapes open AI work
 
 `review-open` MUST emit JSON including: PR number/url, AI review round count, unresolved AI review threads (first
-comment author matching Copilot/Bugbot/Cursor heuristics), and the latest AI review body with heuristically extracted
-suppressed-comment bullets. Resolved threads and non-AI threads MUST be omitted from the unresolved list.
+comment author matching Copilot/Bugbot/Cursor heuristics), **every** AI review body with heuristically extracted
+suppressed / summary-only findings (`ai_reviews`, `summary_only_findings`), and a convenience `latest_ai_review`.
+Resolved threads and non-AI threads MUST be omitted from the unresolved list. Summary-only findings MUST NOT be limited
+to the single latest AI review (a later Bugbot/Cursor submission MUST NOT hide earlier Copilot suppressed comments).
+Only the latest **unanswered** suppressed AI review contributes to `summary_only_findings` (at most one open summary
+review); a triage reply (`Fixed in` / `Dismissed.` / `Follow-up:`, optionally with `#pullrequestreview-<id>`) after a
+suppressed review MUST mark it answered. An optional `--review-id` MAY force that review’s suppressed items into the
+open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with a clear error naming
+owner/repo/PR. Summary-only findings MUST be marked non-resolvable.
 
 #### Scenario: Fixture filters resolved and human threads
 
@@ -50,7 +57,10 @@ items, and resolving a review thread by GraphQL thread id. Multiline bodies MUST
 `practicality:*`, `cost:*`), ensuring missing allowlisted labels are created. Optional `--parent` MUST attach a native
 sub-issue. Fallback to a linked create MUST occur only when no issue URL was produced; MUST NOT create a second issue
 after a partial success. Success JSON MUST always include `partial_failure` (false on full success; true on degraded /
-partial outcomes such as parent fallback or post-create errors with an existing URL).
+partial outcomes such as parent fallback or post-create errors with an existing URL). When `gh issue create --parent`
+exits non-zero, the CLI MUST inspect **both** stdout and stderr for an issue URL before any linked fallback create.
+`ensure_labels` MUST list existing labels with a high enough limit (or equivalent) so allowlisted labels past the default
+page size are not treated as missing.
 
 #### Scenario: Parent failure without URL falls back once
 
