@@ -5,15 +5,15 @@
 ### Requirement: issue-fixer may invoke create-issue for split sub-issues
 
 The skill MUST accept invocation from `/issue-fixer` with pre-filled split-slice fields (title, type, triage, problem,
-why-not-now, acceptance criteria, links, and `relation: sub-of #<parent>`) without re-running issue-fixer explore or
-implementation. Each invocation creates one issue. Typical types are `Refactoring` or `Task`; other org types remain
+why-not-now, acceptance criteria, links, and `relation: sub-of #<issue_number>`) without re-running issue-fixer explore
+or implementation. Each invocation creates one issue. Typical types are `Refactoring` or `Task`; other org types remain
 allowed when the slice warrants them. For issue-fixer splits that are part of the parent’s acceptance criteria, relation
 MUST be `sub-of` that parent.
 
 #### Scenario: issue-fixer hands off a split slice
 
 - **WHEN** issue-fixer requests one sub-issue for a deferred independent block with type, triage, and
-  `relation: sub-of #<parent>`
+  `relation: sub-of #<issue_number>`
 - **THEN** create-issue creates that issue using its type/label/body rules and attaches it as a GitHub sub-issue of the
   parent
 - **AND** it does not explore or implement the parent issue
@@ -22,7 +22,7 @@ MUST be `sub-of` that parent.
 
 When a caller supplies a relation, create-issue MUST apply it as follows:
 
-- `sub-of #<n>` (or equivalent): create the issue as a GitHub native sub-issue of that parent (e.g.
+- `sub-of #<issue_number>` (or equivalent): create the issue as a GitHub native sub-issue of that parent (e.g.
   `gh issue create --parent`), and still include the parent under Links in the body.
 - `linked` (default when omitted or unclear): create a standalone issue; put the source issue and/or PR under Links only
   — MUST NOT set a GitHub parent.

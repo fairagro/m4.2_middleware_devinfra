@@ -65,17 +65,18 @@ hardening with no path.
 
 ### Requirement: Empty bootstrap commit and draft PR
 
-After explore (when required) and user go-ahead, the skill MUST create branch `issue-<n>-<slug>` from `main`, create
-exactly one empty commit on a clean working tree/index with a standardized message that includes the issue number (e.g.
-`Start issue #<n>`), push that commit, and open a **draft** PR with base `main` whose body includes `Fixes #<n>`. The
-skill MUST NOT mark the PR ready for review. The skill MUST NOT create fix commits or push fix commits; implementation
-stays in the working tree until the user commits and pushes. If GitHub writes fail (auth), the skill MUST skip PR
-creation, print a draft, and may still work locally when appropriate.
+After explore (when required) and user go-ahead, the skill MUST create branch `issue-<issue_number>-<slug>` from `main`,
+create exactly one empty commit on a clean working tree/index with a standardized message that includes the issue number
+(e.g. `Start issue #<issue_number>`), push that commit, and open a **draft** PR with base `main` whose body includes
+`Fixes #<issue_number>`. The skill MUST NOT mark the PR ready for review. The skill MUST NOT create fix commits or push
+fix commits; implementation stays in the working tree until the user commits and pushes. If GitHub writes fail (auth),
+the skill MUST skip PR creation, print a draft, and may still work locally when appropriate.
 
 #### Scenario: Draft PR from empty bootstrap commit
 
 - **WHEN** the agent is ready to open the PR after lock-in
-- **THEN** it creates one empty commit on a clean tree, pushes it, and opens a draft PR with `Fixes #<n>` in the body
+- **THEN** it creates one empty commit on a clean tree, pushes it, and opens a draft PR with `Fixes #<issue_number>` in
+  the body
 - **AND** it does not mark the PR ready
 - **AND** it does not commit subsequent fix changes
 
@@ -84,7 +85,7 @@ creation, print a draft, and may still work locally when appropriate.
 The skill MUST split only when ≥2 logically independent, independently mergeable blocks exist. Within a block, ~50 new
 production lines is a guideline, not a hard cap. When splitting work that remains part of the current issue’s acceptance
 criteria / done-when, the skill MUST create at most 3–6 issues by reading and following
-`.agents/skills/create-issue/SKILL.md` (one invocation per slice) with `relation: sub-of #<current-issue>`, MUST NOT use
+`.agents/skills/create-issue/SKILL.md` (one invocation per slice) with `relation: sub-of #<issue_number>`, MUST NOT use
 a parallel inline-only `gh issue create` template, and MUST implement only the MVP slice in the current PR while also
 referencing those issues from the PR body. If deferred work is a **distinct** problem (not covered by the current
 issue’s done-when), the skill MUST use `relation: linked` instead of `sub-of`. Sub-issue types MUST use real org types:

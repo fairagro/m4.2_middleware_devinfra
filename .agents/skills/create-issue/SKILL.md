@@ -25,11 +25,12 @@ Accept any of:
    - `practicality: High|Medium|Low|None|seen-in-the-wild`
    - `cost: cheap|medium|expensive`
    - affected `path:` sentences
-   - `relation: sub-of #<n> | linked` (optional; default `linked`)
+   - `relation: sub-of #<issue_number> | linked` (optional; default `linked`)
 2. Free text: “please create an issue for …” (no structured triage).
-3. An invocation from `/review-fixer` with deferred Medium+ items (title usually `Follow-up from PR #<n> AI review`).
+3. An invocation from `/review-fixer` with deferred Medium+ items (title usually
+   `Follow-up from PR #<pr_number> AI review`).
 4. An invocation from `/issue-fixer` for a split slice (title/body from the deferred block; typically
-   `relation: sub-of #<parent>`).
+   `relation: sub-of #<issue_number>`).
 
 If a PR is identifiable, you may fetch minimal context (e.g. changed files), but do not re-run full review-fixer triage
 or issue-fixer explore. Prefer what the user or caller provided.
@@ -118,10 +119,10 @@ labels.
 
 Callers (or the user) may pass `relation`:
 
-| Relation                                 | Meaning                                                   | Create behavior                                                                         |
-| ---------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `sub-of #<n>`                            | Still part of parent `#n` acceptance criteria / done-when | `gh issue create ... --parent <n>` (native sub-issue); also link parent under **Links** |
-| `linked` (default if omitted or unclear) | Distinct follow-up                                        | Standalone issue; put source issue/PR under **Links** only — do **not** set `--parent`  |
+| Relation                                 | Meaning                                                                | Create behavior                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `sub-of #<issue_number>`                 | Still part of parent `#<issue_number>` acceptance criteria / done-when | `gh issue create ... --parent <issue_number>` (native sub-issue); also link parent under **Links** |
+| `linked` (default if omitted or unclear) | Distinct follow-up                                                     | Standalone issue; put source issue/PR under **Links** only — do **not** set `--parent`             |
 
 If `--parent` fails (unsupported `gh`, permissions, API error), fall back to a linked create (body Links), report the
 failure clearly, and do **not** invent a second create path outside this skill.
@@ -184,7 +185,7 @@ Return:
 - the created issue URL (or “skipped GitHub writes” plus the draft title/body)
 - the selected org issue type
 - the attached labels
-- the relation applied (`sub-of #<n>` or `linked`), and whether `--parent` fell back to linked
+- the relation applied (`sub-of #<issue_number>` or `linked`), and whether `--parent` fell back to linked
 
 ## Guardrails
 

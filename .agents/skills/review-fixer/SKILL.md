@@ -233,14 +233,14 @@ review-fixer-only inline template.
 
 When invoking create-issue from here:
 
-1. Title: `Follow-up from PR #<n> AI review`.
+1. Title: `Follow-up from PR #<pr_number> AI review`.
 2. Include **every** Medium+ `follow-up` item in the create-issue body (paths, severities, practicality, why deferred)
    under **Problem** / **Why not now?**; link the PR under **Links**.
 3. Pick org type + severity/practicality/cost labels from the deferred set (typical: `Task`; use max severity among
    items; cost from why it was deferred). Prefer fields already on your private checklists — do not re-triage the PR.
-4. **Relation:** `linked` by default (standalone issue). Use `relation: sub-of #<issue>` only when the PR body includes
-   `Fixes #<issue>` (or equivalent) **and** the deferred item is clearly remaining acceptance criteria of that issue.
-   When unclear, prefer `linked`.
+4. **Relation:** `linked` by default (standalone issue). Use `relation: sub-of #<issue_number>` only when the PR body
+   includes `Fixes #<issue_number>` (or equivalent) **and** the deferred item is clearly remaining acceptance criteria
+   of that issue. When unclear, prefer `linked`.
 5. Use the returned issue URL in each `Follow-up: <url>.` reply.
 
 If create-issue is missing in a consumer checkout, say so and print the intended create-issue inputs (title, body draft,

@@ -30,10 +30,10 @@ fixes. Issue [#14](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1
 
 ### Modified Capabilities
 
-- `create-issue`: Accept invocation from `/issue-fixer` and apply caller `relation` (`sub-of #<n>` →
+- `create-issue`: Accept invocation from `/issue-fixer` and apply caller `relation` (`sub-of #<issue_number>` →
   `gh issue create --parent`; `linked` → body Links only); document handoff and relation rule in skill/docs
 - `review-fixer`: Require thin `docs/review-fixer.md` and README parity; follow-ups use create-issue with **linked** by
-  default, **sub-of** only when the deferred item is remaining acceptance criteria of a PR `Fixes #<n>` issue
+  default, **sub-of** only when the deferred item is remaining acceptance criteria of a PR `Fixes #<issue_number>` issue
 
 ## Impact
 

@@ -12,8 +12,8 @@ Issue: [#5](https://github.com/fairagro/m4.2_middleware_devinfra/issues/5).
 - Process **open** AI work only (unresolved Copilot/Bugbot threads + summary-only / suppressed findings).
 - Two phases when anything is `fix`: local fixes + dismiss/follow-up replies first (**no commit**); `Fixed in <sha>`
   only after the user commits.
-- Follow-ups open via [`/create-issue`](create-issue.md): **linked** by default; **sub-of `#n`** only when the PR has
-  `Fixes #<n>` and the deferred item is remaining acceptance criteria of that issue.
+- Follow-ups open via [`/create-issue`](create-issue.md): **linked** by default; `relation: sub-of #<issue_number>` only
+  when the PR has `Fixes #<issue_number>` and the deferred item is remaining acceptance criteria of that issue.
 
 ## Auth
 

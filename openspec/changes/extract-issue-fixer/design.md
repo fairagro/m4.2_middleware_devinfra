@@ -35,8 +35,8 @@ the deltas from a 1:1 API copy.
 
 ### 2. Empty commit message and clean-tree check
 
-- **Choice:** Message `Start issue #<n>`; require clean working tree and index before `--allow-empty` so staged files
-  cannot sneak into the bootstrap commit; do not use `--no-verify`
+- **Choice:** Message `Start issue #<issue_number>`; require clean working tree and index before `--allow-empty` so
+  staged files cannot sneak into the bootstrap commit; do not use `--no-verify`
 - **Alternatives:** Truly empty branch (impossible for PR); placeholder file commit
 - **Why:** Platform constraint; keeps “no fix commits” honest
 
@@ -68,14 +68,14 @@ the deltas from a 1:1 API copy.
 
 ### 7. Sub-issue vs linked relation (lock-in G)
 
-- **Choice:** Callers pass `relation: sub-of #<n> | linked` into create-issue.
+- **Choice:** Callers pass `relation: sub-of #<issue_number> | linked` into create-issue.
   - **Sub-issue** (`gh issue create --parent` / equivalent): new work is still part of the parent’s acceptance criteria
     / done-when (issue-fixer splits of the issue being fixed).
   - **Linked** (body Links + optional related mention only): distinct follow-up problem not covered by that parent
     (typical review-fixer deferral; “discovered while working on #N”).
   - Unclear → ask once; default **linked** (do not pollute hierarchy).
-  - review-fixer: **linked** by default; **sub-of #<n>** only when the PR body has `Fixes #<n>` and the deferred item is
-    clearly remaining acceptance criteria of that issue.
+  - review-fixer: **linked** by default; **sub-of #<issue_number>** only when the PR body has `Fixes #<issue_number>`
+    and the deferred item is clearly remaining acceptance criteria of that issue.
 - **Alternatives:** Markdown links only (previous Non-Goal); always sub-issue under PR or epic
 - **Why:** User lock-in; GitHub CLI supports `--parent` / `--add-sub-issue`; hierarchy should mean “same work split,”
   not “related topic”

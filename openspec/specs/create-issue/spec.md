@@ -74,7 +74,7 @@ the draft), the selected issue type, and the attached labels.
 ### Requirement: review-fixer may invoke create-issue for follow-ups
 
 The skill MUST accept invocation from `/review-fixer` with pre-filled Medium+ deferred items (typical title
-`Follow-up from PR #<n> AI review`) without re-running full PR review triage.
+`Follow-up from PR #<pr_number> AI review`) without re-running full PR review triage.
 
 #### Scenario: review-fixer hands off a bundled follow-up
 

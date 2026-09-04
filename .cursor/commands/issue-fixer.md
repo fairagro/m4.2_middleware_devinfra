@@ -16,8 +16,8 @@ bootstrap commit, then implement locally. Do **not** auto-commit or auto-push fi
 
 1. Read and follow `.agents/skills/issue-fixer/SKILL.md`.
 2. For `Feature` / `Refactoring`: explore and wait for lock-in (or `skip explore`) **before** any branch/commit/PR.
-3. Allowed GitHub write before fixes: one empty commit (`Start issue #<n>` on a clean tree) + `gh pr create --draft`
-   with `Fixes #<n>` in the body. Do not mark the PR ready.
+3. Allowed GitHub write before fixes: one empty commit (`Start issue #<issue_number>` on a clean tree) +
+   `gh pr create --draft` with `Fixes #<issue_number>` in the body. Do not mark the PR ready.
 4. Deferred splits via `/create-issue` (`relation: sub-of` for acceptance-criteria slices; `linked` for distinct
    follow-ups).
 5. If `GH_TOKEN` is missing and there is no TTY, ask the user to run `source ./scripts/set-dev-tokens.sh` in a terminal

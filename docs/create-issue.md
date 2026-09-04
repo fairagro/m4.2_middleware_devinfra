@@ -38,10 +38,10 @@ Do **not** invent other triage label names in the skill. Free-text labels are fo
 
 Callers pass a relation when opening deferred work:
 
-| Relation      | When                                                                                                 | Effect                                               |
-| ------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `sub-of #<n>` | New work is still part of parent `#n` acceptance criteria / done-when (typical `/issue-fixer` split) | GitHub native sub-issue (`gh issue create --parent`) |
-| `linked`      | Distinct follow-up problem (typical `/review-fixer` deferral; “discovered while …”)                  | Standalone issue; Links in the body only             |
+| Relation                 | When                                                                                                              | Effect                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `sub-of #<issue_number>` | New work is still part of parent `#<issue_number>` acceptance criteria / done-when (typical `/issue-fixer` split) | GitHub native sub-issue (`gh issue create --parent`) |
+| `linked`                 | Distinct follow-up problem (typical `/review-fixer` deferral; “discovered while …”)                               | Standalone issue; Links in the body only             |
 
 Unclear → prefer **linked**. If `--parent` fails, fall back to linked and report the error.
 

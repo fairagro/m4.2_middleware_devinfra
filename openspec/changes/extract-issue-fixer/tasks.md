@@ -4,7 +4,8 @@
 
 - [x] 1.1 Add `.agents/skills/issue-fixer/SKILL.md` from API + lock-ins A–G: triage; explore pause
       (Feature/Refactoring); Discussion/Security gates; empty bootstrap commit on clean tree; draft PR with
-      `Fixes #<n>`; local implement; no fix commit/push; split rule (~50 guideline); Auth matching review-fixer
+      `Fixes #<issue_number>`; local implement; no fix commit/push; split rule (~50 guideline); Auth matching
+      review-fixer
 - [x] 1.2 Deferred work only via create-issue (max 3–6): `relation: sub-of` for acceptance-criteria splits, `linked` for
       distinct follow-ups; missing create-issue → print inputs, no parallel template; optional OpenSpec propose offer
 - [x] 1.3 Quality-check wording when consumer has `middleware/` (aligned with review-fixer)
@@ -26,10 +27,10 @@
 ## 4. Sibling skill wiring
 
 - [x] 4.1 Amend `.agents/skills/create-issue/SKILL.md`: accept `/issue-fixer` invocations; document
-      `relation: sub-of     #<n> | linked`; implement via `gh issue create --parent` (or equivalent) with linked
+      `relation: sub-of #<issue_number> | linked`; implement via `gh issue create --parent` (or equivalent) with linked
       fallback on failure
 - [x] 4.2 Amend `.agents/skills/review-fixer/SKILL.md` Follow-up section: pass relation to create-issue (`linked`
-      default; `sub-of` only for remaining `Fixes #<n>` acceptance criteria)
+      default; `sub-of` only for remaining `Fixes #<issue_number>` acceptance criteria)
 
 ## 5. Verify
 

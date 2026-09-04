@@ -81,11 +81,11 @@ require it for every run. Do **not** hard-depend on `/opsx-explore`.
 
 Assumptions: base branch is `main`.
 
-1. Create local branch: `issue-<ISSUE_NUMBER>-<slug>` from `main`.
+1. Create local branch: `issue-<issue_number>-<slug>` from `main`.
 2. Ensure working tree **and** index are clean. Then create **exactly one** empty commit (do **not** use `--no-verify`):
 
    ```bash
-   git commit --allow-empty -m "Start issue #<ISSUE_NUMBER>"
+   git commit --allow-empty -m "Start issue #<issue_number>"
    ```
 
 3. Push the branch and create a **draft** PR:
@@ -95,7 +95,7 @@ Assumptions: base branch is `main`.
    ## Summary
    - MVP scope: …
 
-   Fixes #<ISSUE_NUMBER>
+   Fixes #<issue_number>
    EOF
    )"
    ```
@@ -128,7 +128,7 @@ invocation per issue, max 3–6). Do **not** call `gh issue create` with an issu
 
 **Relation (lock-in G):**
 
-- Still part of this issue’s acceptance criteria / done-when → `relation: sub-of #<current-issue>` (GitHub native
+- Still part of this issue’s acceptance criteria / done-when → `relation: sub-of #<issue_number>` (GitHub native
   sub-issue).
 - Distinct follow-up problem (not in done-when) → `relation: linked`.
 - Unclear → ask once; default `linked`.
