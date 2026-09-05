@@ -44,10 +44,12 @@ project `uv sync` when a root `pyproject.toml` exists; install the commit-stage 
 `public_gpg_keys/*.asc` when that directory contains `.asc` files (MUST skip cleanly when absent or empty); and attempt
 to install recommended IDE extensions via Cursor/VS Code remote CLI when available (at least `charliermarsh.ruff`; MUST
 NOT fail the whole postCreate if the CLI or an extension install is missing). The Ruff CLI MUST come from the uv project
-environment after sync. This repository’s `devcontainer.json` MUST list at least: `charliermarsh.ruff`,
-`jebbs.plantuml`, `signageos.signageos-vscode-sops` (Open VSX / Cursor-supported SOPS editor; MUST NOT require
-`shipitsmarter.sops-edit` in the shared recommendation list), `esbenp.prettier-vscode`, and
-`davidanson.vscode-markdownlint`.
+environment after sync. This repository’s `devcontainer.json` MUST list the shared product IDE extension set (Docker /
+Helm / Python / Ruff / Pylint / Mypy / PlantUML / Prettier / markdownlint / signageos SOPS, and related helpers used
+across the three product repos) and postCreate MUST attempt soft-fail install of that same set via remote CLI when
+available. The list MUST include at least: `charliermarsh.ruff`, `jebbs.plantuml`, `signageos.signageos-vscode-sops`
+(Open VSX / Cursor-supported SOPS editor; MUST NOT require `shipitsmarter.sops-edit` in the shared recommendation list),
+`esbenp.prettier-vscode`, and `davidanson.vscode-markdownlint`.
 
 #### Scenario: Fresh Dev Container create
 

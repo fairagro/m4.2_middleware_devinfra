@@ -2,12 +2,13 @@
 
 Open this repo with **Dev Containers: Reopen in Container** (VS Code or Cursor).
 
-The image is a lean bootstrap for developing **this** shared Devinfra repo (`gh`, OpenSpec CLI, uv/Python,
-Docker-in-Docker). [Issue #10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10) will expand it into the
-full product-shared toolchain; product repos will then keep only thin `devcontainer.json` overlays.
+This image is the **shared product Dev Container toolchain** (issue #10): base pins in `versions.env`, fat tooling in
+`.devcontainer/Dockerfile`, generic postCreate. Product repos keep a thin `devcontainer.json` overlay (`name`,
+`workspaceFolder`, distinct volume `source=` names; optional extra extensions) and sync Dockerfile / compose /
+`versions.env` / scripts from here (#13).
 
 OpenSpec **specs/changes** for product work stay in the product repos
-([epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1)); this image only provides the OpenSpec CLI.
+([epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1)); this image provides the OpenSpec CLI.
 
 ## Layout
 
@@ -15,15 +16,15 @@ OpenSpec **specs/changes** for product work stay in the product repos
 | ---------------------------------- | ------------------------------------------------------------ |
 | `.devcontainer/devcontainer.json`  | Compose service, DinD, mounts, extensions, postCreate        |
 | `.devcontainer/docker-compose.yml` | Build args from `versions.env` via `.env` symlink            |
-| `.devcontainer/Dockerfile`         | Pinned tooling image                                         |
+| `.devcontainer/Dockerfile`         | Pinned shared tooling image                                  |
 | `versions.env`                     | Single source of truth for tool versions                     |
 | `.devcontainer/.env`               | Symlink → `../versions.env` (Compose build-arg substitution) |
 
 ## Tool versions
 
-All toolchain pins live in repo-root [`versions.env`](../versions.env):
-
-- base image, Python, uv, Node, OpenSpec, Starship, hadolint, yq, …
+All toolchain pins live in repo-root [`versions.env`](../versions.env) (k8s tools, sops/age, jq/yq/xq, CST, Trivy,
+Renovate, Node/OpenSpec/Prettier/markdownlint, …). Distro packages (`jq`, `gnupg`, JRE, graphviz) come from apt without
+a separate pin.
 
 [`.python-version`](../.python-version) is kept aligned with `PYTHON_VERSION` (via `scripts/load-versions-env.sh`, also
 run from postCreate).
@@ -35,15 +36,37 @@ gh --version
 openspec --version
 uv --version
 node --version
+sops --version
+trivy --version
+renovate --version
 ```
 
-## Tools in the image
+## Tools in the image (shared)
 
-| Tool          | Notes                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| `gh`          | GitHub CLI (APT); auth persists in volume `middleware-devinfra-gh-config`                             |
-| `openspec`    | [@fission-ai/openspec](https://www.npmjs.com/package/@fission-ai/openspec) via Node `${NODE_VERSION}` |
-| `uv` / Python | For upcoming quality scripts and the agent GitHub CLI (#7, #16)                                       |
+| Area            | Tools                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| GitHub / Node   | `gh`, Node, OpenSpec, Prettier, markdownlint-cli2, Renovate                                    |
+| Python          | `uv` + pinned Python; quality CLIs via `uv sync` / pre-commit (ruff, …)                        |
+| Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`                                                        |
+| K8s             | `kubectl`, `helm`, `minikube`                                                                  |
+| Secrets tooling | `sops`, `age`, `gpg` (ciphertext / `.sops.yaml` / `public_gpg_keys` **content** stay per repo) |
+| Containers      | DinD feature, `container-structure-test` (`cst`), `trivy`                                      |
+| Diagrams        | JRE + `graphviz` (PlantUML extension)                                                          |
+
+Python quality tools (ruff, mypy, pylint, bandit, ggshield, pre-commit) are **project deps** via `uv`, not separate
+image binaries — same pattern as product repos.
+
+## Consumer overlays
+
+Product `devcontainer.json` should own at least:
+
+- `name`
+- `workspaceFolder` (must match that product’s compose bind path)
+- distinct Docker volume `source=` names (do not reuse another product’s volume names)
+
+Shared fragments must **not** hardcode another product’s folder or volume names. On sync, Prettier + markdownlint-cli2
+(and their extensions) **replace or supplement** prior product markdown format/lint setups. Prefer
+`signageos.signageos-vscode-sops` (Open VSX / Cursor) over `shipitsmarter.sops-edit`.
 
 ## Markdown (format + lint)
 
@@ -52,29 +75,20 @@ node --version
 | [Prettier](https://prettier.io)                            | Format (`printWidth` 120, `proseWrap: always`)                                           | `esbenp.prettier-vscode` (first-party) |
 | [markdownlint](https://github.com/DavidAnson/markdownlint) | Structure lint; Prettier-compatible disables in `.markdownlint.json` (no `extends` path) | `davidanson.vscode-markdownlint`       |
 
-Node `${NODE_VERSION}` is required anyway (OpenSpec). Prettier and markdownlint-cli2 are installed **globally in the Dev
-Container image** (same pattern as OpenSpec) — a workspace `npm install` would be hidden by the bind mount. Pins live in
-`versions.env` (`PRETTIER_VERSION`, `MARKDOWNLINT_CLI2_VERSION`); `package.json` mirrors them for local clones.
+Prettier and markdownlint-cli2 are installed **globally in the image**. Pins: `PRETTIER_VERSION`,
+`MARKDOWNLINT_CLI2_VERSION` in `versions.env`; `package.json` mirrors them for host clones.
 
 ```bash
-# In the Dev Container (binaries on PATH after rebuild):
-npm run format:md           # prettier --write (including .cursor opsx files)
+npm run format:md
 npm run format:md:check
-npm run lint:md             # markdownlint-cli2
-
-# Outside the image only:
-npm install
+npm run lint:md
 ```
 
-Format on save is enabled for Markdown in this Dev Container (`esbenp.prettier-vscode`). Do not also turn on
-markdownlint fix-on-save — Prettier owns formatting.
+## Trivy / Renovate (local CLIs)
 
-After `openspec update`: run `format:md`, then `lint:md`; remaining lint findings must be fixed by hand (or by the
-agent) — Prettier cannot clear every rule.
-
-**uv alternative:** [mdformat](https://github.com/hukkin/mdformat) installs via `uv tool install mdformat` /
-`uvx mdformat`, but the VS Code extension (`bittorala.mdformat`) is unofficial and there is no markdownlint-class Python
-linter with the same ecosystem. Prefer Prettier + markdownlint here.
+`trivy` and `renovate` are on `PATH` for local scans and config dry-runs. Reusable GitHub Actions that invoke them stay
+in issues [#11](https://github.com/fairagro/m4.2_middleware_devinfra/issues/11) /
+[#12](https://github.com/fairagro/m4.2_middleware_devinfra/issues/12).
 
 ## Bash history
 
@@ -123,11 +137,12 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - fix `/commandhistory` and `~/.config/gh` permissions
 - write `.python-version` from `versions.env` via `scripts/load-versions-env.sh`
 - load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
-- interactive `gh` / `git` keep loading tokens via `scripts/bin` wrappers on `PATH`
-
-Issue [#10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10) will wire commit-stage `pre-commit install`
-and `./scripts/setup-git-lfs.sh` (Git LFS + pre-push hooks) into postCreate. Until then, run those manually after create
-(see [`docs/quality.md`](quality.md)).
+- `uv sync` when `pyproject.toml` exists
+- `pre-commit install --hook-type pre-commit`
+- `./scripts/setup-git-lfs.sh` (LFS + project pre-push hooks)
+- import `public_gpg_keys/*.asc` when present (skip if absent)
+- soft-fail install of recommended IDE extensions via Cursor/VS Code remote CLI (shared product set: Docker/Helm/
+  Python/Ruff/Pylint/Mypy, PlantUML, signageos SOPS, Prettier, markdownlint, … — same list as `devcontainer.json`)
 
 `PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
 

@@ -1,5 +1,5 @@
 {
-  "name": "middleware-devinfra (step 0)",
+  "name": "middleware-devinfra",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/m4.2_middleware_devinfra",
@@ -25,19 +25,29 @@
       "extensions": [
         "jeff-hykin.better-dockerfile-syntax",
         "ms-azuretools.vscode-docker",
+        "formulahendry.docker-explorer",
         "exiasr.hadolint",
         "esbenp.prettier-vscode",
         "davidanson.vscode-markdownlint",
+        "signageos.signageos-vscode-sops",
+        "samuelcolvin.jinjahtml",
         "redhat.vscode-yaml",
         "tamasfe.even-better-toml",
         "ms-python.python",
         "ms-python.vscode-pylance",
         "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "ms-python.pylint",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
         "mhutchie.git-graph",
         "donjayamanne.githistory",
         "codezombiech.gitignore",
         "github.copilot-chat",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "tim-koehler.helm-intellisense",
+        "vadzimnestsiarenka.helm-template-preview-and-more",
+        "jebbs.plantuml"
       ],
       "settings": {
         "hadolint.hadolintPath": "/usr/local/bin/hadolint",

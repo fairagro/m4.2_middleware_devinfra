@@ -45,8 +45,7 @@ npm install   # host clones needing local markdownlint/prettier; skip if tools a
 uv run pre-commit install --hook-type pre-commit
 ```
 
-Typical place: Dev Container **postCreate** (issue
-[#10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10)). These hooks are **not** files under
+Typical place: Dev Container **postCreate** (`scripts/devcontainer-post-create.sh`). These hooks are **not** files under
 `scripts/git-hooks/`.
 
 ### Pre-push (Git LFS + quality stage)
@@ -56,8 +55,8 @@ Typical place: Dev Container **postCreate** (issue
 ```
 
 Copies `scripts/git-hooks/{pre-push,post-checkout,post-commit,post-merge}` into `.git/hooks/` and runs
-`git lfs install --local`. Requires `git-lfs` on `PATH` (no Homebrew/apt auto-install). Call from postCreate when #10
-wires it, or once after clone.
+`git lfs install --local`. Requires `git-lfs` on `PATH` (no Homebrew/apt auto-install). Invoked from Dev Container
+postCreate, or once after clone.
 
 On `git push`, `pre-push` runs Git LFS first, then the shared pre-commit **pre-push** stage (pytest +
 `scripts/run-container-structure-test.sh` from the #7 skeleton). Product Dockerfiles / CST YAML stay in consumers. Needs

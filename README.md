@@ -47,8 +47,8 @@ uv sync
 npm install   # host clones; optional in Dev Container (global markdownlint/prettier)
 ./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
-uv run pre-commit install --hook-type pre-commit   # usually postCreate / #10
-./scripts/setup-git-lfs.sh          # LFS + pre-push git hooks (after clone / postCreate)
+uv run pre-commit install --hook-type pre-commit   # also run from Dev Container postCreate
+./scripts/setup-git-lfs.sh          # LFS + pre-push git hooks (also from postCreate / after clone)
 ```
 
 Pre-push **git** hook (`scripts/git-hooks/pre-push`: Git LFS then pre-commit pre-push stage) is installed by
@@ -83,7 +83,7 @@ steps.
 
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
-- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks / LFS install (#10 wires
+- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks / LFS install (wired from
   postCreate)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`

@@ -72,14 +72,12 @@ Devinfra docs still say “until #10” for hook wiring. Path conventions forbid
   Prettier/markdownlint checks unless a script reads more. Distro packages (`jq`, gnupg, JRE, graphviz) need no
   `versions.env` pin; **yq** and **xq** use `versions.env` pins like other release binaries.
 
-### 6. IDE extensions: Ruff, PlantUML, SOPS, Prettier, markdownlint
+### 6. IDE extensions: shared product union + Devinfra extras
 
-- **Choice:** List in this repo’s `devcontainer.json`: `charliermarsh.ruff`, `jebbs.plantuml`,
-  `signageos.signageos-vscode-sops`, `esbenp.prettier-vscode`, `davidanson.vscode-markdownlint`. postCreate
-  soft-fail-installs via remote CLI when available. Ruff CLI from `uv sync`.
-- **Alternatives:** Also ship `shipitsmarter.sops-edit` (rejected — not Cursor/Open VSX); treat Prettier/markdownlint as
-  Devinfra-only (rejected — user: they replace/supplement the product markdown feature on sync).
-- **Why:** Cursor Open VSX for SOPS; one shared markdown stack for all consumers.
+- **Choice:** `devcontainer.json` and postCreate share one extension list: union of the three product repos’ common
+  needs (Docker/Helm/Python/Ruff/Pylint/Mypy/PlantUML/Jinja/git helpers, …) plus Devinfra Prettier/hadolint/Actions.
+  SOPS: `signageos.signageos-vscode-sops` only. Omit `shipitsmarter.sops-edit` and `ms-python.autopep8` (Ruff).
+- **Why:** postCreate must install what product contributors expect, not only the five “new” extensions.
 
 ### 7. SOPS tooling + public key import in shared postCreate; ciphertext stays per repo
 

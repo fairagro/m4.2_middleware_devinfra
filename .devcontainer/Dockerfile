@@ -1,8 +1,5 @@
-# Dev Container Dockerfile for m4.2_middleware_devinfra (step 0 bootstrap).
+# Shared Dev Container Dockerfile for m4.2 middleware Devinfra + product sync.
 # Tool versions come from repo-root versions.env (via docker-compose.yml build args).
-#
-# Lean image: gh + OpenSpec (+ uv/Python) so this shared-infra repo is usable
-# before issue #10 extracts the full product toolchain.
 
 ARG DEVCONTAINER_BASE_IMAGE
 # hadolint ignore=DL3006
@@ -12,9 +9,19 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG PYTHON_VERSION
 ARG UV_VERSION
+ARG KUBECTL_VERSION
+ARG HELM_VERSION
+ARG MINIKUBE_VERSION
+ARG SOPS_VERSION
+ARG AGE_VERSION
 ARG STARSHIP_VERSION
-ARG HADOLINT_VERSION
 ARG YQ_VERSION
+ARG XQ_VERSION
+ARG YAMLFMT_VERSION
+ARG HADOLINT_VERSION
+ARG CST_VERSION
+ARG TRIVY_VERSION
+ARG RENOVATE_VERSION
 ARG NODE_VERSION
 ARG OPENSPEC_VERSION
 ARG PRETTIER_VERSION
@@ -34,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git-lfs \
     jq \
     bash-completion \
+    default-jre-headless \
+    graphviz \
     && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
@@ -47,6 +56,25 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         gh \
     && rm -rf /var/lib/apt/lists/*
 
+# ── kubectl (Kubernetes APT repo) ─────────────────────────────────────────────
+# hadolint ignore=DL3008
+RUN KUBECTL_MINOR=$(echo "${KUBECTL_VERSION}" | grep -oP 'v\d+\.\d+') && \
+    curl -fsSL "https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR}/deb/Release.key" \
+        | gpg --batch --yes --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR}/deb/ /" \
+        > /etc/apt/sources.list.d/kubernetes.list && \
+    apt-get update && apt-get install -y --no-install-recommends kubectl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Helm ──────────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin linux-amd64/helm
+
+# ── Minikube ──────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/kubernetes/minikube/releases/download/${MINIKUBE_VERSION}/minikube-linux-amd64" \
+        -o /usr/local/bin/minikube && \
+    chmod +x /usr/local/bin/minikube
+
 # ── uv (Python package manager) ───────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
         | tar -xz --strip-components=1 -C /usr/local/bin uv-x86_64-unknown-linux-gnu/uv uv-x86_64-unknown-linux-gnu/uvx
@@ -55,15 +83,41 @@ RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/
 RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
         -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
 
+# ── xq (XML; sibprogrammer/xq) ────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/sibprogrammer/xq/releases/download/${XQ_VERSION}/xq_${XQ_VERSION#v}_linux_amd64.tar.gz" \
+        | tar -xz -C /usr/local/bin xq && chmod +x /usr/local/bin/xq
+
+# ── yamlfmt ───────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/google/yamlfmt/releases/download/${YAMLFMT_VERSION}/yamlfmt_${YAMLFMT_VERSION#v}_Linux_x86_64.tar.gz" \
+        | tar -xz -C /usr/local/bin yamlfmt
+
 # ── hadolint ──────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64" \
         -o /usr/local/bin/hadolint && chmod +x /usr/local/bin/hadolint
+
+# ── SOPS ──────────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64" \
+        -o /usr/local/bin/sops && chmod +x /usr/local/bin/sops
+
+# ── age ───────────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz" \
+        | tar -xz --strip-components=1 -C /usr/local/bin age/age age/age-keygen
 
 # ── Starship prompt ───────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/starship/starship/releases/download/${STARSHIP_VERSION}/starship-x86_64-unknown-linux-gnu.tar.gz" \
         | tar -xz -C /usr/local/bin
 
-# ── Node.js (official binary tarball; required by OpenSpec CLI) ───────────────
+# ── container-structure-test ──────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/GoogleContainerTools/container-structure-test/releases/download/${CST_VERSION}/container-structure-test-linux-amd64" \
+        -o /usr/local/bin/container-structure-test && \
+    chmod +x /usr/local/bin/container-structure-test && \
+    ln -sf /usr/local/bin/container-structure-test /usr/local/bin/cst
+
+# ── Trivy ─────────────────────────────────────────────────────────────────────
+RUN curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/${TRIVY_VERSION}/trivy_${TRIVY_VERSION#v}_Linux-64bit.tar.gz" \
+        | tar -xz -C /usr/local/bin trivy && chmod +x /usr/local/bin/trivy
+
+# ── Node.js (official binary tarball) ─────────────────────────────────────────
 RUN curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz" \
         | tar -xJ --strip-components=1 -C /usr/local \
             "node-${NODE_VERSION}-linux-x64/bin" \
@@ -72,18 +126,23 @@ RUN curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-lin
             "node-${NODE_VERSION}-linux-x64/share" && \
     node --version && npm --version
 
-# ── OpenSpec CLI + Markdown format/lint (global; workspace bind-mount would hide local node_modules)
+# ── OpenSpec + Markdown + Renovate (global; bind-mount would hide local node_modules)
 RUN npm install -g \
         "@fission-ai/openspec@${OPENSPEC_VERSION}" \
         "prettier@${PRETTIER_VERSION}" \
-        "markdownlint-cli2@${MARKDOWNLINT_CLI2_VERSION}" && \
+        "markdownlint-cli2@${MARKDOWNLINT_CLI2_VERSION}" \
+        "renovate@${RENOVATE_VERSION}" && \
     openspec --version && \
     prettier --version && \
-    markdownlint-cli2 --version
+    markdownlint-cli2 --version && \
+    renovate --version
 
 # ── Bash completions (build-time, lazy-loaded via bash-completion) ───────────
 RUN mkdir -p /usr/share/bash-completion/completions && \
     gh completion -s bash > /usr/share/bash-completion/completions/gh && \
+    kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
+    helm completion bash > /usr/share/bash-completion/completions/helm && \
+    minikube completion bash > /usr/share/bash-completion/completions/minikube && \
     uv generate-shell-completion bash > /usr/share/bash-completion/completions/uv && \
     ln -sf /usr/share/bash-completion/completions/uv /usr/share/bash-completion/completions/uvx && \
     yq shell-completion bash > /usr/share/bash-completion/completions/yq && \
