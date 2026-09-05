@@ -11,9 +11,13 @@ m4.2 product consumers.
 
 The repository MUST provide `docs/ai_review_policy.md` as the single Finder/Fixer policy for shared consumers. The
 document MUST define Finder and Fixer roles, risk versus nit merge criteria, severity and practicality and cost
-guidance, nit-budget rules, type-widening bans, and follow-up issue rules. Product-only API examples (specific routes,
-datastores, or config types that are not shared) MUST NOT appear as normative requirements; shared vocabulary MUST be
-used instead.
+guidance, nit-budget rules, type-widening bans, and follow-up issue rules. The merge criterion MUST be **no open risk**
+findings. **Risk** MUST mean fixer triage severity Blocker/High with practicality not Low/None — not finder summary
+banners. The policy MUST define a **review-cycle abort criterion**: when the latest `/review-fixer` run reports
+**Remaining risk: 0**, the cycle MUST stop (no further finder/`/review-fixer` loops solely for remaining comments or
+zero code changes), with at most one deliberate nit pass while nit-budget remains. Product-only API examples (specific
+routes, datastores, or config types that are not shared) MUST NOT appear as normative requirements; shared vocabulary
+MUST be used instead.
 
 Nit-budget MUST be a **soft lifetime cap per PR** of approximately 15 new production lines for cheap nits (never a new
 abstraction). It MUST NOT reset on each `/review-fixer` run and MUST NOT be gated on Copilot/Bugbot review round number.
@@ -37,13 +41,24 @@ Devinfra scripts** (`scripts/` except `scripts/ai/` — quality helpers, CST run
 judged on the documented Linux Dev Container and contributor/CI happy path; **agent plumbing** (`scripts/ai/`, skill CLI
 wiring) is judged on the default skill/CLI happy path. Exotic argparse / host-only / option-injection / wording-only
 nits on those non-product surfaces MUST be practicality Low (or None) and MUST NOT take step 5 merely because the patch
-is cheap. Real happy-path breakage on shared scripts or agent plumbing MUST still be fixed.
+is cheap. Real happy-path breakage on shared scripts or agent plumbing MUST still be fixed (including consumer-sync
+failures such as hook argv-length under `pre-commit run --all-files`, or check scripts that mutate contrary to
+contract). Findings that only ask to **re-harden** an intentional happy-path simplification, add **host-only
+prerequisite docs**, or change shared-hook **style** (`entry` vs `args`) without breaking the happy path MUST be
+dismissed.
 
 #### Scenario: Contributor opens the shared policy
 
 - **WHEN** a contributor opens `docs/ai_review_policy.md`
 - **THEN** they find Finder and Fixer role definitions and the risk-versus-nit merge rule
 - **AND** the document does not require API-only nouns as the only valid entry points
+
+#### Scenario: Remaining risk 0 aborts the review cycle
+
+- **WHEN** the latest `/review-fixer` run reports Remaining risk: 0
+- **THEN** the review cycle stops
+- **AND** Copilot/Bugbot banners or remaining dismissed/nit comments alone do not require another pass
+- **AND** at most one deliberate nit pass remains allowed while nit-budget remains before the same abort applies
 
 #### Scenario: Nit budget is a soft PR lifetime cap
 
@@ -60,12 +75,26 @@ is cheap. Real happy-path breakage on shared scripts or agent plumbing MUST stil
 - **THEN** the fixer dismisses with practicality None and quotes Supported development environment
 - **AND** does not apply step 5 merely because the suggested patch is cheap
 
+#### Scenario: Host-only prerequisite docs finding is dismissed
+
+- **WHEN** a finder asks to document unofficial host prerequisites (e.g. `npm install`, `pre-commit` on `PATH`) while
+  the Dev Container path already provides those tools or uses `uv run`
+- **THEN** the fixer dismisses (practicality None or Low)
+- **AND** does not treat the finding as step 5
+
 #### Scenario: One-shot local migration finding is dismissed
 
 - **WHEN** a finder asks to harden or parse a superseded personal on-disk format that is not the current write path
   (e.g. legacy token lines before `b64:`) and the author can fix it by re-running a documented setup command once
 - **THEN** the fixer dismisses with practicality None
 - **AND** does not add a compatibility parser, `eval` deny-list, or migration branch for that format
+
+#### Scenario: Intentional simplification re-hardening is dismissed
+
+- **WHEN** a finder asks to restore exotic `bashrc` marker repair, dual host token stores, or similar branches after the
+  PR intentionally simplified the Dev Container happy path
+- **AND** the documented Dev Container path still works
+- **THEN** the fixer dismisses and does not re-introduce that hardening
 
 #### Scenario: Shared Devinfra script exotic finding is dismissed
 

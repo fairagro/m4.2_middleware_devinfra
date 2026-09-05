@@ -14,6 +14,14 @@ Two channels:
 Merge criterion: no open **risk** findings. Dismissed nit threads are not a merge blocker. Do not loop until “0 Copilot
 comments”.
 
+**Risk** (for this stop rule) means the fixer’s private checklist: severity **Blocker or High** **and** practicality
+**not** Low/None. Copilot/Bugbot banners (“Needs a closer look”, “Changes recommended”) are **not** risk.
+
+**Review-cycle abort criterion:** After a `/review-fixer` run reports **Remaining risk: 0**, **stop the cycle** — do not
+request another finder pass or another `/review-fixer` solely because comments remain or the fixer made no code changes.
+Optional exception: **at most one** deliberate nit pass while nit-budget remains; if that pass also ends at risk 0,
+stop. Resume only when new open work appears that the fixer would classify as risk, or a human explicitly asks.
+
 ---
 
 ## Roles
@@ -59,6 +67,12 @@ Each comment **must** include:
   **outside** the Linux Dev Container (and is not GitHub Actions Linux CI) — see
   [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment. That includes
   “fix the compatibility fallback” comments when the primary path already works in the Dev Container.
+- **Unofficial host checkout docs:** missing `npm install` / “put `pre-commit` on `PATH`” / other host-only prerequisite
+  wording when the supported path is the Dev Container (tools already present or loaded via `uv run`).
+- **Config / YAML style-only** on shared Devinfra hooks (e.g. pre-commit `entry` vs `args` split, table path-prefix
+  consistency) when the documented Dev Container or CI command still works.
+- **Re-hardening an intentional happy-path simplification** (e.g. postCreate `bashrc` marker edge cases after the repo
+  deliberately dropped exotic repair branches) — do not ask to restore speculative hardening.
 - **One-shot local migration / ephemeral developer state:** a format or file that exists only on one machine or volume
   during a brief cutover (e.g. pre-`b64:` lines in a personal `tokens.env` that the author can re-prompt once), is not a
   shipped lasting contract, and is not the default path for new writes. Do not ask for compatibility parsers,
@@ -79,13 +93,16 @@ Stop at the first matching step.
    environment”. Apply this even if the finding is locally “correct” on that unsupported path, the suggested fix is
    cheap, or the code already has a defensive fallback for it. Examples: macOS / Windows / Homebrew; BSD vs GNU flag
    differences (e.g. `base64` without `-w0`); host `PATH` layouts the Dev Container does not use; unofficial
-   bare-Linux-without-container runs. Do **not** take step 5 merely because a host-only hardening is one line. GitHub
-   Actions Linux CI **is** in scope — do not dismiss solely as “host” when the path is Actions. **Also `dismiss`
-   (practicality None)** when the finding only targets a **one-shot local migration** or ephemeral developer state: an
-   old on-disk format that is not the current write path, is not a shipped consumer contract, and is fixed by the
-   developer re-running a documented setup command once (e.g. legacy personal `tokens.env` lines before `b64:`). Do not
-   add compatibility parsers, `eval` deny-lists, or migration branches for that — tell the author to re-prompt /
-   recreate the file instead.
+   bare-Linux-without-container runs; **host-only prerequisite docs** (`npm`/`PATH` for tools the Dev Container already
+   provides). Do **not** take step 5 merely because a host-only hardening is one line. GitHub Actions Linux CI **is** in
+   scope — do not dismiss solely as “host” when the path is Actions. **Also `dismiss` (practicality None)** when the
+   finding only targets a **one-shot local migration** or ephemeral developer state: an old on-disk format that is not
+   the current write path, is not a shipped consumer contract, and is fixed by the developer re-running a documented
+   setup command once (e.g. legacy personal `tokens.env` lines before `b64:`). Do not add compatibility parsers, `eval`
+   deny-lists, or migration branches for that — tell the author to re-prompt / recreate the file instead. **Also
+   `dismiss`** requests to **re-harden** shared Devinfra / agent plumbing after an **intentional happy-path
+   simplification** in this PR (marker repair, exotic `bashrc` branches, dual host token stores, etc.) unless the
+   documented Dev Container path is actually broken.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
    `dismiss` or `follow-up` (only if Medium+).
 3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
@@ -150,7 +167,15 @@ middleware.
 For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
 Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
 installs, unofficial bare-metal runs, or speculative edge hardening. Those are practicality **Low** (or **None**). **Do
-not** take step 5 merely because the patch is cheap. Still **fix** when that documented path is wrong.
+not** take step 5 merely because the patch is cheap. Still **fix** when that documented path is wrong (including real
+consumer-sync failures such as hook argv-length on `pre-commit run --all-files`, or check scripts that mutate contrary
+to their contract).
+
+**Also dismiss** on this surface: pre-commit / shell **style-only** nits (`entry` vs `args`, comment polish) and
+**re-adding** exotic repair paths the PR intentionally removed, when the happy path still works.
+
+For **docs**, dismiss wording-only and host-prerequisite nits that do not break the Dev Container cadence; fix only when
+instructions are wrong for the supported path.
 
 For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
 `--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or
