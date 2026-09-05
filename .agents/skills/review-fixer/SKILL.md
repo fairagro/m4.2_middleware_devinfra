@@ -162,6 +162,10 @@ Decision order (stop at first match) — same as the policy:
    quality bar** in `docs/ai_review_policy.md` first — exotic CLI/host edges and wording nits are practicality Low → not
    step 5.
 6. Else nit:
+   - **First:** if the finding is an **exotic edge** on shared Devinfra `scripts/` (except `scripts/ai/`), agent
+     plumbing, docs wording, or vendor skills — `dismiss` (practicality Low). **Nit-budget does not override** the
+     surface quality bar (e.g. linked git worktrees, host-only installs, BSD/`base64` quirks). See
+     `docs/ai_review_policy.md`.
    - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only when expensive or practicality is not High)

@@ -11,6 +11,7 @@ Not every file under `scripts/` is Dev Container-only. Personal-token helpers ar
 | ------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. Commit-stage also runs `npm run lint:md` (Node/`npm`; host: `npm install`). On the host, set `GITGUARDIAN_API_KEY` for ggshield if required. |
 | `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                |
+| `setup-git-lfs.sh` / `git-hooks/`     | Host or Dev Container  | Needs `git-lfs` on PATH; copies hooks into `.git/hooks/`                                                                                                 |
 | `load-versions-env.sh`                | Host or Dev Container  | Reads `versions.env`, writes `.python-version`                                                                                                           |
 | `scripts/ai/` (`m42-ai`)              | Host or Dev Container  | Needs `gh` on `PATH` and auth (`GH_TOKEN` / `gh auth`)                                                                                                   |
 | `dev-tokens.sh` / `set-dev-tokens.sh` | **Dev Container only** | Store: `/commandhistory/tokens.env`                                                                                                                      |
@@ -29,10 +30,14 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 | `scripts/quality-check.sh`                | Run **commit-stage** hooks only (check)             |
 | `scripts/quality-fix.sh`                  | Run commit-stage **autofix** hooks only             |
 | `scripts/run-container-structure-test.sh` | Templated Docker build + `container-structure-test` |
+| `scripts/setup-git-lfs.sh`                | Install Git LFS (local) + copy `scripts/git-hooks/` |
+| `scripts/git-hooks/`                      | `pre-push` (LFS + pre-commit) + LFS lifecycle hooks |
 | `.bandit`                                 | Bandit config (`bandit -c .bandit`)                 |
 | `.markdownlint.json` (+ ignore / cli2)    | Markdownlint (also used by the markdownlint hook)   |
 
-## Install (commit stage)
+## Install
+
+### Commit stage
 
 ```bash
 uv sync
@@ -41,18 +46,35 @@ uv run pre-commit install --hook-type pre-commit
 ```
 
 Typical place: Dev Container **postCreate** (issue
-[#10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10)).
+[#10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10)). These hooks are **not** files under
+`scripts/git-hooks/`.
 
-**Pre-push git hook** install (so the pre-push stage runs on `git push`) is issue
-[#9](https://github.com/fairagro/m4.2_middleware_devinfra/issues/9) — not done by these scripts.
+### Pre-push (Git LFS + quality stage)
 
-## Manual runs
+```bash
+./scripts/setup-git-lfs.sh
+```
+
+Copies `scripts/git-hooks/{pre-push,post-checkout,post-commit,post-merge}` into `.git/hooks/` and runs
+`git lfs install --local`. Requires `git-lfs` on `PATH` (no Homebrew/apt auto-install). Call from postCreate when #10
+wires it, or once after clone.
+
+On `git push`, `pre-push` runs Git LFS first, then the shared pre-commit **pre-push** stage (pytest +
+`scripts/run-container-structure-test.sh` from the #7 skeleton). Product Dockerfiles / CST YAML stay in consumers. Needs
+Docker/tests when those hooks are active.
+
+Manual without the git hook:
+
+```bash
+uv run pre-commit run --all-files --hook-stage pre-push
+```
+
+## Manual runs (commit stage)
 
 ```bash
 ./scripts/quality-check.sh   # commit-stage, non-mutating only
 ./scripts/quality-fix.sh     # autofix hooks, then re-run quality-check
 uv run pre-commit run --all-files   # full commit stage (includes autofixers)
-uv run pre-commit run --all-files --hook-stage pre-push   # pytest + CST (needs Docker / tests)
 ```
 
 On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hooks need) yourself — there is no

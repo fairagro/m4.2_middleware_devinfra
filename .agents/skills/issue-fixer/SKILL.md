@@ -230,6 +230,21 @@ create-issue inputs — do not invent an off-allowlist create path.
   `object`, unnecessary `T | None`).
 - Update specs only when the real contract changes.
 
+## Surface quality bar (`scripts/` — implement / propose)
+
+Match the **Surface quality bar** in [`docs/ai_review_policy.md`](../../../docs/ai_review_policy.md) and the supported
+environment in [`openspec/principles.global.md`](../../../openspec/principles.global.md). This applies to explore
+lock-ins, OpenSpec design/tasks, and `/opsx-apply` — not only to review triage.
+
+| Surface | Implement | Do **not** implement unless the issue done-when explicitly requires it |
+| ------- | --------- | ---------------------------------------------------------------------- |
+| **Shared Devinfra** `scripts/` except `scripts/ai/` | Documented Linux Dev Container + contributor/CI happy path (normal clone, tools on `PATH` as documented) | Linked git worktrees (`.git` as file), host Homebrew/apt auto-install, macOS/Windows/BSD userland, dual host token stores, legacy format parsers, speculative repair/`bashrc` branches, other exotic layouts |
+| **Agent plumbing** `scripts/ai/` + skill/CLI wiring | Default skill/CLI invocation in the Dev Container | Adversarial/partial argparse, host-only `PATH` fallbacks, wording-only polish |
+
+**Hard rule:** for those surfaces, prefer the **simplest** happy-path contract. Do not expand design/tasks with “also
+support worktrees / host X / legacy Y”. If that work is real but out of done-when, split via `/create-issue`
+(`relation: linked`) — do not sneak it into the MVP slice.
+
 ## Output to the user
 
 Provide:

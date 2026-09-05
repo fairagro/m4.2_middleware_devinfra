@@ -166,10 +166,11 @@ middleware.
 
 For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
 Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
-installs, unofficial bare-metal runs, or speculative edge hardening. Those are practicality **Low** (or **None**). **Do
-not** take step 5 merely because the patch is cheap. Still **fix** when that documented path is wrong (including real
-consumer-sync failures such as hook argv-length on `pre-commit run --all-files`, or check scripts that mutate contrary
-to their contract).
+installs, unofficial bare-metal runs, linked git worktrees (`.git` as file), or speculative edge hardening. Those are
+practicality **Low** (or **None**). **Do not** take step 5 merely because the patch is cheap. **Do not** spend
+**nit-budget** on those exotic edges either — `dismiss` them. Still **fix** when that documented path is wrong
+(including real consumer-sync failures such as hook argv-length on `pre-commit run --all-files`, or check scripts that
+mutate contrary to their contract).
 
 **Also dismiss** on this surface: pre-commit / shell **style-only** nits (`entry` vs `args`, comment polish) and
 **re-adding** exotic repair paths the PR intentionally removed, when the happy path still works.
@@ -216,6 +217,9 @@ site is expensive even at 20 lines.
 
 A **nit** is a correct (or plausible) finding that is **not** high risk and does **not** already qualify as step 5
 (cheap + High practicality + Medium+).
+
+Exotic edges on shared Devinfra / agent plumbing (surface bar → practicality Low) are **not** eligible nit-fixes —
+`dismiss` even when cheap. Nit-budget only applies after the surface bar says the path is in scope.
 
 Budget (fixer only) is a **soft lifetime cap per PR** of **~15 new production lines** from nit-fixes (never a new
 abstraction). It is **not** gated on Copilot/Bugbot review round — later rounds often surface Low nits after earlier
