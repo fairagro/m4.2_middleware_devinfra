@@ -125,6 +125,10 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
 - interactive `gh` / `git` keep loading tokens via `scripts/bin` wrappers on `PATH`
 
+Issue [#10](https://github.com/fairagro/m4.2_middleware_devinfra/issues/10) will wire commit-stage `pre-commit install`
+and `./scripts/setup-git-lfs.sh` (Git LFS + pre-push hooks) into postCreate. Until then, run those manually after create
+(see [`docs/quality.md`](quality.md)).
+
 `PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
 
 Re-run anytime:

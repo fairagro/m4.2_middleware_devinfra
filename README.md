@@ -48,10 +48,12 @@ npm install   # host clones; optional in Dev Container (global markdownlint/pret
 ./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
 uv run pre-commit install --hook-type pre-commit   # usually postCreate / #10
+./scripts/setup-git-lfs.sh          # LFS + pre-push git hooks (after clone / postCreate)
 ```
 
-Pre-push **git** hook install is [#9](https://github.com/fairagro/m4.2_middleware_devinfra/issues/9). CST runner params
-(`CST_DOCKERFILE`, `CST_IMAGE_TAG`, `CST_CONFIG`) are documented in `docs/quality.md`.
+Pre-push **git** hook (`scripts/git-hooks/pre-push`: Git LFS then pre-commit pre-push stage) is installed by
+`./scripts/setup-git-lfs.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_DOCKERFILE`,
+`CST_IMAGE_TAG`, `CST_CONFIG`) are documented there.
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
@@ -81,7 +83,8 @@ steps.
 
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
-- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, install boundaries (#9 / #10)
+- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks / LFS install (#10 wires
+  postCreate)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
 - [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
@@ -102,6 +105,8 @@ steps.
 | `scripts/quality-check.sh`                | Commit-stage quality check                                            |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                            |
 | `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                    |
+| `scripts/setup-git-lfs.sh`                | Local Git LFS init + install `scripts/git-hooks/`                     |
+| `scripts/git-hooks/`                      | pre-push (LFS + pre-commit) + LFS post-* hooks                        |
 | `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                 |
 | `.bandit`                                 | Bandit config for `middleware/` consumers                             |
 | `scripts/ai/`                             | `m42-ai` CLI (auth, review, issue-view/branch/start, pr-strip-footer) |

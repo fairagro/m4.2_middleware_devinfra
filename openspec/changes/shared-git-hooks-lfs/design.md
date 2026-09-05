@@ -26,7 +26,8 @@ files** and installer so `git push` actually runs that stage (after Git LFS).
 2. **Pre-commit invocation** — Prefer `uv run pre-commit` (repo root), then `.venv` `python -m pre_commit`, then
    `pre-commit` on PATH — aligns with quality scripts / uv-only principles.
 3. **Hook comments** — State install via `scripts/setup-git-lfs.sh` (fix API comment that said `setup-git-hooks.sh`).
-4. **Backup** — Same as API: backup existing hooks that are not already the version-controlled marker string.
+4. **Overwrite, no backup** — After `git lfs install --force`, always replace the four hooks with project copies. Do not
+   leave `.backup` files under `.git/hooks/`.
 
 ## Risks / Trade-offs
 
