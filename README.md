@@ -15,14 +15,16 @@ Cursor commands, Copilot prompts), the agent GitHub CLI (`scripts/ai/`, `m42-ai`
 
 ## Vendor agent skills
 
-Committed vendor skills live under `.agents/skills/gh/` and `.agents/skills/scan-secrets/`. **Do not hand-edit** those
-trees — reinstall or update via `gh skill`, then commit the result.
+Committed vendor skills live under `.agents/skills/{gh,docker,hadolint,uv}/`. **Do not hand-edit** those trees —
+reinstall or update via `gh skill`, then commit the result.
 
 Install (project scope; Cursor / Copilot share `.agents/skills/`):
 
 ```bash
 gh skill install cli/cli gh --scope project --agent cursor -f
-gh skill install GitGuardian/agent-skills scan-secrets --scope project --agent cursor -f
+gh skill install Mindrally/skills docker --scope project --agent cursor -f
+gh skill install rshade/agent-skills hadolint --scope project --agent cursor -f
+gh skill install balintdecsi/skills uv --scope project --agent cursor -f
 ```
 
 Update to newer upstream releases when intentional:
@@ -83,7 +85,9 @@ steps.
 | `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                                  |
 | `.agents/skills/issue-fixer/`      | Shared `/issue-fixer` Fixer skill                                     |
 | `.agents/skills/gh/`               | Vendor `gh` skill (committed; do not hand-edit)                       |
-| `.agents/skills/scan-secrets/`     | Vendor GitGuardian `scan-secrets` skill (committed; do not hand-edit) |
+| `.agents/skills/docker/`           | Vendor Docker skill (committed; do not hand-edit)                     |
+| `.agents/skills/hadolint/`         | Vendor hadolint skill (committed; do not hand-edit)                   |
+| `.agents/skills/uv/`               | Vendor `uv` skill (committed; do not hand-edit)                       |
 | `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                                 |
 | `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                                 |
 | `.cursor/commands/issue-fixer.md`  | Cursor slash command for issue-fixer                                  |

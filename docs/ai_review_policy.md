@@ -143,7 +143,7 @@ accordingly. Finders may still comment; the fixer must not treat agent plumbing 
 | **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state  | Full: real callers, contracts, security, data integrity          | Fix when correct + in PR      |
 | **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc. | Happy path in the Linux Dev Container with normal skill/CLI args | `dismiss` (practicality Low)  |
 | **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts           | Accurate instructions; no broken cadence                         | `dismiss` wording-only nits   |
-| **Vendor skills**                 | `.agents/skills/gh`, `scan-secrets`, other pinned vendor    | Do not hand-edit; pin/update via install                         | `dismiss` drive-by edits      |
+| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                    | Do not hand-edit; pin/update via install                         | `dismiss` drive-by edits      |
 
 For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
 `--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or

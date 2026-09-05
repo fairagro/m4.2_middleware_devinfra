@@ -3,21 +3,23 @@
 ## Context
 
 See proposal.md — Why. Issue #6; explore lock-ins: commit installed trees (install+commit = pin); install into
-`.agents/skills/`; defer pre-commit config.
+`.agents/skills/`; defer pre-commit config. Skill set refined: keep `gh`; add Docker + hadolint + `uv`; drop
+`scan-secrets` (ggshield doctrine skill not required for agent happy path).
 
 ## Goals / Non-Goals
 
-**Goals:** Committed `gh` + `scan-secrets` vendor skills; README install/update; ignores confirmed.
+**Goals:** Committed `gh`, `docker`, `hadolint`, `uv` vendor skills; README install/update; ignores confirmed.
 
-**Non-Goals:** Full quality/pre-commit skeleton (#7+); installing `ggshield` in the Dev Container in this change;
-hand-maintained forks of vendor skills.
+**Non-Goals:** Full quality/pre-commit skeleton (#7+); pinning GitGuardian `scan-secrets`; hand-maintained forks of
+vendor skills; a general `git` skill.
 
 ## Decisions
 
-- **Pinning:** Commit the installed skill trees. Document install commands for reproducibility/rebuild; optional future
-  pin refs in README if useful, but the git tree is the source of truth.
+- **Pinning:** Commit the installed skill trees. Document install commands for reproducibility/rebuild; the git tree is
+  the source of truth.
 - **Install target:** Project-scope install so Cursor/Copilot land under `.agents/skills/` (shared destination).
-- **Sources:** `cli/cli` → `gh`; `GitGuardian/agent-skills` → `scan-secrets` (per issue + upstream docs).
+- **Sources:** `cli/cli` → `gh`; `Mindrally/skills` → `docker`; `rshade/agent-skills` → `hadolint`;
+  `balintdecsi/skills` → `uv`.
 - **Pre-commit:** Document intent only; no new hook config until quality skeleton.
 
 ## Risks / Trade-offs
@@ -29,7 +31,7 @@ hand-maintained forks of vendor skills.
 ## Migration Plan
 
 1. Propose → apply on draft PR for #6
-2. Consumers sync `.agents/skills/{gh,scan-secrets}` + README/ignores
+2. Consumers sync `.agents/skills/{gh,docker,hadolint,uv}` + README/ignores
 
 ## Open Questions
 

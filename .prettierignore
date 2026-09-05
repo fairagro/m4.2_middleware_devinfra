@@ -3,5 +3,7 @@
 node_modules/
 LICENSE
 .agents/skills/gh/
-.agents/skills/scan-secrets/
+.agents/skills/docker/
+.agents/skills/hadolint/
+.agents/skills/uv/
 package-lock.json
