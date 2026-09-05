@@ -138,20 +138,20 @@ Risk is high only when severity is Blocker/High **and** practicality is not Low/
 Not every path has the same bar. Classify the touched surface **before** step 5, and adjust practicality / dismiss
 accordingly. Finders may still comment; the fixer must not treat agent plumbing like product middleware.
 
-| Surface                         | Typical paths                                              | Bar (what must work)                                                                 | Default for exotic edge cases |
-| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------- |
-| **Product / domain**            | `middleware/*/src/`, public APIs, workers, persisted state | Full: real callers, contracts, security, data integrity                              | Fix when correct + in PR      |
-| **Agent plumbing**              | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.| Happy path in the Linux Dev Container with normal skill/CLI args                     | `dismiss` (practicality Low)  |
-| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts        | Accurate instructions; no broken cadence                                             | `dismiss` wording-only nits   |
-| **Vendor skills**               | `.agents/skills/gh`, `scan-secrets`, other pinned vendor   | Do not hand-edit; pin/update via install                                             | `dismiss` drive-by edits      |
+| Surface                           | Typical paths                                               | Bar (what must work)                                             | Default for exotic edge cases |
+| --------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------- |
+| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state  | Full: real callers, contracts, security, data integrity          | Fix when correct + in PR      |
+| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc. | Happy path in the Linux Dev Container with normal skill/CLI args | `dismiss` (practicality Low)  |
+| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts           | Accurate instructions; no broken cadence                         | `dismiss` wording-only nits   |
+| **Vendor skills**                 | `.agents/skills/gh`, `scan-secrets`, other pinned vendor    | Do not hand-edit; pin/update via install                         | `dismiss` drive-by edits      |
 
 For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
 `--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or
 wording-only error-message polish. Those are practicality **Low** (or **None** if no real agent path). **Do not** take
 step 5 merely because the patch is cheap.
 
-Still **fix** agent-plumbing findings when the default Dev Container skill path is wrong (e.g. stale `origin/main`
-makes `branch-ahead` lie; remote-only issue branch recreated from `main` and breaks push).
+Still **fix** agent-plumbing findings when the default Dev Container skill path is wrong (e.g. stale `origin/main` makes
+`branch-ahead` lie; remote-only issue branch recreated from `main` and breaks push).
 
 ---
 

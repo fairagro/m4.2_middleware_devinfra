@@ -70,7 +70,7 @@ applicable):
 - `uv run pylint --rcfile pyproject.toml middleware/` — style and code smells
 - `uv run bandit -r middleware/ -c .bandit` — security (low findings logged, medium/high fail)
 
-Markdown must pass Prettier formatting and markdownlint (extends `markdownlint/style/prettier` so the two do not fight).
+Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):
 
 - `npm run format:md` / `npm run format:md:check` — Prettier write / check for `**/*.{md,mdc}`
