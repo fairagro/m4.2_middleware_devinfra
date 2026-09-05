@@ -38,13 +38,16 @@ applies the same vendor excludes.
 
 ## Quality (pre-commit)
 
-Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md):
+Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md). Needs `uv` (and, for the
+markdownlint hook, Node/`npm`: Dev Container has them global; on a host clone run `npm install` once). Prefer
+`uv run pre-commit …` so the tool need not be on `PATH`:
 
 ```bash
 uv sync
+npm install   # host clones; optional in Dev Container (global markdownlint/prettier)
 ./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
-pre-commit install --hook-type pre-commit   # usually postCreate / #10
+uv run pre-commit install --hook-type pre-commit   # usually postCreate / #10
 ```
 
 Pre-push **git** hook install is [#9](https://github.com/fairagro/m4.2_middleware_devinfra/issues/9). CST runner params

@@ -7,15 +7,15 @@ for sync into product consumers (`middleware/` package root — see [path conven
 
 Not every file under `scripts/` is Dev Container-only. Personal-token helpers are; quality runners are not.
 
-| Script / tree                         | Environment            | Notes                                                                                           |
-| ------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. On the host, set `GITGUARDIAN_API_KEY` in the environment for ggshield if required. |
-| `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                       |
-| `load-versions-env.sh`                | Host or Dev Container  | Reads `versions.env`, writes `.python-version`                                                  |
-| `scripts/ai/` (`m42-ai`)              | Host or Dev Container  | Needs `gh` on `PATH` and auth (`GH_TOKEN` / `gh auth`)                                          |
-| `dev-tokens.sh` / `set-dev-tokens.sh` | **Dev Container only** | Store: `/commandhistory/tokens.env`                                                             |
-| `scripts/bin/gh`, `scripts/bin/git`   | **Dev Container only** | On `PATH` via `remoteEnv`; load the token store                                                 |
-| `devcontainer-post-create.sh`         | **Dev Container only** | Invoked from `devcontainer.json`                                                                |
+| Script / tree                         | Environment            | Notes                                                                                                                                                    |
+| ------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. Commit-stage also runs `npm run lint:md` (Node/`npm`; host: `npm install`). On the host, set `GITGUARDIAN_API_KEY` for ggshield if required. |
+| `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                |
+| `load-versions-env.sh`                | Host or Dev Container  | Reads `versions.env`, writes `.python-version`                                                                                                           |
+| `scripts/ai/` (`m42-ai`)              | Host or Dev Container  | Needs `gh` on `PATH` and auth (`GH_TOKEN` / `gh auth`)                                                                                                   |
+| `dev-tokens.sh` / `set-dev-tokens.sh` | **Dev Container only** | Store: `/commandhistory/tokens.env`                                                                                                                      |
+| `scripts/bin/gh`, `scripts/bin/git`   | **Dev Container only** | On `PATH` via `remoteEnv`; load the token store                                                                                                          |
+| `devcontainer-post-create.sh`         | **Dev Container only** | Invoked from `devcontainer.json`                                                                                                                         |
 
 Supported day-to-day development remains the Linux Dev Container ([principles](../openspec/principles.global.md)). Host
 checkouts may run the **host-or-DC** scripts above; they do not get the personal-token store or PATH wrappers — use
@@ -36,8 +36,8 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 
 ```bash
 uv sync
-pre-commit install --hook-type pre-commit
-# or: uv run pre-commit install --hook-type pre-commit
+npm install   # host clones needing local markdownlint/prettier; skip if tools are global
+uv run pre-commit install --hook-type pre-commit
 ```
 
 Typical place: Dev Container **postCreate** (issue

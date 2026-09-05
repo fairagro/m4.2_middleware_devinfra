@@ -3,8 +3,10 @@
 # Does not run autofix hooks or pre-push (pytest, container-structure-test).
 # Apply fixes with ./scripts/quality-fix.sh, then re-run this script.
 #
-# Environment: host or Dev Container (needs `uv`; ggshield needs GITGUARDIAN_API_KEY in env).
-# In the Dev Container, personal tokens are loaded when /commandhistory exists.
+# Environment: host or Dev Container (needs `uv`; markdownlint hook needs Node/`npm`;
+# ggshield needs GITGUARDIAN_API_KEY in env). Host clones: run `npm install` once if
+# markdownlint-cli2 is not on PATH. In the Dev Container, personal tokens load when
+# /commandhistory exists.
 #
 # Usage: ./scripts/quality-check.sh
 
