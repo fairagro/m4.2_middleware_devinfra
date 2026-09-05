@@ -42,7 +42,7 @@ Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](
 
 ```bash
 uv sync
-./scripts/quality-check.sh          # commit-stage only
+./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
 pre-commit install --hook-type pre-commit   # usually postCreate / #10
 ```

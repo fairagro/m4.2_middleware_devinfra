@@ -21,8 +21,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-# shellcheck source=load-versions-env.sh
-source "${SCRIPT_DIR}/load-versions-env.sh"
+# Optional pins for Docker --build-arg only. Do not use load-versions-env.sh (that
+# enforces unrelated pins and rewrites .python-version).
+VERSIONS_ENV="${REPO_ROOT}/versions.env"
+if [[ -f "${VERSIONS_ENV}" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "${VERSIONS_ENV}"
+  set +a
+fi
 
 CST_DOCKERFILE="${1:-${CST_DOCKERFILE:-docker/Dockerfile}}"
 CST_IMAGE_TAG="${2:-${CST_IMAGE_TAG:-app:structure-test}}"

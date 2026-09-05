@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Commit-stage quality gate via pre-commit (same hooks as `git commit`).
-# Does not run pre-push hooks (pytest, container-structure-test).
+# Commit-stage quality gate via pre-commit (non-mutating checks only).
+# Does not run autofix hooks or pre-push (pytest, container-structure-test).
+# Apply fixes with ./scripts/quality-fix.sh, then re-run this script.
 #
 # Environment: host or Dev Container (needs `uv`; ggshield needs GITGUARDIAN_API_KEY in env).
 # In the Dev Container, personal tokens are loaded when /commandhistory exists.
 #
 # Usage: ./scripts/quality-check.sh
-# Equivalent to: uv run pre-commit run --all-files
 
 set -euo pipefail
 
@@ -28,9 +28,13 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "Starting Code Quality Checks (pre-commit, commit stage)..."
+# Mutating commit-stage hooks — quality-fix.sh / git commit; not this check script.
+# pre-commit SKIP is a comma-separated list of hook ids.
+export SKIP="${SKIP:+${SKIP},}trailing-whitespace,end-of-file-fixer,ruff-fix,ruff-format"
+
+echo "Starting Code Quality Checks (pre-commit, commit stage, non-mutating)..."
 echo "=================================="
-echo -e "${YELLOW}pre-commit run --all-files...${NC}"
+echo -e "${YELLOW}pre-commit run --all-files (SKIP=${SKIP})...${NC}"
 
 set +e
 uv run pre-commit run --all-files
@@ -38,7 +42,7 @@ code=$?
 set -e
 
 if [ "${code}" -eq 0 ]; then
-  echo -e "${GREEN}All pre-commit (commit-stage) hooks passed!${NC}"
+  echo -e "${GREEN}All non-mutating commit-stage hooks passed!${NC}"
   echo "================================="
   exit 0
 fi

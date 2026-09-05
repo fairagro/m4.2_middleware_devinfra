@@ -49,9 +49,9 @@ Typical place: Dev Container **postCreate** (issue
 ## Manual runs
 
 ```bash
-./scripts/quality-check.sh   # commit-stage only
+./scripts/quality-check.sh   # commit-stage, non-mutating only
 ./scripts/quality-fix.sh     # autofix hooks, then re-run quality-check
-uv run pre-commit run --all-files
+uv run pre-commit run --all-files   # full commit stage (includes autofixers)
 uv run pre-commit run --all-files --hook-stage pre-push   # pytest + CST (needs Docker / tests)
 ```
 

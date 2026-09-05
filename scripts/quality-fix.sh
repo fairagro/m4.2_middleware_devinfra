@@ -29,11 +29,11 @@ echo "Starting Code Quality Fixes (pre-commit autofix hooks)..."
 echo "================================="
 
 # Hooks that rewrite files (same IDs / config as .pre-commit-config.yaml).
-# ruff uses --fix --exit-non-zero-on-fix, so a successful rewrite may exit 1.
+# ruff-fix exits 1 when it rewrote files — expected for a fix script.
 autofix_hooks=(
   trailing-whitespace
   end-of-file-fixer
-  ruff
+  ruff-fix
   ruff-format
 )
 
