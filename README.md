@@ -62,8 +62,8 @@ environment or Type Safety in the local file).
 Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
 
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
-- **Kombi:** interactive shells source `scripts/dev-tokens.sh` after postCreate (loads stored values; prompts only on a
-  TTY). `scripts/bin/gh` and `scripts/bin/git` stay on `PATH` for agents / Cursor SCM.
+- **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv`) and source
+  `scripts/dev-tokens.sh` (loads stored values; prompts only on a TTY). No `~/.bashrc` patch.
 - **Empty prompt** = skip until you re-prompt: `source ./scripts/set-dev-tokens.sh`
 - Do **not** put tokens in the git worktree.
 

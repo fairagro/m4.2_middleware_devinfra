@@ -122,8 +122,8 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 
 - fix `/commandhistory` and `~/.config/gh` permissions
 - write `.python-version` from `versions.env` via `scripts/load-versions-env.sh`
-- ensure `~/.bashrc` sources `scripts/dev-tokens.sh` (load stored tokens; TTY prompts only when interactive)
-- load stored tokens into the postCreate environment (no hang without TTY)
+- load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
+- interactive `gh` / `git` keep loading tokens via `scripts/bin` wrappers on `PATH`
 
 `PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
 

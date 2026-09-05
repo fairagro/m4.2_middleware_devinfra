@@ -104,19 +104,18 @@ the token helper, and exec the real `git` binary (not itself).
 ### Requirement: Dev Container PATH and stored-token load
 
 This repository's Dev Container configuration MUST put the repo's `scripts/bin` ahead of the default `PATH` so `gh` and
-`git` resolve to the wrappers. postCreate and/or the interactive shell profile MUST source the token helper in a
-non-prompting way so already stored non-empty tokens are exported into the environment. Documentation MUST describe the
-empty-skip and re-prompt flow, the Kombi (shell load + wrappers), and point at path conventions for
-`/commandhistory/tokens.env`.
+`git` resolve to the wrappers (which source the token helper). postCreate MAY source the token helper once into the
+postCreate environment (non-prompting). The helpers MUST NOT patch `~/.bashrc` or other shell profiles. Documentation
+MUST describe the empty-skip and re-prompt flow, wrapper-based load, and `/commandhistory/tokens.env`.
 
 #### Scenario: Contributor looks up token setup
 
 - **WHEN** a contributor reads the root README (or linked Dev Container doc) for personal tokens
 - **THEN** they find empty-skip and `set-dev-tokens.sh` re-prompt behavior
 - **AND** they are directed to `/commandhistory/tokens.env` in the Dev Container
+- **AND** they learn that `gh` / `git` on `PATH` load tokens via the wrappers (no `.bashrc` patch)
 
-#### Scenario: Stored tokens available in a Dev Container shell
+#### Scenario: Stored tokens available via wrappers
 
-- **WHEN** non-empty tokens are already stored and postCreate or the shell profile has sourced the helper without a TTY
-  prompt
-- **THEN** `GH_TOKEN` and/or `GITGUARDIAN_API_KEY` are present in the environment for that session when stored
+- **WHEN** non-empty tokens are already stored and the user invokes `gh` or `git` through `scripts/bin` on `PATH`
+- **THEN** the wrapper sources the helper and uses the stored token when present

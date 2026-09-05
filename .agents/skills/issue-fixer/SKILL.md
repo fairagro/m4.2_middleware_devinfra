@@ -25,9 +25,9 @@ pushes; the agent opens the draft PR only when the tip already differs from `mai
 ## Auth (`gh`)
 
 `gh` is wrapped (`scripts/bin/gh`, on `PATH` in the Dev Container via `remoteEnv`). Missing `GH_TOKEN` prompts on
-`/dev/tty` and is saved to `/commandhistory/tokens.env` (Linux Dev Container only — see `docs/conventions.md`).
-Interactive shells also source `scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git
-worktree; do not invent them. Never ask the user to paste a PAT into chat.
+`/dev/tty` and is saved to `/commandhistory/tokens.env` (Linux Dev Container only — see `docs/conventions.md`). The
+wrapper sources `scripts/dev-tokens.sh` on each invoke (no `.bashrc` patch). Do not read tokens from the git worktree;
+do not invent them. Never ask the user to paste a PAT into chat.
 
 **Agent / no TTY:** `/dev/tty` is unavailable in chat, so the wrapper cannot prompt. Before skipping GitHub writes:
 
