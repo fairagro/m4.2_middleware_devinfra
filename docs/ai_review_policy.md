@@ -14,13 +14,20 @@ Two channels:
 Merge criterion: no open **risk** findings. Dismissed nit threads are not a merge blocker. Do not loop until “0 Copilot
 comments”.
 
-**Risk** (for this stop rule) means the fixer’s private checklist: severity **Blocker or High** **and** practicality
-**not** Low/None. Copilot/Bugbot banners (“Needs a closer look”, “Changes recommended”) are **not** risk.
+**Risk** (merge channel) means the fixer’s private checklist: severity **Blocker or High** **and** practicality **not**
+Low/None. Copilot/Bugbot banners (“Needs a closer look”, “Changes recommended”) are **not** risk. Risk is **not**
+`severity × practicality`; Medium + High practicality is often a step-5 fix but is **not** risk.
 
-**Review-cycle abort criterion:** After a `/review-fixer` run reports **Remaining risk: 0**, **stop the cycle** — do not
-request another finder pass or another `/review-fixer` solely because comments remain or the fixer made no code changes.
-Optional exception: **at most one** deliberate nit pass while nit-budget remains; if that pass also ends at risk 0,
-stop. Resume only when new open work appears that the fixer would classify as risk, or a human explicitly asks.
+**Fixed non-nit this run** means the count of open-work items in **this** `/review-fixer` invocation with action `fix`
+that are **not** nits: Risk (step 4) and step-5 (cheap + High practicality + Medium+) fixes. Nit-budget fixes,
+dismissals, and follow-ups do **not** count. The count is per run (not accumulated across the PR).
+
+**Review-cycle abort criterion:** After a `/review-fixer` run reports **Fixed non-nit this run: 0**, **stop the cycle**
+— do not request another finder pass or another `/review-fixer` solely because comments remain, Remaining risk is
+already 0, or only nits/dismissals happened. If **Fixed non-nit this run ≥ 1**, the cycle may continue (another finder
+pass is allowed after the fixes land). Optional exception: **at most one** deliberate nit-only pass while nit-budget
+remains even when Fixed non-nit would be 0; after that pass (or if skipped), the same abort applies. Resume when new
+open work appears that the fixer would non-nit-fix, or a human explicitly asks.
 
 ---
 

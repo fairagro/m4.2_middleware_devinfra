@@ -13,11 +13,15 @@ The repository MUST provide `docs/ai_review_policy.md` as the single Finder/Fixe
 document MUST define Finder and Fixer roles, risk versus nit merge criteria, severity and practicality and cost
 guidance, nit-budget rules, type-widening bans, and follow-up issue rules. The merge criterion MUST be **no open risk**
 findings. **Risk** MUST mean fixer triage severity Blocker/High with practicality not Low/None — not finder summary
-banners. The policy MUST define a **review-cycle abort criterion**: when the latest `/review-fixer` run reports
-**Remaining risk: 0**, the cycle MUST stop (no further finder/`/review-fixer` loops solely for remaining comments or
-zero code changes), with at most one deliberate nit pass while nit-budget remains. Product-only API examples (specific
-routes, datastores, or config types that are not shared) MUST NOT appear as normative requirements; shared vocabulary
-MUST be used instead.
+banners and not a multiplicative severity×practicality score. The policy MUST define **Fixed non-nit this run** as the
+per-invocation count of `fix` actions that are not nits (Risk step-4 fixes and step-5 cheap + High practicality +
+Medium+ fixes; nit-budget fixes, dismissals, and follow-ups excluded). The policy MUST define a **review-cycle abort
+criterion**: when the latest `/review-fixer` run reports **Fixed non-nit this run: 0**, the cycle MUST stop (no further
+finder/`/review-fixer` loops solely for remaining comments, already-zero Remaining risk, or nit/dismiss-only outcomes);
+when Fixed non-nit this run is ≥ 1, another finder pass MAY follow after fixes land. At most one deliberate nit-only
+pass while nit-budget remains MAY run even when Fixed non-nit would be 0; afterward the same abort applies. Product-only
+API examples (specific routes, datastores, or config types that are not shared) MUST NOT appear as normative
+requirements; shared vocabulary MUST be used instead.
 
 Nit-budget MUST be a **soft lifetime cap per PR** of approximately 15 new production lines for cheap nits (never a new
 abstraction). It MUST NOT reset on each `/review-fixer` run and MUST NOT be gated on Copilot/Bugbot review round number.
@@ -53,12 +57,19 @@ dismissed.
 - **THEN** they find Finder and Fixer role definitions and the risk-versus-nit merge rule
 - **AND** the document does not require API-only nouns as the only valid entry points
 
-#### Scenario: Remaining risk 0 aborts the review cycle
+#### Scenario: Fixed non-nit this run 0 aborts the review cycle
 
-- **WHEN** the latest `/review-fixer` run reports Remaining risk: 0
+- **WHEN** the latest `/review-fixer` run reports Fixed non-nit this run: 0
 - **THEN** the review cycle stops
-- **AND** Copilot/Bugbot banners or remaining dismissed/nit comments alone do not require another pass
-- **AND** at most one deliberate nit pass remains allowed while nit-budget remains before the same abort applies
+- **AND** Copilot/Bugbot banners, Remaining risk already 0, or remaining dismissed/nit comments alone do not require
+  another pass
+- **AND** at most one deliberate nit-only pass remains allowed while nit-budget remains before the same abort applies
+
+#### Scenario: Non-nit fixes allow another finder pass
+
+- **WHEN** the latest `/review-fixer` run reports Fixed non-nit this run ≥ 1
+- **THEN** the review cycle does not abort solely because Remaining risk is 0
+- **AND** another finder pass MAY be requested after those fixes land
 
 #### Scenario: Nit budget is a soft PR lifetime cap
 

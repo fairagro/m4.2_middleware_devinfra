@@ -16,11 +16,13 @@ anything here is ambiguous.
 
 You are the **fixer** (precision). Copilot and Bugbot are finders (recall). Do not loop until comments are gone.
 
-**Abort criterion:** When this run’s output shows **Remaining risk: 0**, the review cycle **stops**. Do not ask for
-another Copilot/Bugbot pass or another `/review-fixer` just because threads/comments remain or you made no code changes.
-Risk = Blocker/High **and** practicality not Low/None (your checklist), not finder banners. Optional: **at most one**
-deliberate nit pass while nit-budget remains; if it also ends at risk 0, stop. Resume only for new risk or an explicit
-human request.
+**Abort criterion:** When this run’s output shows **Fixed non-nit this run: 0**, the review cycle **stops**. Do not ask
+for another Copilot/Bugbot pass or another `/review-fixer` just because threads/comments remain, Remaining risk is
+already 0, or you only dismissed / fixed nits. **Fixed non-nit this run** = count of this run’s `fix` actions that are
+not nits (Risk step 4, or step-5 cheap + High practicality + Medium+). Risk (merge) still = Blocker/High **and**
+practicality not Low/None — report it, but it does **not** drive the abort. If Fixed non-nit ≥ 1, do **not** claim the
+cycle should stop. Optional: **at most one** deliberate nit-only pass while nit-budget remains even when Fixed non-nit
+would be 0; after that pass, stop. Resume only for new non-nit-fixable open work or an explicit human request.
 
 ## Input
 
@@ -252,10 +254,13 @@ A table, one row per thread:
 | Thread | Severity | Practicality | Cost | Action | Reason |
 | ------ | -------- | ------------ | ---- | ------ | ------ |
 
-**End of Phase 1:** files changed, tests run, dismiss/follow-up reply status, follow-up issue URL or “none”, remaining
-**risk** count (integer). If **Remaining risk: 0**, state explicitly that the **review cycle should stop** (abort
-criterion). If any `fix` — “paused for your commit” with a suggested message. Do not claim Fixed replies are done yet.
+**End of Phase 1:** files changed, tests run, dismiss/follow-up reply status, follow-up issue URL or “none”, **Fixed
+non-nit this run** (integer), and **Remaining risk** (integer, merge channel). If **Fixed non-nit this run: 0**, state
+explicitly that the **review cycle should stop** (abort criterion). If Fixed non-nit ≥ 1, do **not** abort — note that
+another finder pass is allowed after the fixes land. If any `fix` — “paused for your commit” with a suggested message.
+Do not claim Fixed replies are done yet.
 
-**End of Phase 2:** which Fixed replies/resolves succeeded and the SHA used.
+**End of Phase 2:** which Fixed replies/resolves succeeded and the SHA used; repeat **Fixed non-nit this run** and
+whether the cycle should stop or may continue.
 
 If risk findings remain because you need a product decision, list them explicitly and do not claim the PR is ready.
