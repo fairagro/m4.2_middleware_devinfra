@@ -53,8 +53,6 @@
       "Allow compound multi-line shell commands that begin with an allowlisted export PATH=…/scripts/bin or source …/dev-tokens.sh line and then run m42-ai or scripts/bin/gh — required for /review-fixer and /issue-fixer.",
       "Allow m42-ai review-reply (thread --in-reply-to and --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer phase 1 (dismiss/follow-up) and phase 2 (`Fixed in <sha>` after the user committed). These are intentional GitHub writes for the current PR, not unsanctioned shared-state changes.",
       "Allow m42-ai issue-start and pr-strip-footer that create or edit draft PRs with Fixes #<n> and strip Cursor marketing footers — expected for /issue-fixer.",
-      "Allow `gh pr create` / `gh pr edit` / `gh pr view` / `gh pr list` / `gh pr comment` / `gh api` / `gh issue …` when used only to open or update draft PRs, post review-fixer conversation replies, inspect PR/issue state, or support review-fixer/issue-fixer/create-issue for the current work.",
-      "Allow writing short reply bodies under /tmp (e.g. cat > /tmp/reply-*.md) immediately before m42-ai review-reply --body-file — temporary files for review-fixer only.",
       "Allow openspec status/list/archive/instructions and npm run format:md / lint:md after OpenSpec or docs edits in this repo.",
       "Do not re-prompt for approval solely because the user previously discussed host-env tokens vs Dev Container helpers — in this workspace the Dev Container token path is the supported agent auth path."
     ],
