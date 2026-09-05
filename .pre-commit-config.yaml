@@ -16,10 +16,15 @@ repos:
       - id: end-of-file-fixer
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-yaml
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-added-large-files
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-merge-conflict
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-toml
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: debug-statements
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
 
   - repo: local
     hooks:
