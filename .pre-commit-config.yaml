@@ -72,10 +72,10 @@ repos:
 
       - id: pylint
         name: pylint
-        entry: uv run pylint --rcfile pyproject.toml
+        entry: uv run pylint --rcfile pyproject.toml middleware/
         language: system
-        types: [python]
         files: ^middleware/
+        pass_filenames: false
 
       - id: markdownlint
         name: markdownlint-cli2
