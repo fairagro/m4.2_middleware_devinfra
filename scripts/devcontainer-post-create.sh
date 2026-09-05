@@ -35,14 +35,15 @@ marker_begin="# >>> m4.2-dev-tokens (managed by postCreate) >>>"
 marker_end="# <<< m4.2-dev-tokens <<<"
 token_src="${repo_root}/scripts/dev-tokens.sh"
 touch "${bashrc}"
-# Refresh managed block only when markers are well-formed (exactly one begin before one end).
-# Otherwise awk skip-mode would truncate everything after a lone begin marker.
+# Refresh managed block only when markers are absent (first install) or well-formed
+# (exactly one begin before one end). Do not append on corrupted marker state.
 begin_count="$(awk -v b="${marker_begin}" '$0 == b { c++ } END { print c+0 }' "${bashrc}")"
 end_count="$(awk -v e="${marker_end}" '$0 == e { c++ } END { print c+0 }' "${bashrc}")"
 begin_line="$(awk -v b="${marker_begin}" '$0 == b { print NR; exit }' "${bashrc}")"
 end_line="$(awk -v e="${marker_end}" '$0 == e { print NR; exit }' "${bashrc}")"
+append_block=0
 if [ "${begin_count}" -eq 0 ] && [ "${end_count}" -eq 0 ]; then
-  : # first install — append below
+  append_block=1
 elif [ "${begin_count}" -eq 1 ] && [ "${end_count}" -eq 1 ] &&
   [ -n "${begin_line}" ] && [ -n "${end_line}" ] && [ "${begin_line}" -lt "${end_line}" ]; then
   tmp="$(mktemp)"
@@ -53,10 +54,11 @@ elif [ "${begin_count}" -eq 1 ] && [ "${end_count}" -eq 1 ] &&
   ' "${bashrc}" >"${tmp}"
   cat "${tmp}" >"${bashrc}"
   rm -f "${tmp}"
+  append_block=1
 else
-  echo "WARNING: unexpected m4.2-dev-tokens markers in ${bashrc} (begin=${begin_count} end=${end_count}); skipping refresh" >&2
+  echo "WARNING: unexpected m4.2-dev-tokens markers in ${bashrc} (begin=${begin_count} end=${end_count}); skipping token block update" >&2
 fi
-if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
+if [ "${append_block}" -eq 1 ]; then
   {
     echo "${marker_begin}"
     echo "# Load stored GH_TOKEN / GITGUARDIAN_API_KEY; prompt only on TTY."
@@ -66,8 +68,6 @@ if ! grep -qF "${marker_begin}" "${bashrc}" 2>/dev/null; then
     echo "fi"
     echo "${marker_end}"
   } >>"${bashrc}"
-elif ! grep -qF "${marker_end}" "${bashrc}" 2>/dev/null; then
-  echo "WARNING: corrupted m4.2-dev-tokens markers in ${bashrc}; skipping token block update" >&2
 fi
 
 echo "==> Load stored personal tokens into this postCreate environment (no TTY prompt)"

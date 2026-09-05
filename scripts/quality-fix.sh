@@ -52,8 +52,8 @@ done
 if [ "${worst_code}" -eq 0 ]; then
   echo -e "${GREEN}Autofix hooks completed (no further changes).${NC}"
 elif [ "${worst_code}" -eq 1 ]; then
-  # pre-commit / ruff exit 1 when files were modified — expected for a fix script.
-  echo -e "${GREEN}Autofixes applied (re-run quality-check / commit).${NC}"
+  # pre-commit uses 1 both when files were rewritten and when a hook failed — cannot tell apart.
+  echo -e "${YELLOW}Autofix hooks exited 1 (rewrites and/or a hook failure). Re-run ./scripts/quality-check.sh.${NC}"
 else
   echo -e "${RED}Autofix hooks failed (exit ${worst_code}).${NC}"
   exit "${worst_code}"

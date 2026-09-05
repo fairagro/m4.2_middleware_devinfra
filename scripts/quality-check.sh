@@ -48,7 +48,8 @@ if [ -d middleware ]; then
   echo -e "${YELLOW}ruff format --check middleware/...${NC}"
   uv run ruff format --check --config pyproject.toml middleware/
   fmt_code=$?
-  if [ "${fmt_code}" -ne 0 ]; then
+  # Keep the first non-zero exit (pre-commit) so CI does not only see the format gate code.
+  if [ "${fmt_code}" -ne 0 ] && [ "${code}" -eq 0 ]; then
     code="${fmt_code}"
   fi
 fi
