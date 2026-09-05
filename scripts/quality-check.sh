@@ -30,6 +30,7 @@ NC='\033[0m'
 
 # Mutating commit-stage hooks — quality-fix.sh / git commit; not this check script.
 # pre-commit SKIP is a comma-separated list of hook ids.
+# ruff-format writes files; verify formatting separately with --check below.
 export SKIP="${SKIP:+${SKIP},}trailing-whitespace,end-of-file-fixer,ruff-fix,ruff-format"
 
 echo "Starting Code Quality Checks (pre-commit, commit stage, non-mutating)..."
@@ -39,6 +40,16 @@ echo -e "${YELLOW}pre-commit run --all-files (SKIP=${SKIP})...${NC}"
 set +e
 uv run pre-commit run --all-files
 code=$?
+
+# Format gate without mutating (the ruff-format hook rewrites; skipped above).
+if [ -d middleware ]; then
+  echo -e "${YELLOW}ruff format --check middleware/...${NC}"
+  uv run ruff format --check --config pyproject.toml middleware/
+  fmt_code=$?
+  if [ "${fmt_code}" -ne 0 ]; then
+    code="${fmt_code}"
+  fi
+fi
 set -e
 
 if [ "${code}" -eq 0 ]; then

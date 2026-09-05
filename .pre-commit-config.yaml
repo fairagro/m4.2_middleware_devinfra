@@ -65,11 +65,10 @@ repos:
 
       - id: bandit
         name: bandit security scan
-        entry: uv run bandit -r
+        entry: uv run bandit -r middleware/ -c .bandit
         language: system
-        types: [python]
         files: ^middleware/
-        args: [--configfile, .bandit]
+        pass_filenames: false
 
       - id: pylint
         name: pylint
