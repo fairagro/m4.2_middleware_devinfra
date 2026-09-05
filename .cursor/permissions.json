@@ -1,0 +1,20 @@
+{
+  // Per-repo Cursor agent permissions (JSONC). Concatenated with ~/.cursor/permissions.json.
+  // Docs: https://cursor.com/docs/reference/permissions
+  //
+  // If `terminalAllowlist` is set here, it REPLACES the in-app terminal allowlist for this
+  // workspace (IDE entries are not merged). Add further prefixes as needed.
+  // Matching is case-sensitive prefix match.
+  //
+  // Run Mode: Settings → Agents → Approvals & Execution → Allowlist (or Auto-review + autoRun).
+
+  "terminalAllowlist": [
+    "uv run --project scripts/ai m42-ai"
+  ],
+
+  "autoRun": {
+    "allow_instructions": [
+      "Allow `uv run --project scripts/ai m42-ai` for review-fixer and issue-fixer plumbing (review-open, review-reply, review-resolve, auth-status, issue-view/create/branch/start, branch-ahead, pr-strip-footer) when using Dev Container GH_TOKEN helpers / scripts/bin/gh."
+    ]
+  }
+}
