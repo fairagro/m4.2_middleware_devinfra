@@ -38,8 +38,8 @@ agents that share that directory, e.g. Cursor / GitHub Copilot), the rule not to
 
 Shared markdownlint and Prettier configuration MUST exclude `.agents/skills/gh/`, `.agents/skills/docker/`,
 `.agents/skills/hadolint/`, and `.agents/skills/uv/` so vendor Markdown is not reformatted or lint-failed. When a
-pre-commit skeleton is added later, it MUST apply the same excludes; this change MUST NOT require introducing
-pre-commit solely for those excludes.
+pre-commit skeleton is added later, it MUST apply the same excludes; this change MUST NOT require introducing pre-commit
+solely for those excludes.
 
 #### Scenario: format:md skips vendor skills
 

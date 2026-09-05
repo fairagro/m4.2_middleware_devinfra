@@ -14,8 +14,8 @@ and scaling notes live in the local `principles.md` (or product capability specs
 - **Correctness over speed** — a slow correct result is better than a fast broken one.
 - **Explicit over implicit** — configuration comes from the project's config model, not direct `os.environ` in
   application code.
-- **Simplicity** — prefer the smallest readable change that meets the real requirement. Keep complexity as low as
-  needed (not lower than correctness requires, not higher “for later”). Add an abstraction only when it removes real
+- **Simplicity** — prefer the smallest readable change that meets the real requirement. Keep complexity as low as needed
+  (not lower than correctness requires, not higher “for later”). Add an abstraction only when it removes real
   duplication, clarifies a stable boundary, or makes the call site easier to verify — not for a single call site or
   speculative reuse. Delete unused structure rather than expanding it.
 - **Supported environment first** — the Linux Dev Container is the supported way to run the repo. Do not design or

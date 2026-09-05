@@ -56,6 +56,7 @@ ask the user to paste a PAT into chat.
 
    Use `issue_type`, `labels`, `triage`, `body`, and `url` from that JSON (fall back to `gh issue view` only if the CLI
    is unavailable).
+
 2. Determine:
    - org issue type: `Bug|Security|Feature|Task|Discussion|Refactoring` (from `issue_type` when set)
    - triage labels: `severity:*`, `practicality:*`, `cost:*` (from `triage` / `labels` when set)
@@ -102,16 +103,17 @@ On every run that will implement, after explore (when it ran) or immediately whe
    ```
 
    Do **not** commit, push, or open a draft PR yet. If already on the correct issue branch, skip creating it again.
+
 2. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
 3. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
    as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks on that
    branch.
 4. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
-5. **Pause (spec review):** **Stop**. Show the change name/path and branch name; ask the user to review proposal /
-   specs / design / tasks and to **commit** (and optionally push) as they wish. Do **not** open a draft PR, run apply,
-   or archive until they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes,
-   run `/opsx-update` (or edit artifacts) and pause again.
+5. **Pause (spec review):** **Stop**. Show the change name/path and branch name; ask the user to review proposal / specs
+   / design / tasks and to **commit** (and optionally push) as they wish. Do **not** open a draft PR, run apply, or
+   archive until they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run
+   `/opsx-update` (or edit artifacts) and pause again.
 
 **`/opsx-propose` is mandatory** before implementation (always after the issue branch exists).
 
@@ -147,8 +149,8 @@ After the user confirms the apply pause:
 **Branch early:** create `issue-<issue_number>-<slug>` from `main` **before** `/opsx-propose`, so propose artifacts land
 on the issue branch and the user can commit during the spec-review pause. That step does **not** open the PR yet.
 
-**Draft PR late:** after the apply-pause confirmation (before or as part of `/opsx-archive`). Assumptions: base branch is
-`main`. Prefer the plumbing CLI when the tree is clean and the tip is already ahead of `main`:
+**Draft PR late:** after the apply-pause confirmation (before or as part of `/opsx-archive`). Assumptions: base branch
+is `main`. Prefer the plumbing CLI when the tree is clean and the tip is already ahead of `main`:
 
 ```bash
 uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]

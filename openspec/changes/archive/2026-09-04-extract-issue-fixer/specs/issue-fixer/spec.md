@@ -48,10 +48,10 @@ Before any branch, empty bootstrap commit, draft PR, or implementation on a run 
 `/opsx-propose` by following `.cursor/skills/openspec-propose/SKILL.md`: create a change and generate proposal, specs,
 design, and tasks. The repository MUST have a local `openspec/` tree; if it is missing, the skill MUST stop and MUST NOT
 implement without propose. Early exits that never implement (missing info, already resolved, `Discussion` without an
-explicit implement request) MAY skip propose. Prefer `/opsx-apply` against that change’s tasks after the draft PR exists.
-The skill MUST NOT hard-depend on `/opsx-explore` (`/opsx-explore` is **optional**). **`/opsx-propose` is mandatory**
-before branch/PR/implement on runs that will implement. After propose artifacts exist, the skill MUST pause for user
-spec review and MUST NOT proceed to branch/PR/implement until the user confirms (e.g. `go` / `approved`, or
+explicit implement request) MAY skip propose. Prefer `/opsx-apply` against that change’s tasks after the draft PR
+exists. The skill MUST NOT hard-depend on `/opsx-explore` (`/opsx-explore` is **optional**). **`/opsx-propose` is
+mandatory** before branch/PR/implement on runs that will implement. After propose artifacts exist, the skill MUST pause
+for user spec review and MUST NOT proceed to branch/PR/implement until the user confirms (e.g. `go` / `approved`, or
 `/opsx-update` then `go`).
 
 #### Scenario: Implement run always proposes

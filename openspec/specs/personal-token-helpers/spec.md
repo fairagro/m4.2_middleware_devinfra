@@ -40,9 +40,9 @@ The helpers MUST NOT require `PRODUCT_SLUG` and MUST NOT hard-code a single prod
 
 `scripts/dev-tokens.sh` MUST NOT `source` the token store file. It MUST load only known keys (`GH_TOKEN`,
 `GITGUARDIAN_API_KEY`) by parsing lines. New writes MUST use a non-shell encoding (e.g. `b64:` + base64) on a **single
-line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error. If the
-current environment already holds a known key whose value is store-encoded (`b64:` prefix), the helper MUST decode it in
-place (or unset it if corrupt) before treating the variable as set.
+line** (no wrapped base64). Executing `dev-tokens.sh` directly (instead of sourcing) MUST fail with a clear error. If
+the current environment already holds a known key whose value is store-encoded (`b64:` prefix), the helper MUST decode
+it in place (or unset it if corrupt) before treating the variable as set.
 
 #### Scenario: Corrupt tokens.env cannot run arbitrary commands via source
 

@@ -18,8 +18,8 @@ vendor skills; a general `git` skill.
 - **Pinning:** Commit the installed skill trees. Document install commands for reproducibility/rebuild; the git tree is
   the source of truth.
 - **Install target:** Project-scope install so Cursor/Copilot land under `.agents/skills/` (shared destination).
-- **Sources:** `cli/cli` → `gh`; `Mindrally/skills` → `docker`; `rshade/agent-skills` → `hadolint`;
-  `balintdecsi/skills` → `uv`.
+- **Sources:** `cli/cli` → `gh`; `Mindrally/skills` → `docker`; `rshade/agent-skills` → `hadolint`; `balintdecsi/skills`
+  → `uv`.
 - **Pre-commit:** Document intent only; no new hook config until quality skeleton.
 
 ## Risks / Trade-offs

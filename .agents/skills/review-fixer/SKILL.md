@@ -92,9 +92,9 @@ uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
 ```
 
 The JSON already filters to unresolved AI threads and **summary-only findings from every AI review body**
-(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed
-comments” often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional
-`--review-id` scopes review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
+(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed comments”
+often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional `--review-id` scopes
+review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
 [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **Open work** (this is the only set you triage unless the user pasted a specific review URL):
@@ -105,9 +105,8 @@ comments” often have no thread and would be missed if a later Bugbot/Cursor re
    (`open_summary_review_id`): the latest suppressed AI review that is not yet answered. Older suppressed reviews are
    treated as closed when a triage reply exists after them (PR conversation comment or non-AI review body starting with
    `Fixed in` / `Dismissed.` / `Follow-up:`, ideally including `#pullrequestreview-<id>`). These findings have **no**
-   resolve button — **never** call `review-resolve` on them; reply with
-   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later
-   `review-open` marks that review answered.
+   resolve button — **never** call `review-resolve` on them; reply with `m42-ai review-reply --pr PR --conversation` and
+   include `#pullrequestreview-<id>` in the body so later `review-open` marks that review answered.
 
 Ignore resolved threads completely (do not reply on them again).
 

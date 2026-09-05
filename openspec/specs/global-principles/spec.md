@@ -15,7 +15,8 @@ change, abstractions only when needed, delete unused structure; and **Supported 
 quality bar for product vs agent plumbing), Supported development environment detail, Type Safety core rules, shared
 code-quality expectations (`uv` and the standard lint/type/security gates), and the rule that application code must not
 read configuration via direct `os.environ` (configuration goes through the project's config wrapper pattern).
-Product-only technology stacks, module graphs, and scaling notes MUST NOT be normative content of `principles.global.md`.
+Product-only technology stacks, module graphs, and scaling notes MUST NOT be normative content of
+`principles.global.md`.
 
 #### Scenario: Agent looks up supported environment
 
