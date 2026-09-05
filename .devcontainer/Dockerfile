@@ -56,15 +56,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         gh \
     && rm -rf /var/lib/apt/lists/*
 
-# ── kubectl (Kubernetes APT repo) ─────────────────────────────────────────────
-# hadolint ignore=DL3008
-RUN KUBECTL_MINOR=$(echo "${KUBECTL_VERSION}" | grep -oP 'v\d+\.\d+') && \
-    curl -fsSL "https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR}/deb/Release.key" \
-        | gpg --batch --yes --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR}/deb/ /" \
-        > /etc/apt/sources.list.d/kubernetes.list && \
-    apt-get update && apt-get install -y --no-install-recommends kubectl \
-    && rm -rf /var/lib/apt/lists/*
+# ── kubectl (pinned release binary; matches versions.env exactly) ─────────────
+RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+        -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
 
 # ── Helm ──────────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
