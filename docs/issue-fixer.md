@@ -19,7 +19,10 @@ OpenSpec (`/opsx-*`) is **only** for `/issue-fixer` — not `/review-fixer` or `
    3. On continue: draft PR (`m42-ai issue-start` / `gh pr create --draft` when tip is ahead of `main`) +
       `/opsx-archive` — never empty bootstrap commits
 4. No `Made with Cursor` (or similar) footers in PR bodies — strip if injected.
-5. Split only on logical blocks; deferred work via [`/create-issue`](create-issue.md) with relation:
+5. For `scripts/` (shared Devinfra + agent plumbing): implement only the documented Dev Container / CI happy path —
+   no exotic edges (worktrees, host brew, legacy parsers, …) unless done-when says so; see skill **Surface quality
+   bar**.
+6. Split only on logical blocks; deferred work via [`/create-issue`](create-issue.md) with relation:
    - **sub-of** — still part of this issue’s acceptance criteria (GitHub native sub-issue)
    - **linked** — distinct follow-up problem
 
