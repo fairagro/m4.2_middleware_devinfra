@@ -99,10 +99,8 @@ def test_branch_ahead_ok_and_not() -> None:
             return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
-        if args[:2] == ["rev-list", "--count"] and args[2].startswith("origin/main.."):
-            return MagicMock(stdout="2\n")
         if args[:2] == ["rev-list", "--count"]:
-            return MagicMock(stdout="0\n")
+            return MagicMock(stdout="2\n")
         raise AssertionError(args)
 
     with patch("m42_ai.issue.run_git", side_effect=fake_git):
@@ -122,53 +120,6 @@ def test_branch_ahead_ok_and_not() -> None:
         out0 = branch_ahead(base="main")
     assert out0["ok"] is False
     assert out0["ahead"] == 0
-
-
-def test_ensure_issue_branch_tracks_remote_only_branch(tmp_path: Path) -> None:
-    git_calls: list[list[str]] = []
-
-    def fake_git(args: list[str], **kwargs: object) -> MagicMock:
-        git_calls.append(list(args))
-        check = kwargs.get("check", True)
-        if args[:2] == ["status", "--porcelain"]:
-            return MagicMock(stdout="", returncode=0)
-        if args[:2] == ["fetch", "origin"]:
-            return MagicMock(stdout="", returncode=0)
-        if args[:2] == ["branch", "--show-current"]:
-            return MagicMock(stdout="main\n", returncode=0)
-        if args[:2] == ["branch", "--list"]:
-            return MagicMock(stdout="", returncode=0)
-        if args[:3] == ["rev-parse", "--verify", "--quiet"]:
-            return MagicMock(stdout="abc\n", returncode=0)
-        if args[:3] == ["checkout", "--track", "-b"]:
-            return MagicMock(stdout="", returncode=0)
-        if args[:2] == ["rev-list", "--count"]:
-            return MagicMock(stdout="1\n", returncode=0)
-        if not check:
-            return MagicMock(stdout="", returncode=1)
-        raise AssertionError(args)
-
-    issue_json = {
-        "number": 6,
-        "title": "Pin",
-        "url": "https://github.com/o/r/issues/6",
-        "body": "",
-        "state": "OPEN",
-        "issueType": None,
-        "labels": [],
-        "author": {"login": "a"},
-    }
-
-    with (
-        patch("m42_ai.issue.run_git", side_effect=fake_git),
-        patch("m42_ai.issue.run_gh") as run_gh,
-    ):
-        run_gh.return_value = MagicMock(stdout=__import__("json").dumps(issue_json))
-        out = ensure_issue_branch(issue=6, slug="pin", cwd=tmp_path)
-
-    assert out["branch"] == "issue-6-pin"
-    assert out["created"] is True
-    assert any(c[:3] == ["checkout", "--track", "-b"] for c in git_calls)
 
 
 def test_ensure_issue_branch_refuses_dirty(tmp_path: Path) -> None:

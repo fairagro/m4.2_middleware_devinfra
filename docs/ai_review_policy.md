@@ -151,7 +151,7 @@ wording-only error-message polish. Those are practicality **Low** (or **None** i
 step 5 merely because the patch is cheap.
 
 Still **fix** agent-plumbing findings when the default Dev Container skill path is wrong (e.g. stale `origin/main` makes
-`branch-ahead` lie; remote-only issue branch recreated from `main` and breaks push).
+`branch-ahead` lie).
 
 ---
 

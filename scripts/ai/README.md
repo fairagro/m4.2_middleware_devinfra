@@ -26,7 +26,7 @@ Auth: uses `gh` on `PATH` (Dev Container: `scripts/bin/gh` + `GH_TOKEN`). No sec
 | `issue-view --issue N`          | Stable triage JSON (type, labels, body, url, triage:\* extract)                       |
 | `issue-create`                  | Type + triage labels (+ optional `--parent`)                                          |
 | `issue-branch --issue N`        | Ensure `issue-N-slug` checked out from base (no commit / push / PR)                   |
-| `branch-ahead`                  | JSON ahead/behind vs base; exit `1` when tip is not ahead                             |
+| `branch-ahead`                  | JSON ahead count vs `origin/<base>`; exit `1` when tip is not ahead                   |
 | `issue-start --issue N`         | Ensure branch, push when ahead of base, draft PR with `Fixes #N` (no empty commit)    |
 | `pr-strip-footer --pr N`        | Remove trailing “Made with Cursor” (and similar) footers from a PR body               |
 

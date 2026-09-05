@@ -215,21 +215,17 @@ def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
 
 
 def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, Any]:
-    """Report how far HEAD is ahead/behind of `origin/<base>` (after fetch)."""
+    """True when HEAD has commits not on origin/<base> (fetch first so the tip is fresh)."""
     root = cwd or Path.cwd()
     upstream = f"origin/{base}"
     run_git(["fetch", "origin", base], cwd=root)
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
-    ahead_s = run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip()
-    behind_s = run_git(["rev-list", "--count", f"HEAD..{upstream}"], cwd=root).stdout.strip()
-    ahead = int(ahead_s or "0")
-    behind = int(behind_s or "0")
+    ahead = int(run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip() or "0")
     return {
         "base": base,
         "upstream": upstream,
         "current_branch": current,
         "ahead": ahead,
-        "behind": behind,
         "ok": ahead > 0,
     }
 
@@ -243,41 +239,24 @@ def ensure_issue_branch(
 ) -> dict[str, Any]:
     """Ensure local `issue-<n>-<slug>` exists and is checked out. No commit, push, or PR."""
     root = cwd or Path.cwd()
-    status = run_git(["status", "--porcelain"], cwd=root)
-    if status.stdout.strip():
+    if run_git(["status", "--porcelain"], cwd=root).stdout.strip():
         raise RuntimeError("working tree/index must be clean before issue-branch / issue-start")
 
     viewed = view_issue(issue, cwd=root)
     title = viewed["title"]
-    branch_slug = slugify(slug) if slug else slugify(title)
-    branch = f"issue-{issue}-{branch_slug}"
+    branch = f"issue-{issue}-{slugify(slug) if slug else slugify(title)}"
 
-    run_git(["fetch", "origin", base], cwd=root)
-    run_git(
-        ["fetch", "origin", f"+refs/heads/{branch}:refs/remotes/origin/{branch}"],
-        cwd=root,
-        check=False,
-    )
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     created = False
     if current != branch:
-        local = run_git(["branch", "--list", branch], cwd=root).stdout.strip()
-        if local:
+        if run_git(["branch", "--list", branch], cwd=root).stdout.strip():
             run_git(["checkout", branch], cwd=root)
         else:
-            remote = run_git(
-                ["rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}"],
-                cwd=root,
-                check=False,
-            )
-            if remote.returncode == 0:
-                run_git(["checkout", "--track", "-b", branch, f"origin/{branch}"], cwd=root)
-                created = True
-            else:
-                run_git(["checkout", base], cwd=root)
-                run_git(["pull", "--ff-only", "origin", base], cwd=root)
-                run_git(["checkout", "-b", branch], cwd=root)
-                created = True
+            run_git(["fetch", "origin", base], cwd=root)
+            run_git(["checkout", base], cwd=root)
+            run_git(["pull", "--ff-only", "origin", base], cwd=root)
+            run_git(["checkout", "-b", branch], cwd=root)
+            created = True
 
     ahead_info = branch_ahead(base=base, cwd=root)
     return {
@@ -291,7 +270,6 @@ def ensure_issue_branch(
         "created": created,
         "base": base,
         "ahead": ahead_info["ahead"],
-        "behind": ahead_info["behind"],
     }
 
 
@@ -306,17 +284,14 @@ def issue_start(
     """Push issue branch and open a draft PR — requires commits ahead of base (no empty bootstrap)."""
     root = cwd or Path.cwd()
     ensured = ensure_issue_branch(issue=issue, slug=slug, base=base, cwd=root)
-    branch = str(ensured["branch"])
-    title = str(ensured["issue"]["title"])
-
-    ahead_info = branch_ahead(base=base, cwd=root)
-    if not ahead_info["ok"]:
+    if int(ensured["ahead"]) == 0:
         raise RuntimeError(
             f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)"
         )
 
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)
 
+    title = str(ensured["issue"]["title"])
     pr_title = draft_title or title
     body = f"## Summary\n- MVP scope: (fill in)\n\nFixes #{issue}\n"
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as tmp:
@@ -344,8 +319,8 @@ def issue_start(
     owner, name = repo_owner_name(cwd=root)
     return {
         "issue": ensured["issue"],
-        "branch": branch,
+        "branch": ensured["branch"],
         "pr_url": pr_url,
         "repo": f"{owner}/{name}",
-        "ahead": ahead_info["ahead"],
+        "ahead": ensured["ahead"],
     }

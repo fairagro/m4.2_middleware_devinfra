@@ -127,22 +127,15 @@ NOT introduce a second credential model.
 ### Requirement: issue-branch and branch-ahead
 
 `issue-branch` MUST, on a clean working tree/index: ensure `issue-<n>-<slug>` exists (create from base after fetch +
-fast-forward pull when missing, or track `origin/<branch>` when the issue branch exists only on the remote), check it
-out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST fetch `origin/<base>` before counting, print JSON with
-`base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, `behind`, and `ok` (`true` iff `ahead > 0`), comparing
-against that remote-tracking ref, and MUST exit non-zero when not ahead.
+fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST fetch
+`origin/<base>` before counting, print JSON with `base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, and
+`ok` (`true` iff `ahead > 0`), and MUST exit non-zero when not ahead.
 
 #### Scenario: issue-branch creates without PR
 
-- **WHEN** `issue-branch` runs and the local issue branch is missing and no `origin/<branch>` exists
+- **WHEN** `issue-branch` runs and the local issue branch is missing
 - **THEN** it creates and checks out `issue-<n>-<slug>` from the base
 - **AND** it does not push or open a PR
-
-#### Scenario: issue-branch tracks remote-only branch
-
-- **WHEN** `issue-branch` runs and the issue branch exists only as `origin/<branch>`
-- **THEN** it creates a local tracking branch from that remote tip
-- **AND** it does not recreate the branch from base
 
 #### Scenario: branch-ahead exit code
 
