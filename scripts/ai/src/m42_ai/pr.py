@@ -47,8 +47,6 @@ def pr_strip_footer(
     cwd: Path | None = None,
 ) -> dict[str, Any]:
     """Fetch PR body, strip marketing footers, edit when changed."""
-    if (owner is None) ^ (repo is None):
-        raise ValueError("provide both --owner and --repo, or neither")
     view_args = ["pr", "view", str(pr), "--json", "number,url,body,title"]
     if owner and repo:
         view_args.extend(["--repo", f"{owner}/{repo}"])

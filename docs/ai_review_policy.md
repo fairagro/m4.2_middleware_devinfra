@@ -93,7 +93,9 @@ Stop at the first matching step.
 4. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
    a separate feature, split or `follow-up` instead of bloating this PR.
 5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
-   **no** new abstraction → `fix`. Nit-budget does not defer these (any review round).
+   **no** new abstraction → `fix`. Nit-budget does not defer these (any review round). Apply the
+   [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing
+   exotic CLI / wording nits are Low, not step 5.
 6. **Nit.** Otherwise treat as a nit:
    - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
@@ -130,6 +132,26 @@ Practicality is not “we have seen this in prod”. It is “a realistic path e
 If the fixer cannot write a path sentence, practicality is **Low**, not High.
 
 Risk is high only when severity is Blocker/High **and** practicality is not Low/None.
+
+### Surface quality bar (fixer triage)
+
+Not every path has the same bar. Classify the touched surface **before** step 5, and adjust practicality / dismiss
+accordingly. Finders may still comment; the fixer must not treat agent plumbing like product middleware.
+
+| Surface                         | Typical paths                                              | Bar (what must work)                                                                 | Default for exotic edge cases |
+| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------- |
+| **Product / domain**            | `middleware/*/src/`, public APIs, workers, persisted state | Full: real callers, contracts, security, data integrity                              | Fix when correct + in PR      |
+| **Agent plumbing**              | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.| Happy path in the Linux Dev Container with normal skill/CLI args                     | `dismiss` (practicality Low)  |
+| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts        | Accurate instructions; no broken cadence                                             | `dismiss` wording-only nits   |
+| **Vendor skills**               | `.agents/skills/gh`, `scan-secrets`, other pinned vendor   | Do not hand-edit; pin/update via install                                             | `dismiss` drive-by edits      |
+
+For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
+`--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or
+wording-only error-message polish. Those are practicality **Low** (or **None** if no real agent path). **Do not** take
+step 5 merely because the patch is cheap.
+
+Still **fix** agent-plumbing findings when the default Dev Container skill path is wrong (e.g. stale `origin/main`
+makes `branch-ahead` lie; remote-only issue branch recreated from `main` and breaks push).
 
 ---
 

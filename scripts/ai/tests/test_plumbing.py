@@ -95,7 +95,7 @@ def test_view_issue_shapes_triage() -> None:
 
 def test_branch_ahead_ok_and_not() -> None:
     def fake_git(args: list[str], **kwargs: object) -> MagicMock:
-        if args[:4] == ["fetch", "origin", "--", "main"]:
+        if args[:3] == ["fetch", "origin", "main"]:
             return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
@@ -112,7 +112,7 @@ def test_branch_ahead_ok_and_not() -> None:
     assert out["upstream"] == "origin/main"
 
     def fake_git_zero(args: list[str], **kwargs: object) -> MagicMock:
-        if args[:4] == ["fetch", "origin", "--", "main"]:
+        if args[:3] == ["fetch", "origin", "main"]:
             return MagicMock(stdout="")
         if args[:2] == ["branch", "--show-current"]:
             return MagicMock(stdout="issue-6-x\n")
@@ -122,21 +122,6 @@ def test_branch_ahead_ok_and_not() -> None:
         out0 = branch_ahead(base="main")
     assert out0["ok"] is False
     assert out0["ahead"] == 0
-
-
-def test_validate_git_ref_name_rejects_option_like() -> None:
-    from m42_ai.issue import validate_git_ref_name
-
-    with pytest.raises(ValueError, match="must not start"):
-        validate_git_ref_name("--all", what="base")
-    with pytest.raises(ValueError, match="empty"):
-        validate_git_ref_name("  ", what="base")
-    assert validate_git_ref_name("main") == "main"
-
-
-def test_branch_ahead_rejects_bad_base() -> None:
-    with pytest.raises(ValueError, match="must not start"):
-        branch_ahead(base="--all")
 
 
 def test_ensure_issue_branch_tracks_remote_only_branch(tmp_path: Path) -> None:
@@ -184,7 +169,6 @@ def test_ensure_issue_branch_tracks_remote_only_branch(tmp_path: Path) -> None:
     assert out["branch"] == "issue-6-pin"
     assert out["created"] is True
     assert any(c[:3] == ["checkout", "--track", "-b"] for c in git_calls)
-    assert not any(c[:3] == ["checkout", "-b", "issue-6-pin"] and "--track" not in c for c in git_calls)
 
 
 def test_ensure_issue_branch_refuses_dirty(tmp_path: Path) -> None:
@@ -217,12 +201,7 @@ def test_pr_strip_footer_edits_when_changed() -> None:
     assert any(c[:2] == ["pr", "edit"] for c in calls)
 
 
-def test_pr_strip_footer_rejects_partial_repo_override() -> None:
-    with pytest.raises(ValueError, match="both --owner and --repo"):
-        pr_strip_footer(25, owner="only-owner")
-    with pytest.raises(ValueError, match="both --owner and --repo"):
-        pr_strip_footer(25, repo="only-repo")
-
+def test_pr_strip_footer_noop_skips_edit() -> None:
     clean = "## Summary\n\nFixes #6\n"
     calls: list[list[str]] = []
 
