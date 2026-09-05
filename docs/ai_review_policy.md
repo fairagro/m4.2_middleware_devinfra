@@ -94,8 +94,8 @@ Stop at the first matching step.
    a separate feature, split or `follow-up` instead of bloating this PR.
 5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
    **no** new abstraction → `fix`. Nit-budget does not defer these (any review round). Apply the
-   [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing
-   exotic CLI / wording nits are Low, not step 5.
+   [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing and
+   shared-Devinfra-script exotic / host-only / wording nits are Low, not step 5.
 6. **Nit.** Otherwise treat as a nit:
    - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
@@ -136,14 +136,21 @@ Risk is high only when severity is Blocker/High **and** practicality is not Low/
 ### Surface quality bar (fixer triage)
 
 Not every path has the same bar. Classify the touched surface **before** step 5, and adjust practicality / dismiss
-accordingly. Finders may still comment; the fixer must not treat agent plumbing like product middleware.
+accordingly. Finders may still comment; the fixer must not treat agent plumbing or shared Devinfra scripts like product
+middleware.
 
-| Surface                           | Typical paths                                               | Bar (what must work)                                             | Default for exotic edge cases |
-| --------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------- |
-| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state  | Full: real callers, contracts, security, data integrity          | Fix when correct + in PR      |
-| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc. | Happy path in the Linux Dev Container with normal skill/CLI args | `dismiss` (practicality Low)  |
-| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts           | Accurate instructions; no broken cadence                         | `dismiss` wording-only nits   |
-| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                    | Do not hand-edit; pin/update via install                         | `dismiss` drive-by edits      |
+| Surface                           | Typical paths                                                                 | Bar (what must work)                                                            | Default for exotic edge cases |
+| --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
+| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state                    | Full: real callers, contracts, security, data integrity                         | Fix when correct + in PR      |
+| **Shared Devinfra scripts**       | `scripts/` except `scripts/ai/` (quality, CST, tokens, Dev Container helpers) | Documented Dev Container + contributor/CI path (e.g. `quality-check.sh`, hooks) | `dismiss` (practicality Low)  |
+| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.                   | Happy path in the Linux Dev Container with normal skill/CLI args                | `dismiss` (practicality Low)  |
+| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts                             | Accurate instructions; no broken cadence                                        | `dismiss` wording-only nits   |
+| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                                      | Do not hand-edit; pin/update via install                                        | `dismiss` drive-by edits      |
+
+For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
+Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
+installs, unofficial bare-metal runs, or speculative edge hardening. Those are practicality **Low** (or **None**). **Do
+not** take step 5 merely because the patch is cheap. Still **fix** when that documented path is wrong.
 
 For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
 `--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or

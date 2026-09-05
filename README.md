@@ -58,13 +58,15 @@ environment or Type Safety in the local file).
 
 Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
 
-- **Dev Container:** `/commandhistory/tokens.env` (volume-backed).
-- **Host clone:** `~/.config/<git-repo-name>/tokens.env` — name from `origin` (e.g. `m4.2_middleware_devinfra`); no
-  `PRODUCT_SLUG` required.
+- **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
 - **Kombi:** interactive shells source `scripts/dev-tokens.sh` after postCreate (loads stored values; prompts only on a
   TTY). `scripts/bin/gh` and `scripts/bin/git` stay on `PATH` for agents / Cursor SCM.
 - **Empty prompt** = skip until you re-prompt: `source ./scripts/set-dev-tokens.sh`
 - Do **not** put tokens in the git worktree.
+
+Quality / CST / `load-versions-env` / `m42-ai` also run on a **host** checkout; token helpers and `scripts/bin` wrappers
+do not — on the host, keep using your own env (e.g. `~/.bashrc`) or `gh auth`. See
+[Script environments](docs/quality.md#script-environments).
 
 ## Tool versions
 

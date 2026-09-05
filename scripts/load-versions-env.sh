@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Load repo-root versions.env and sync .python-version from PYTHON_VERSION.
 #
+# Environment: host or Dev Container.
+#
 # Usage (from any cwd):
 #   source "$(git rev-parse --show-toplevel)/scripts/load-versions-env.sh"
 # or:

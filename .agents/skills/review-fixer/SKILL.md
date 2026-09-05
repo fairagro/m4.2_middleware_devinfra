@@ -60,10 +60,9 @@ a SHA.
 ## Auth (`gh`)
 
 `gh` is wrapped (`scripts/bin/gh`, on `PATH` in the Dev Container via `remoteEnv`). Missing `GH_TOKEN` prompts on
-`/dev/tty` and is saved to `/commandhistory/tokens.env` in a Dev Container, or `~/.config/<git-repo-name>/tokens.env` on
-a local clone (repository name from `origin` — see `docs/conventions.md`). Interactive shells also source
-`scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git worktree; do not invent them. Never
-ask the user to paste a PAT into chat.
+`/dev/tty` and is saved to `/commandhistory/tokens.env` (Linux Dev Container only — see `docs/conventions.md`).
+Interactive shells also source `scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git
+worktree; do not invent them. Never ask the user to paste a PAT into chat.
 
 **Agent / no TTY:** `/dev/tty` is unavailable in chat, so the wrapper cannot prompt. Before skipping GitHub writes:
 
@@ -152,8 +151,9 @@ Decision order (stop at first match) — same as the policy:
 4. High risk (Blocker/High **and** practicality not Low/None) → `fix` (or split/`follow-up` if the fix is its own
    feature)
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
-   nit-budget). **Except** agent-plumbing / docs / vendor surfaces: apply the **surface quality bar** in
-   `docs/ai_review_policy.md` first — exotic CLI edge cases and wording nits are practicality Low → not step 5.
+   nit-budget). **Except** agent-plumbing / shared Devinfra scripts / docs / vendor surfaces: apply the **surface
+   quality bar** in `docs/ai_review_policy.md` first — exotic CLI/host edges and wording nits are practicality Low → not
+   step 5.
 6. Else nit:
    - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)

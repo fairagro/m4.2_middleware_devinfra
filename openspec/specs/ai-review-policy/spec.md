@@ -32,10 +32,12 @@ or ephemeral personal on-disk format that is not the current write path and not 
 pre-`b64:` personal token file lines fixable by re-running setup once). Finders MUST NOT comment on those; fixers MUST
 NOT add compatibility parsers or deny-lists for them.
 
-The policy MUST define a **surface quality bar** for fixer triage: product/domain code keeps the full bar; agent
-plumbing (`scripts/ai/`, skill CLI wiring) is judged on the default Linux Dev Container skill/CLI happy path; exotic
-argparse / option-injection / wording-only nits on that surface MUST be practicality Low (or None) and MUST NOT take
-step 5 merely because the patch is cheap. Real happy-path breakage on agent plumbing MUST still be fixed.
+The policy MUST define a **surface quality bar** for fixer triage: product/domain code keeps the full bar; **shared
+Devinfra scripts** (`scripts/` except `scripts/ai/` — quality helpers, CST runner, token/Dev Container scripts) are
+judged on the documented Linux Dev Container and contributor/CI happy path; **agent plumbing** (`scripts/ai/`, skill CLI
+wiring) is judged on the default skill/CLI happy path. Exotic argparse / host-only / option-injection / wording-only
+nits on those non-product surfaces MUST be practicality Low (or None) and MUST NOT take step 5 merely because the patch
+is cheap. Real happy-path breakage on shared scripts or agent plumbing MUST still be fixed.
 
 #### Scenario: Contributor opens the shared policy
 
@@ -64,6 +66,13 @@ step 5 merely because the patch is cheap. Real happy-path breakage on agent plum
   (e.g. legacy token lines before `b64:`) and the author can fix it by re-running a documented setup command once
 - **THEN** the fixer dismisses with practicality None
 - **AND** does not add a compatibility parser, `eval` deny-list, or migration branch for that format
+
+#### Scenario: Shared Devinfra script exotic finding is dismissed
+
+- **WHEN** a finder reports an issue in `scripts/` (outside `scripts/ai/`) that only matters for unofficial host
+  installs or speculative edge hardening, while the documented Dev Container / quality-check / hook path works
+- **THEN** the fixer treats practicality as Low (or None) and dismisses or budgets as a nit
+- **AND** does not apply step 5 merely because the suggested patch is cheap
 
 #### Scenario: Agent-plumbing exotic CLI finding is dismissed
 

@@ -2,6 +2,8 @@
 # Apply autofixes using the same hooks as pre-commit (commit stage).
 # Runs only mutating hooks; does not run mypy/pylint/bandit/ggshield/pre-push.
 #
+# Environment: host or Dev Container (needs `uv`).
+#
 # Usage: ./scripts/quality-fix.sh
 # Then verify with: ./scripts/quality-check.sh
 

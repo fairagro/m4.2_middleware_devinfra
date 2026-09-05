@@ -2,6 +2,8 @@
 # Build a Docker image and run container-structure-test.
 # Product repos override paths/tag via env (or positional args).
 #
+# Environment: host or Dev Container (needs Docker + container-structure-test on PATH).
+#
 # Usage:
 #   ./scripts/run-container-structure-test.sh
 #   CST_DOCKERFILE=docker/Dockerfile.api CST_IMAGE_TAG=myapp:test \

@@ -21,8 +21,9 @@ and scaling notes live in the local `principles.md` (or product capability specs
 - **Supported environment first** — the Linux Dev Container is the supported way to run the repo. Do not design or
   review for macOS, Windows, Homebrew, or other host package layouts. Running scripts on a bare Linux workstation
   without the Dev Container is possible but unofficial; GitHub Actions Linux is supported for CI. Match the **surface
-  quality bar**: product / domain code must hold contracts real callers hit; agent plumbing and Devinfra scripts
-  optimize for the Dev Container **happy path** with normal skill/CLI args — not every exotic edge case (see
+  quality bar**: product / domain code must hold contracts real callers hit; **shared Devinfra scripts** (`scripts/`
+  except agent CLI) are judged on the documented Dev Container / contributor / CI happy path; **agent plumbing**
+  (`scripts/ai/`, skill wiring) on the default skill/CLI happy path — not every exotic edge case (see
   `docs/ai_review_policy.md` Surface quality bar).
 
 ---
