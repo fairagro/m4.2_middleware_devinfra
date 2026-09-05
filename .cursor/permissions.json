@@ -42,22 +42,25 @@
     "./scripts/bin/gh",
     "/workspaces/m4.2_middleware_devinfra/scripts/bin/gh",
     "gh pr ",
-    "gh api "
+    "gh api ",
+    "gh issue "
   ],
 
   "autoRun": {
     "allow_instructions": [
-      "Allow `uv run --project scripts/ai m42-ai` for review-fixer and issue-fixer plumbing: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer.",
-      "Allow those m42-ai commands even when the shell first sets PATH to scripts/bin or sources scripts/dev-tokens.sh / set-dev-tokens.sh so GH_TOKEN comes from the Linux Dev Container store (/commandhistory/tokens.env).",
-      "Allow compound shell commands that begin with export PATH=…/scripts/bin or source …/dev-tokens.sh and then run m42-ai — required for /review-fixer and /issue-fixer in this repo.",
-      "Allow m42-ai review-reply (including --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer phase 1 and phase 2 (Fixed in <sha>).",
+      "This repo's /review-fixer and /issue-fixer workflows MUST auto-run without approval when they use the standard Dev Container token helper and m42-ai/gh plumbing. Do not treat sourcing scripts/dev-tokens.sh or set-dev-tokens.sh as credential exfiltration — that only loads GH_TOKEN / GITGUARDIAN_API_KEY from /commandhistory/tokens.env into the shell for the subsequent command.",
+      "Allow `uv run --project scripts/ai m42-ai` for all plumbing subcommands: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer — including when the same shell command first runs `export PATH=…/scripts/bin:$PATH` and/or `source …/dev-tokens.sh` / `set-dev-tokens.sh`.",
+      "Allow compound multi-line shell commands that begin with an allowlisted export PATH=…/scripts/bin or source …/dev-tokens.sh line and then run m42-ai or scripts/bin/gh — required for /review-fixer and /issue-fixer.",
+      "Allow m42-ai review-reply (thread --in-reply-to and --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer phase 1 (dismiss/follow-up) and phase 2 (`Fixed in <sha>` after the user committed). These are intentional GitHub writes for the current PR, not unsanctioned shared-state changes.",
       "Allow m42-ai issue-start and pr-strip-footer that create or edit draft PRs with Fixes #<n> and strip Cursor marketing footers — expected for /issue-fixer.",
-      "Allow `gh pr edit` / `gh pr view` / `gh pr list` / `gh api` when used only to fill draft PR title/body, inspect PR state, or support review-fixer/issue-fixer for the current PR.",
-      "Allow openspec status/list/archive/instructions and npm run format:md / lint:md after OpenSpec or docs edits in this repo."
+      "Allow `gh pr create` / `gh pr edit` / `gh pr view` / `gh pr list` / `gh pr comment` / `gh api` / `gh issue …` when used only to open or update draft PRs, post review-fixer conversation replies, inspect PR/issue state, or support review-fixer/issue-fixer/create-issue for the current work.",
+      "Allow writing short reply bodies under /tmp (e.g. cat > /tmp/reply-*.md) immediately before m42-ai review-reply --body-file — temporary files for review-fixer only.",
+      "Allow openspec status/list/archive/instructions and npm run format:md / lint:md after OpenSpec or docs edits in this repo.",
+      "Do not re-prompt for approval solely because the user previously discussed host-env tokens vs Dev Container helpers — in this workspace the Dev Container token path is the supported agent auth path."
     ],
     "block_instructions": [
       "Still require approval for force-push, hard reset, git push --force, deleting remotes, or rewriting published history.",
-      "Still require approval for commands that print or exfiltrate raw token file contents (e.g. cat /commandhistory/tokens.env) or that change credentials outside the normal set-dev-tokens / gh auth flow."
+      "Still require approval for commands that print or exfiltrate raw token file contents (e.g. cat /commandhistory/tokens.env, copying tokens into chat, or curling tokens to a remote URL) or that change credentials outside the normal set-dev-tokens / gh auth flow."
     ]
   }
 }
