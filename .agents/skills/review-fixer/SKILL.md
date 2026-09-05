@@ -14,8 +14,13 @@ description: >-
 Implement policy. Do not re-litigate it. Read [`docs/ai_review_policy.md`](../../../docs/ai_review_policy.md) if
 anything here is ambiguous.
 
-You are the **fixer** (precision). Copilot and Bugbot are finders (recall). Do not loop until comments are gone. Stop
-when no **risk** finding remains.
+You are the **fixer** (precision). Copilot and Bugbot are finders (recall). Do not loop until comments are gone.
+
+**Abort criterion:** When this run’s output shows **Remaining risk: 0**, the review cycle **stops**. Do not ask for
+another Copilot/Bugbot pass or another `/review-fixer` just because threads/comments remain or you made no code changes.
+Risk = Blocker/High **and** practicality not Low/None (your checklist), not finder banners. Optional: **at most one**
+deliberate nit pass while nit-budget remains; if it also ends at risk 0, stop. Resume only for new risk or an explicit
+human request.
 
 ## Input
 
@@ -60,10 +65,9 @@ a SHA.
 ## Auth (`gh`)
 
 `gh` is wrapped (`scripts/bin/gh`, on `PATH` in the Dev Container via `remoteEnv`). Missing `GH_TOKEN` prompts on
-`/dev/tty` and is saved to `/commandhistory/tokens.env` in a Dev Container, or `~/.config/<git-repo-name>/tokens.env` on
-a local clone (repository name from `origin` — see `docs/conventions.md`). Interactive shells also source
-`scripts/dev-tokens.sh` after postCreate (Kombi). Do not read tokens from the git worktree; do not invent them. Never
-ask the user to paste a PAT into chat.
+`/dev/tty` and is saved to `/commandhistory/tokens.env` (Linux Dev Container only — see `docs/conventions.md`). The
+wrapper sources `scripts/dev-tokens.sh` on each invoke (no `.bashrc` patch). Do not read tokens from the git worktree;
+do not invent them. Never ask the user to paste a PAT into chat.
 
 **Agent / no TTY:** `/dev/tty` is unavailable in chat, so the wrapper cannot prompt. Before skipping GitHub writes:
 
@@ -92,9 +96,9 @@ uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
 ```
 
 The JSON already filters to unresolved AI threads and **summary-only findings from every AI review body**
-(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed
-comments” often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional
-`--review-id` scopes review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
+(`summary_only_findings` / each entry in `ai_reviews`), not only the latest submission — Copilot “Suppressed comments”
+often have no thread and would be missed if a later Bugbot/Cursor review became “latest”. Optional `--review-id` scopes
+review bodies when the user gave a `/pull/N#pullrequestreview-ID` permalink. Docs:
 [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **Open work** (this is the only set you triage unless the user pasted a specific review URL):
@@ -105,9 +109,8 @@ comments” often have no thread and would be missed if a later Bugbot/Cursor re
    (`open_summary_review_id`): the latest suppressed AI review that is not yet answered. Older suppressed reviews are
    treated as closed when a triage reply exists after them (PR conversation comment or non-AI review body starting with
    `Fixed in` / `Dismissed.` / `Follow-up:`, ideally including `#pullrequestreview-<id>`). These findings have **no**
-   resolve button — **never** call `review-resolve` on them; reply with
-   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later
-   `review-open` marks that review answered.
+   resolve button — **never** call `review-resolve` on them; reply with `m42-ai review-reply --pr PR --conversation` and
+   include `#pullrequestreview-<id>` in the body so later `review-open` marks that review answered.
 
 Ignore resolved threads completely (do not reply on them again).
 
@@ -137,24 +140,27 @@ budget: nit-in-budget|nit-regression|nit-exhausted|n/a-risk
 
 Decision order (stop at first match) — same as the policy:
 
-1. Incorrect / already gated / no path / **unsupported environment** / **one-shot local migration** → `dismiss`
-   (practicality **None**). For unsupported hosts, quote
+1. Incorrect / already gated / no path / **unsupported environment** / **one-shot local migration** / **intentional
+   happy-path simplification re-hardening** / **host-only prerequisite docs** / **shared-hook style-only** → `dismiss`
+   (practicality **None** or **Low**). For unsupported hosts, quote
    [`openspec/principles.global.md`](../../../openspec/principles.global.md) “Supported development environment”. The
    Linux Dev Container is the bar (GitHub Actions Linux CI counts). Dismiss even when the finding is “correct” only on
    macOS/Windows/Homebrew/BSD userland, unofficial bare Linux, host `PATH` quirks, or a **compatibility fallback** that
    never runs when Dev Container tools work (e.g. GNU `base64 -w0`). **Also dismiss** findings that only harden a
    **one-shot** personal/on-disk format that is not the current write path and not a shipped contract (e.g. pre-`b64:`
    `tokens.env` lines) — tell the author to re-run `source ./scripts/set-dev-tokens.sh` (or equivalent) once; do **not**
-   add legacy parsers or `eval` deny-lists. **Cheap does not override this** — do not take step 5 for host-only or
-   one-shot-migration hardening.
+   add legacy parsers or `eval` deny-lists. **Also dismiss** requests to restore exotic `bashrc`/marker/host-token
+   branches after this PR simplified them, and pre-commit YAML style (`entry` vs `args`) when the hook still works.
+   **Cheap does not override this** — do not take step 5 for host-only or one-shot-migration hardening.
 2. Not this PR → `dismiss`, or `follow-up` if Medium+
 3. Choose the **cheapest correct** fix. Widening a type is forbidden. `if x is None` is forbidden when the type already
    excludes `None`.
 4. High risk (Blocker/High **and** practicality not Low/None) → `fix` (or split/`follow-up` if the fix is its own
    feature)
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
-   nit-budget). **Except** agent-plumbing / docs / vendor surfaces: apply the **surface quality bar** in
-   `docs/ai_review_policy.md` first — exotic CLI edge cases and wording nits are practicality Low → not step 5.
+   nit-budget). **Except** agent-plumbing / shared Devinfra scripts / docs / vendor surfaces: apply the **surface
+   quality bar** in `docs/ai_review_policy.md` first — exotic CLI/host edges and wording nits are practicality Low → not
+   step 5.
 6. Else nit:
    - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)
@@ -243,8 +249,8 @@ A table, one row per thread:
 | ------ | -------- | ------------ | ---- | ------ | ------ |
 
 **End of Phase 1:** files changed, tests run, dismiss/follow-up reply status, follow-up issue URL or “none”, remaining
-**risk** count, and — if any `fix` — “paused for your commit” with a suggested message. Do not claim Fixed replies are
-done yet.
+**risk** count (integer). If **Remaining risk: 0**, state explicitly that the **review cycle should stop** (abort
+criterion). If any `fix` — “paused for your commit” with a suggested message. Do not claim Fixed replies are done yet.
 
 **End of Phase 2:** which Fixed replies/resolves succeeded and the SHA used.
 

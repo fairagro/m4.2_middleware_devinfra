@@ -31,8 +31,8 @@ phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>` only 
 ### Requirement: Auth uses shared gh wrapper and conventions
 
 The skill's Auth section MUST direct agents to `scripts/bin/gh` (on `PATH` in the Dev Container) and personal-token
-paths from path conventions (`/commandhistory/tokens.env` or `~/.config/<git-repo-name>/tokens.env`). It MUST NOT
-hard-code a product slug such as `middleware-api` or a product-specific bashhistory volume name.
+paths from path conventions (`/commandhistory/tokens.env`). It MUST NOT hard-code a product slug such as
+`middleware-api` or a product-specific bashhistory volume name.
 
 #### Scenario: Missing token without TTY
 

@@ -1,0 +1,102 @@
+# Pre-commit configuration (shared Devinfra skeleton for product sync).
+# See https://pre-commit.com
+#
+# Commit stage: fast checks / autofixes.
+# Pre-push: pytest + container-structure-test (git hook install is issue #9).
+#
+# Python hooks target middleware/ (path conventions). This Devinfra repo has no
+# product middleware/ packages — those hooks no-op until synced to a product.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: end-of-file-fixer
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: check-yaml
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: check-added-large-files
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: check-merge-conflict
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: check-toml
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+      - id: debug-statements
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+
+  - repo: local
+    hooks:
+      - id: ggshield
+        name: ggshield secret scan
+        entry: uv run ggshield secret scan pre-commit
+        language: system
+        pass_filenames: false
+
+      - id: ruff
+        name: ruff lint
+        entry: uv run ruff check --config pyproject.toml middleware/
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
+      - id: ruff-fix
+        name: ruff lint (autofix)
+        entry: uv run ruff check --fix --exit-non-zero-on-fix --config pyproject.toml middleware/
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --config pyproject.toml middleware/
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy type check
+        entry: uv run mypy middleware/
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+        args: [--config-file, pyproject.toml]
+
+      - id: bandit
+        name: bandit security scan
+        entry: uv run bandit -r middleware/ -c .bandit
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
+      - id: pylint
+        name: pylint
+        entry: uv run pylint --rcfile pyproject.toml middleware/
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
+      - id: markdownlint
+        name: markdownlint-cli2
+        entry: npm run lint:md
+        language: system
+        files: \.(md|mdc)$
+        pass_filenames: false
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+
+      - id: pytest
+        name: pytest
+        entry: bash -c "uv run pytest"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: container-structure-test
+        name: container structure test
+        entry: bash scripts/run-container-structure-test.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

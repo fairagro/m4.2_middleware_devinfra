@@ -1,0 +1,64 @@
+{
+  // Per-repo Cursor agent permissions (JSONC). Concatenated with ~/.cursor/permissions.json.
+  // Docs: https://cursor.com/docs/reference/permissions
+  //
+  // If `terminalAllowlist` is set here (or in ~/.cursor/permissions.json), the combined
+  // file list REPLACES the in-app terminal allowlist for this workspace (IDE entries are
+  // not merged). Matching is case-sensitive **prefix** match on the full command string.
+  // Prefer starting agent shell calls with an allowlisted prefix (e.g. m42-ai), not with
+  // `source` / `export` wrappers in front — but common PATH/token wrappers are listed below
+  // because review-fixer/issue-fixer often need them before `m42-ai`.
+  //
+  // Run Mode: Settings → Agents → Approvals & Execution → Auto-review / Allowlist /
+  // Run Everything. `autoRun` only steers Auto-review (not a hard guarantee).
+  //
+  // Tip: if repo allowlists seem ignored, also put the same `terminalAllowlist` entries in
+  // ~/.cursor/permissions.json (user-level is more reliably applied in some Cursor builds).
+
+  "terminalAllowlist": [
+    // Agent GitHub/git plumbing (issue-fixer / review-fixer / create-issue)
+    "uv run --project scripts/ai m42-ai",
+    "uv run --project scripts/ai --extra",
+    // Common wrappers when PATH/token load precedes m42-ai (prefix match on full command)
+    "export PATH=\"/workspaces/m4.2_middleware_devinfra/scripts/bin:$PATH\"",
+    "export PATH=/workspaces/m4.2_middleware_devinfra/scripts/bin:$PATH",
+    "source /workspaces/m4.2_middleware_devinfra/scripts/dev-tokens.sh",
+    "source ./scripts/dev-tokens.sh",
+    "source scripts/dev-tokens.sh",
+    "source ./scripts/set-dev-tokens.sh",
+    "source scripts/set-dev-tokens.sh",
+    // Quality / OpenSpec happy path in this repo
+    "uv sync",
+    "uv lock",
+    "uv run pre-commit",
+    "uv run pytest",
+    "uv run python",
+    "npm run format:md",
+    "npm run lint:md",
+    "npm run format:md:check",
+    "openspec",
+    // Wrapper when invoked by absolute/relative path (not bare `gh`)
+    "scripts/bin/gh",
+    "./scripts/bin/gh",
+    "/workspaces/m4.2_middleware_devinfra/scripts/bin/gh",
+    "gh pr ",
+    "gh api ",
+    "gh issue "
+  ],
+
+  "autoRun": {
+    "allow_instructions": [
+      "This repo's /review-fixer and /issue-fixer workflows MUST auto-run without approval when they use the standard Dev Container token helper and m42-ai/gh plumbing. Do not treat sourcing scripts/dev-tokens.sh or set-dev-tokens.sh as credential exfiltration — that only loads GH_TOKEN / GITGUARDIAN_API_KEY from /commandhistory/tokens.env into the shell for the subsequent command.",
+      "Allow `uv run --project scripts/ai m42-ai` for all plumbing subcommands: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer — including when the same shell command first runs `export PATH=…/scripts/bin:$PATH` and/or `source …/dev-tokens.sh` / `set-dev-tokens.sh`.",
+      "Allow compound multi-line shell commands that begin with an allowlisted export PATH=…/scripts/bin or source …/dev-tokens.sh line and then run m42-ai or scripts/bin/gh — required for /review-fixer and /issue-fixer.",
+      "Allow m42-ai review-reply (thread --in-reply-to and --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer phase 1 (dismiss/follow-up) and phase 2 (`Fixed in <sha>` after the user committed). These are intentional GitHub writes for the current PR, not unsanctioned shared-state changes.",
+      "Allow m42-ai issue-start and pr-strip-footer that create or edit draft PRs with Fixes #<n> and strip Cursor marketing footers — expected for /issue-fixer.",
+      "Allow openspec status/list/archive/instructions and npm run format:md / lint:md after OpenSpec or docs edits in this repo.",
+      "Do not re-prompt for approval solely because the user previously discussed host-env tokens vs Dev Container helpers — in this workspace the Dev Container token path is the supported agent auth path."
+    ],
+    "block_instructions": [
+      "Still require approval for force-push, hard reset, git push --force, deleting remotes, or rewriting published history.",
+      "Still require approval for commands that print or exfiltrate raw token file contents (e.g. cat /commandhistory/tokens.env, copying tokens into chat, or curling tokens to a remote URL) or that change credentials outside the normal set-dev-tokens / gh auth flow."
+    ]
+  }
+}

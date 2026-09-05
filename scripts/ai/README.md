@@ -4,9 +4,11 @@ Small Python CLI for deterministic GitHub/git work used by `/review-fixer`, `/cr
 
 ## Run
 
-From a clone of this repo (or another git checkout where `gh` can resolve the GitHub remote). `--project` may point at
-this package from any path; GitHub commands still need a repo context (`gh` cwd / remotes), unless you pass `--owner` /
-`--repo` where the command supports them:
+From a clone of this repo (or another git checkout where `gh` can resolve the GitHub remote). Works on a **host** or in
+the Dev Container. Auth is whatever `gh` on your `PATH` uses (`GH_TOKEN` / `gh auth`) — the Dev Container token store
+and `scripts/bin/gh` wrapper are optional and DC-only. `--project` may point at this package from any path; GitHub
+commands still need a repo context (`gh` cwd / remotes), unless you pass `--owner` / `--repo` where the command supports
+them:
 
 ```bash
 uv run --project scripts/ai m42-ai --help

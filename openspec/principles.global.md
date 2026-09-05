@@ -14,15 +14,16 @@ and scaling notes live in the local `principles.md` (or product capability specs
 - **Correctness over speed** — a slow correct result is better than a fast broken one.
 - **Explicit over implicit** — configuration comes from the project's config model, not direct `os.environ` in
   application code.
-- **Simplicity** — prefer the smallest readable change that meets the real requirement. Keep complexity as low as
-  needed (not lower than correctness requires, not higher “for later”). Add an abstraction only when it removes real
+- **Simplicity** — prefer the smallest readable change that meets the real requirement. Keep complexity as low as needed
+  (not lower than correctness requires, not higher “for later”). Add an abstraction only when it removes real
   duplication, clarifies a stable boundary, or makes the call site easier to verify — not for a single call site or
   speculative reuse. Delete unused structure rather than expanding it.
 - **Supported environment first** — the Linux Dev Container is the supported way to run the repo. Do not design or
   review for macOS, Windows, Homebrew, or other host package layouts. Running scripts on a bare Linux workstation
   without the Dev Container is possible but unofficial; GitHub Actions Linux is supported for CI. Match the **surface
-  quality bar**: product / domain code must hold contracts real callers hit; agent plumbing and Devinfra scripts
-  optimize for the Dev Container **happy path** with normal skill/CLI args — not every exotic edge case (see
+  quality bar**: product / domain code must hold contracts real callers hit; **shared Devinfra scripts** (`scripts/`
+  except agent CLI) are judged on the documented Dev Container / contributor / CI happy path; **agent plumbing**
+  (`scripts/ai/`, skill wiring) on the default skill/CLI happy path — not every exotic edge case (see
   `docs/ai_review_policy.md` Surface quality bar).
 
 ---
@@ -65,9 +66,25 @@ and scaling notes live in the local `principles.md` (or product capability specs
 
 ---
 
+## Python tooling
+
+- **`uv` only** — install, sync, lock, run, and tool invocation for Python use **`uv`** / **`uvx`** exclusively
+  (`uv sync`, `uv run …`, `uv add`, `uv lock`, `uv python`, `uv tool`).
+- **Do not use `pip`, `pip-tools`, `poetry`, `pipenv`, or bare `python -m pip`** for project or CI dependency
+  management. Do not document or suggest those as alternatives.
+- Project dependencies and Python CLIs invoked from hooks/scripts belong in `pyproject.toml` (and the lockfile) and are
+  run via `uv run` (or an equivalent `uv`-managed environment), not a separately pip-installed global site-packages.
+- **One pin source:** exact Python (and other toolchain) versions live in `versions.env`. `.python-version` is derived
+  from that and may drift — do not add further pins in `pyproject.toml` (no `tool.mypy.python_version`, no
+  `tool.ruff.target-version`, no patch-exact `requires-python` floor). `requires-python` MAY be a compatible **range**
+  (e.g. `>=3.12`). Let ruff infer from that range; let mypy follow the running interpreter selected via uv /
+  `.python-version`.
+
+---
+
 ## Code Quality
 
-Product application code under `middleware/` must pass (via `uv`, config from `pyproject.toml` / `.bandit` as
+Product application code under `middleware/` must pass (via `uv run`, config from `pyproject.toml` / `.bandit` as
 applicable):
 
 - `uv run ruff format --check --config pyproject.toml middleware/` — formatting

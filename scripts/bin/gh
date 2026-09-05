@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # PATH wrapper: prompt/load GH_TOKEN, then exec real gh.
+# Environment: Linux Dev Container only (scripts/bin on PATH via remoteEnv; token store).
 set -euo pipefail
 _gh_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _gh_self="${_gh_dir}/$(basename "${BASH_SOURCE[0]}")"
@@ -11,18 +12,12 @@ if [ -z "${GH_TOKEN}" ]; then
   exit 1
 fi
 
-REAL_GH=""
-candidate="$(command -v -p gh 2>/dev/null || true)"
-if [[ -n "${candidate}" && ! "${candidate}" -ef "${_gh_self}" ]]; then
-  REAL_GH="${candidate}"
+REAL_GH="$(command -v -p gh 2>/dev/null || true)"
+if [[ -n "${REAL_GH}" && "${REAL_GH}" -ef "${_gh_self}" ]]; then
+  REAL_GH=""
 fi
-if [[ -z "${REAL_GH}" ]]; then
-  for g in /usr/bin/gh /usr/local/bin/gh /bin/gh; do
-    if [[ -x "${g}" && ! "${g}" -ef "${_gh_self}" ]]; then
-      REAL_GH="${g}"
-      break
-    fi
-  done
+if [[ -z "${REAL_GH}" ]] && [[ -x /usr/bin/gh ]] && [[ ! /usr/bin/gh -ef "${_gh_self}" ]]; then
+  REAL_GH=/usr/bin/gh
 fi
 if [[ -z "${REAL_GH}" || ! -x "${REAL_GH}" ]]; then
   echo "gh wrapper: could not find real gh binary" >&2

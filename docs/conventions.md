@@ -3,7 +3,7 @@
 Shared naming and path conventions for the three m4.2 product repos and this Devinfra repo. Later extracts (tokens
 helpers, Dev Container sync, quality scripts) MUST follow these rules.
 
-This document is **documentation only**. It does not rename existing Docker volumes or migrate host token files.
+This document is **documentation only**. It does not rename existing Docker volumes.
 
 Issue: [#3](https://github.com/fairagro/m4.2_middleware_devinfra/issues/3).
 
@@ -20,17 +20,17 @@ Short slugs identify a product in **Docker volume names**:
 
 ## Personal tokens
 
-Personal developer tokens (e.g. `GH_TOKEN`, `GITGUARDIAN_API_KEY`) are **per-product**, not shared across Dev Containers
-on the same machine.
+Personal developer tokens (e.g. `GH_TOKEN`, `GITGUARDIAN_API_KEY`) are **per-product Dev Container**, not shared across
+containers on the same machine.
 
-| Environment        | Path                                   |
-| ------------------ | -------------------------------------- |
-| Dev Container      | `/commandhistory/tokens.env`           |
-| Host (local clone) | `~/.config/<git-repo-name>/tokens.env` |
+| Environment   | Path                         |
+| ------------- | ---------------------------- |
+| Dev Container | `/commandhistory/tokens.env` |
 
-The in-container path is the same string everywhere; isolation comes from each product's own bashhistory volume. On the
-host, `<git-repo-name>` is the GitHub repository name from `origin` (e.g. `m4.2_middleware_devinfra`) — not the short
-product-slug and not a `PRODUCT_SLUG` env var. Do **not** use a shared directory such as `~/.config/fairagro-m4.2/`.
+The path string is the same everywhere; isolation comes from each product's own bashhistory volume. There is **no**
+supported host `~/.config/…` token store — personal-token helpers (`dev-tokens.sh`, `set-dev-tokens.sh`,
+`scripts/bin/gh`, `scripts/bin/git`) are **Dev Container only**. Other scripts (quality, CST, `load-versions-env`,
+`m42-ai`) may run on a host checkout; see [Script environments](quality.md#script-environments).
 
 ## Docker volumes
 

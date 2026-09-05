@@ -104,8 +104,7 @@ Ensure on the **host**:
 
 Prefer the personal-token helpers (see root README **Personal tokens**):
 
-- Stored `GH_TOKEN` in `/commandhistory/tokens.env` (this Dev Container) or `~/.config/<git-repo-name>/tokens.env` on
-  the host (name from `origin`)
+- Stored `GH_TOKEN` in `/commandhistory/tokens.env` (Linux Dev Container only)
 - Empty prompt skips until `source ./scripts/set-dev-tokens.sh`
 - `scripts/bin/gh` on `PATH` (after rebuild) loads tokens then runs real `gh`
 
@@ -123,8 +122,8 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 
 - fix `/commandhistory` and `~/.config/gh` permissions
 - write `.python-version` from `versions.env` via `scripts/load-versions-env.sh`
-- ensure `~/.bashrc` sources `scripts/dev-tokens.sh` (load stored tokens; TTY prompts only when interactive)
-- load stored tokens into the postCreate environment (no hang without TTY)
+- load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
+- interactive `gh` / `git` keep loading tokens via `scripts/bin` wrappers on `PATH`
 
 `PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
 
