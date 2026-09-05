@@ -9,8 +9,16 @@ from pathlib import Path
 from typing import Any, Callable
 
 from m42_ai import __version__
+from m42_ai.auth import auth_status
 from m42_ai.gh import GhError
-from m42_ai.issue import create_issue, issue_start
+from m42_ai.issue import (
+    branch_ahead,
+    create_issue,
+    ensure_issue_branch,
+    issue_start,
+    view_issue,
+)
+from m42_ai.pr import pr_strip_footer
 from m42_ai.review import fetch_review_open, review_reply, review_resolve
 
 
@@ -25,6 +33,15 @@ def _read_body(args: argparse.Namespace) -> str:
     if getattr(args, "body", None) is not None:
         return str(args.body)
     raise SystemExit("provide --body or --body-file")
+
+
+def cmd_auth_status(args: argparse.Namespace) -> int:
+    data = auth_status(
+        cwd=Path(args.cwd) if args.cwd else None,
+        hostname=args.hostname,
+    )
+    _print_json(data)
+    return 0 if data.get("ok") else 1
 
 
 def cmd_review_open(args: argparse.Namespace) -> int:
@@ -72,6 +89,32 @@ def cmd_issue_create(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_issue_view(args: argparse.Namespace) -> int:
+    data = view_issue(args.issue, cwd=Path(args.cwd) if args.cwd else None)
+    _print_json(data)
+    return 0
+
+
+def cmd_issue_branch(args: argparse.Namespace) -> int:
+    data = ensure_issue_branch(
+        issue=args.issue,
+        slug=args.slug,
+        base=args.base,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    _print_json(data)
+    return 0
+
+
+def cmd_branch_ahead(args: argparse.Namespace) -> int:
+    data = branch_ahead(
+        base=args.base,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    _print_json(data)
+    return 0 if data.get("ok") else 1
+
+
 def cmd_issue_start(args: argparse.Namespace) -> int:
     data = issue_start(
         issue=args.issue,
@@ -84,10 +127,26 @@ def cmd_issue_start(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pr_strip_footer(args: argparse.Namespace) -> int:
+    data = pr_strip_footer(
+        args.pr,
+        owner=args.owner,
+        repo=args.repo,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    _print_json(data)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="m42-ai", description="Deterministic GitHub/git plumbing for agent skills")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
+
+    au = sub.add_parser("auth-status", help="Probe gh auth as JSON (exit 1 when not ok)")
+    au.add_argument("--hostname", default="github.com")
+    au.add_argument("--cwd", help="Git repo root (default: cwd)")
+    au.set_defaults(func=cmd_auth_status)
 
     ro = sub.add_parser("review-open", help="Fetch and shape open AI review work for a PR")
     ro.add_argument("--pr", type=int, required=True)
@@ -149,13 +208,43 @@ def build_parser() -> argparse.ArgumentParser:
     ic.add_argument("--body-file")
     ic.set_defaults(func=cmd_issue_create)
 
-    ist = sub.add_parser("issue-start", help="Empty bootstrap commit + draft PR for an issue")
+    iv = sub.add_parser("issue-view", help="Fetch issue triage JSON (type, labels, body, url)")
+    iv.add_argument("--issue", type=int, required=True)
+    iv.add_argument("--cwd", help="Git repo root (default: cwd)")
+    iv.set_defaults(func=cmd_issue_view)
+
+    ib = sub.add_parser(
+        "issue-branch",
+        help="Ensure issue-<n>-<slug> exists and is checked out (no commit/PR)",
+    )
+    ib.add_argument("--issue", type=int, required=True)
+    ib.add_argument("--slug")
+    ib.add_argument("--base", default="main")
+    ib.add_argument("--cwd", help="Git repo root (default: cwd)")
+    ib.set_defaults(func=cmd_issue_branch)
+
+    ba = sub.add_parser("branch-ahead", help="Report HEAD vs base; exit 1 when not ahead")
+    ba.add_argument("--base", default="main")
+    ba.add_argument("--cwd", help="Git repo root (default: cwd)")
+    ba.set_defaults(func=cmd_branch_ahead)
+
+    ist = sub.add_parser(
+        "issue-start",
+        help="Push issue branch + draft PR when tip is ahead of base (no empty commit)",
+    )
     ist.add_argument("--issue", type=int, required=True)
     ist.add_argument("--slug")
     ist.add_argument("--base", default="main")
     ist.add_argument("--title", help="Override draft PR title (default: issue title)")
     ist.add_argument("--cwd", help="Git repo root (default: cwd)")
     ist.set_defaults(func=cmd_issue_start)
+
+    ps = sub.add_parser("pr-strip-footer", help="Strip Made with Cursor (and similar) from a PR body")
+    ps.add_argument("--pr", type=int, required=True)
+    ps.add_argument("--owner")
+    ps.add_argument("--repo")
+    ps.add_argument("--cwd", help="Git repo root (default: cwd)")
+    ps.set_defaults(func=cmd_pr_strip_footer)
 
     return p
 

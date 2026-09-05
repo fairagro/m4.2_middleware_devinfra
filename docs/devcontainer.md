@@ -47,10 +47,10 @@ node --version
 
 ## Markdown (format + lint)
 
-| Tool                                                       | Role                                                                                 | VS Code / Cursor extension             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
-| [Prettier](https://prettier.io)                            | Format (`printWidth` 120, `proseWrap: always`)                                       | `esbenp.prettier-vscode` (first-party) |
-| [markdownlint](https://github.com/DavidAnson/markdownlint) | Structure lint; extends `markdownlint/style/prettier` so rules do not fight Prettier | `davidanson.vscode-markdownlint`       |
+| Tool                                                       | Role                                                                                     | VS Code / Cursor extension             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------- |
+| [Prettier](https://prettier.io)                            | Format (`printWidth` 120, `proseWrap: always`)                                           | `esbenp.prettier-vscode` (first-party) |
+| [markdownlint](https://github.com/DavidAnson/markdownlint) | Structure lint; Prettier-compatible disables in `.markdownlint.json` (no `extends` path) | `davidanson.vscode-markdownlint`       |
 
 Node `${NODE_VERSION}` is required anyway (OpenSpec). Prettier and markdownlint-cli2 are installed **globally in the Dev
 Container image** (same pattern as OpenSpec) — a workspace `npm install` would be hidden by the bind mount. Pins live in

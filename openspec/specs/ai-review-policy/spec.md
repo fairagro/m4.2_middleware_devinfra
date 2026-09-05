@@ -32,6 +32,11 @@ or ephemeral personal on-disk format that is not the current write path and not 
 pre-`b64:` personal token file lines fixable by re-running setup once). Finders MUST NOT comment on those; fixers MUST
 NOT add compatibility parsers or deny-lists for them.
 
+The policy MUST define a **surface quality bar** for fixer triage: product/domain code keeps the full bar; agent
+plumbing (`scripts/ai/`, skill CLI wiring) is judged on the default Linux Dev Container skill/CLI happy path; exotic
+argparse / option-injection / wording-only nits on that surface MUST be practicality Low (or None) and MUST NOT take
+step 5 merely because the patch is cheap. Real happy-path breakage on agent plumbing MUST still be fixed.
+
 #### Scenario: Contributor opens the shared policy
 
 - **WHEN** a contributor opens `docs/ai_review_policy.md`
@@ -59,6 +64,13 @@ NOT add compatibility parsers or deny-lists for them.
   (e.g. legacy token lines before `b64:`) and the author can fix it by re-running a documented setup command once
 - **THEN** the fixer dismisses with practicality None
 - **AND** does not add a compatibility parser, `eval` deny-list, or migration branch for that format
+
+#### Scenario: Agent-plumbing exotic CLI finding is dismissed
+
+- **WHEN** a finder reports an agent-plumbing issue that only occurs with adversarial or non-default CLI args (e.g.
+  `--base --all`) or is wording-only error-message polish
+- **THEN** the fixer treats practicality as Low (or None) and dismisses or budgets as a nit
+- **AND** does not apply step 5 merely because the suggested patch is cheap
 
 ### Requirement: Bugbot entry points at the policy
 

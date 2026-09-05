@@ -10,17 +10,24 @@ without forking Supported environment or Type Safety rules.
 ### Requirement: Shared principles.global.md exists
 
 The repository MUST provide `openspec/principles.global.md` as the canonical shared engineering foundation for m4.2
-middleware consumers. That file MUST include at least: shared values, Supported development environment, Type Safety
-core rules, shared code-quality expectations (`uv` and the standard lint/type/security gates), and the rule that
-application code must not read configuration via direct `os.environ` (configuration goes through the project's config
-wrapper pattern). Product-only technology stacks, module graphs, and scaling notes MUST NOT be normative content of
-`principles.global.md`.
+middleware consumers. That file MUST include at least: shared values (including **Simplicity**: smallest readable
+change, abstractions only when needed, delete unused structure; and **Supported environment first** with the surface
+quality bar for product vs agent plumbing), Supported development environment detail, Type Safety core rules, shared
+code-quality expectations (`uv` and the standard lint/type/security gates), and the rule that application code must not
+read configuration via direct `os.environ` (configuration goes through the project's config wrapper pattern).
+Product-only technology stacks, module graphs, and scaling notes MUST NOT be normative content of `principles.global.md`.
 
 #### Scenario: Agent looks up supported environment
 
 - **WHEN** an agent or reviewer needs the supported development environment rule
 - **THEN** it is defined in `openspec/principles.global.md`
 - **AND** the file does not require FastAPI, Celery, or CouchDB as shared stack
+
+#### Scenario: Agent looks up simplicity / implementation guidance
+
+- **WHEN** an agent implements or refactors code under these principles
+- **THEN** Values → Simplicity tells it to prefer the smallest readable change and avoid speculative abstractions
+- **AND** Supported environment first / surface quality bar judges agent plumbing on the Dev Container happy path
 
 ### Requirement: Repo-local principles.md extends global
 

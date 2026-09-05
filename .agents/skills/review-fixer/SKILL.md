@@ -76,8 +76,8 @@ ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `gh` (e.g. `gh auth status` or the GraphQL fetch). If auth works, continue with fetch /
-   replies / resolves as usual.
+3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status` / the GraphQL fetch).
+   If auth works, continue with fetch / replies / resolves as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print the intended replies/resolves, and stop that
    part. Still apply local code fixes when triage says `fix`.
 
@@ -153,7 +153,8 @@ Decision order (stop at first match) — same as the policy:
 4. High risk (Blocker/High **and** practicality not Low/None) → `fix` (or split/`follow-up` if the fix is its own
    feature)
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
-   nit-budget)
+   nit-budget). **Except** agent-plumbing / docs / vendor surfaces: apply the **surface quality bar** in
+   `docs/ai_review_policy.md` first — exotic CLI edge cases and wording nits are practicality Low → not step 5.
 6. Else nit:
    - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)

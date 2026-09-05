@@ -14,10 +14,16 @@ and scaling notes live in the local `principles.md` (or product capability specs
 - **Correctness over speed** — a slow correct result is better than a fast broken one.
 - **Explicit over implicit** — configuration comes from the project's config model, not direct `os.environ` in
   application code.
-- **Simplicity** — remove abstractions that serve no purpose; add them only when duplication becomes a real problem.
+- **Simplicity** — prefer the smallest readable change that meets the real requirement. Keep complexity as low as
+  needed (not lower than correctness requires, not higher “for later”). Add an abstraction only when it removes real
+  duplication, clarifies a stable boundary, or makes the call site easier to verify — not for a single call site or
+  speculative reuse. Delete unused structure rather than expanding it.
 - **Supported environment first** — the Linux Dev Container is the supported way to run the repo. Do not design or
   review for macOS, Windows, Homebrew, or other host package layouts. Running scripts on a bare Linux workstation
-  without the Dev Container is possible but unofficial; GitHub Actions Linux is supported for CI.
+  without the Dev Container is possible but unofficial; GitHub Actions Linux is supported for CI. Match the **surface
+  quality bar**: product / domain code must hold contracts real callers hit; agent plumbing and Devinfra scripts
+  optimize for the Dev Container **happy path** with normal skill/CLI args — not every exotic edge case (see
+  `docs/ai_review_policy.md` Surface quality bar).
 
 ---
 
@@ -70,7 +76,7 @@ applicable):
 - `uv run pylint --rcfile pyproject.toml middleware/` — style and code smells
 - `uv run bandit -r middleware/ -c .bandit` — security (low findings logged, medium/high fail)
 
-Markdown must pass Prettier formatting and markdownlint (extends `markdownlint/style/prettier` so the two do not fight).
+Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):
 
 - `npm run format:md` / `npm run format:md:check` — Prettier write / check for `**/*.{md,mdc}`

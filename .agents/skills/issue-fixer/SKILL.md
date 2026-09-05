@@ -2,9 +2,9 @@
 name: issue-fixer
 description: >-
   Triages a GitHub issue, explores Feature/Refactoring decisions with the user,
-  opens a draft PR from one empty bootstrap commit, and implements locally
-  without auto-committing fix commits. Use when the user asks to /issue-fixer,
-  fix an issue, or start work from an issue URL/number.
+  implements via OpenSpec cadence, and opens a draft PR only after real commits
+  exist — without auto-committing fix commits. Use when the user asks to
+  /issue-fixer, fix an issue, or start work from an issue URL/number.
 ---
 
 # Issue fixer
@@ -12,11 +12,11 @@ description: >-
 Triage and fix a GitHub issue. You are the **fixer** (precision): implement the smallest correct MVP slice in this PR,
 or split deferred work via `/create-issue` when it becomes too large.
 
-You may create a branch and a **draft** PR. To close the issue automatically on merge, the PR body must include:
-`Fixes #<issue_number>`.
+You may create a branch and later a **draft** PR (only after the branch tip has real commits ahead of `main`). To close
+the issue automatically on merge, the PR body must include: `Fixes #<issue_number>`.
 
-**Do not** auto-commit or auto-push **fix** commits. You **may** create and push exactly one empty bootstrap commit so
-the draft PR can exist. The user commits and pushes the real fixes.
+**Do not** auto-commit or auto-push **fix** commits. **Do not** create empty bootstrap commits. The user commits and
+pushes; the agent opens the draft PR only when the tip already differs from `main` with that real history.
 
 ## Input
 
@@ -41,16 +41,24 @@ ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `gh` (e.g. `gh auth status`). If auth works, continue with fetch / branch / PR as usual.
+3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status`). If auth works,
+   continue with fetch / branch / PR as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print intended branch/PR drafts, and may still work
    locally when appropriate.
 
 ## Fetch issue & triage
 
-1. Fetch the issue details (body, labels, URL, type if present) with `gh`.
+1. Prefer the CLI for a stable shape:
+
+   ```bash
+   uv run --project scripts/ai m42-ai issue-view --issue <issue_number>
+   ```
+
+   Use `issue_type`, `labels`, `triage`, `body`, and `url` from that JSON (fall back to `gh issue view` only if the CLI
+   is unavailable).
 2. Determine:
-   - org issue type: `Bug|Security|Feature|Task|Discussion|Refactoring`
-   - triage labels: `severity:*`, `practicality:*`, `cost:*` (if set)
+   - org issue type: `Bug|Security|Feature|Task|Discussion|Refactoring` (from `issue_type` when set)
+   - triage labels: `severity:*`, `practicality:*`, `cost:*` (from `triage` / `labels` when set)
    - problem statement; affected paths; acceptance criteria / “done when”
 
 3. Early exits:
@@ -85,67 +93,87 @@ When explore is **not** required, skip `/opsx-explore` and continue to the OpenS
 
 On every run that will implement, after explore (when it ran) or immediately when explore was skipped:
 
-### 1. `/opsx-propose` → pause
+### 1. Issue branch → `/opsx-propose` → pause
 
-**`/opsx-propose` is mandatory** before any branch, empty commit, draft PR, or implementation.
+1. **Create the issue branch first** from `main` via CLI when possible:
 
-1. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
+   ```bash
+   uv run --project scripts/ai m42-ai issue-branch --issue <issue_number> [--slug <slug>]
+   ```
+
+   Do **not** commit, push, or open a draft PR yet. If already on the correct issue branch, skip creating it again.
+2. Require a local `openspec/` tree. If it is missing, stop and tell the user — do not skip propose and implement
    anyway.
-2. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
-   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks.
-3. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
-4. **Pause (spec review):** After artifacts exist, **stop**. Show the change name/path and ask the user to review
-   proposal / specs / design / tasks. Do **not** create a branch, empty commit, draft PR, apply, or archive until they
-   confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes, run `/opsx-update` (or
-   edit artifacts) and pause again.
+3. Read and follow [`.cursor/skills/openspec-propose/SKILL.md`](../../../.cursor/skills/openspec-propose/SKILL.md) (same
+   as invoking `/opsx-propose`): create a change name from the issue, generate proposal / specs / design / tasks on that
+   branch.
+4. Name the change from the issue (kebab-case slug + issue context). Fold explore lock-ins into design/tasks.
+5. **Pause (spec review):** **Stop**. Show the change name/path and branch name; ask the user to review proposal /
+   specs / design / tasks and to **commit** (and optionally push) as they wish. Do **not** open a draft PR, run apply,
+   or archive until they confirm (e.g. `go`, `approved`, or an `/opsx-update` pass then `go`). If they request changes,
+   run `/opsx-update` (or edit artifacts) and pause again.
+
+**`/opsx-propose` is mandatory** before implementation (always after the issue branch exists).
 
 Early exits that never implement (missing info, already resolved, `Discussion` without an explicit implement request)
-skip this cadence. Once the user asks to implement a `Discussion`, start at propose.
+skip this cadence. Once the user asks to implement a `Discussion`, start at branch + propose.
 
-### 2. On continue: draft PR + `/opsx-apply` → pause
+### 2. On continue: `/opsx-apply` → pause
 
 After the user confirms the propose pause:
 
-1. Create the empty-bootstrap draft PR (next section) if it does not exist yet.
-2. Read and follow
+1. Read and follow
    [`.cursor/skills/openspec-apply-change/SKILL.md`](../../../.cursor/skills/openspec-apply-change/SKILL.md)
    (`/opsx-apply`) against that change’s `tasks.md`. Implement in the working tree only — do **not** commit or push fix
-   commits.
-3. **Pause (apply review):** When apply tasks for this slice are done (or blocked on the user), **stop**. Summarize what
-   changed, remind them to review / commit / push, and wait for `go` (or equivalent). Do **not** run `/opsx-archive`
-   during this pause.
+   commits. Do **not** open a draft PR in this step.
+2. **Pause (apply review):** When apply tasks for this slice are done (or blocked on the user), **stop**. Summarize what
+   changed, remind them to review / **commit** / **push**, and wait for `go` (or equivalent). Do **not** run
+   `/opsx-archive` or open a draft PR during this pause.
 
-### 3. On continue: `/opsx-archive`
+### 3. On continue: draft PR (if needed) + `/opsx-archive`
 
-After the user confirms the apply pause, read and follow
-[`.cursor/skills/openspec-archive-change/SKILL.md`](../../../.cursor/skills/openspec-archive-change/SKILL.md)
-(`/opsx-archive`) for the change. Do **not** archive before that confirmation.
+After the user confirms the apply pause:
 
-## Branch + draft PR (empty bootstrap commit)
+1. Ensure a **draft** PR exists for the issue branch (next section) **only if** the branch tip already has real commits
+   ahead of `main` (`m42-ai branch-ahead` / `issue-start`). Never use `--allow-empty`. If tip still equals `main`, stop
+   and ask the user to commit/push first. After create (or if a PR already exists), run
+   `m42-ai pr-strip-footer --pr <n>` when a Cursor footer may have been injected.
+2. Read and follow
+   [`.cursor/skills/openspec-archive-change/SKILL.md`](../../../.cursor/skills/openspec-archive-change/SKILL.md)
+   (`/opsx-archive`) for the change. Do **not** archive before that confirmation.
 
-Assumptions: base branch is `main`. Prefer the plumbing CLI when the tree is clean:
+## Branch + draft PR (real commits only)
+
+**Branch early:** create `issue-<issue_number>-<slug>` from `main` **before** `/opsx-propose`, so propose artifacts land
+on the issue branch and the user can commit during the spec-review pause. That step does **not** open the PR yet.
+
+**Draft PR late:** after the apply-pause confirmation (before or as part of `/opsx-archive`). Assumptions: base branch is
+`main`. Prefer the plumbing CLI when the tree is clean and the tip is already ahead of `main`:
 
 ```bash
 uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]
 ```
 
-That creates `issue-<issue_number>-<slug>`, one empty commit `Start issue #<issue_number>`, pushes, and opens a
-**draft** PR with `Fixes #<issue_number>`. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+`issue-start` ensures branch `issue-<issue_number>-<slug>` (checkout/create from `main` if needed), refuses when there
+are no commits ahead of the base, pushes, and opens a **draft** PR with `Fixes #<issue_number>`. It does **not** create
+empty commits. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+
+If a draft PR already exists, skip create. Always prefer `m42-ai pr-strip-footer --pr <n>` after create (or when a
+footer may have been injected) instead of hand-editing with ad-hoc `gh` regexes.
 
 **PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
 is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
-immediately with `gh pr edit` (or equivalent) before moving on.
+immediately with:
+
+```bash
+uv run --project scripts/ai m42-ai pr-strip-footer --pr <pr_number>
+```
 
 Manual equivalent if the CLI is unavailable:
 
-1. Create local branch: `issue-<issue_number>-<slug>` from `main`.
-2. Ensure working tree **and** index are clean. Then create **exactly one** empty commit (do **not** use `--no-verify`):
-
-   ```bash
-   git commit --allow-empty -m "Start issue #<issue_number>"
-   ```
-
-3. Push the branch and create a **draft** PR:
+1. Be on `issue-<issue_number>-<slug>` with **at least one real commit** ahead of `main` (never
+   `git commit --allow-empty`).
+2. Push the branch and create a **draft** PR:
 
    ```bash
    gh pr create --draft --base main --title "..." --body "$(cat <<'EOF'
@@ -157,20 +185,21 @@ Manual equivalent if the CLI is unavailable:
    )"
    ```
 
-4. Do **not** mark the PR ready for review. Remind the user to mark ready after they push real commits.
+3. Do **not** mark the PR ready for review. Remind the user to mark ready when they want review.
 
 ## Implement fixes (locally)
 
-Covered by **`/opsx-apply`** in the OpenSpec cadence above (after the propose pause and draft PR). Same rules:
+Covered by **`/opsx-apply`** in the OpenSpec cadence above (after the propose pause). Same rules:
 
-- Implement in the working tree on the PR branch.
+- Implement in the working tree on the issue branch.
 - Do **not** commit or push fix commits.
 - If too large: split (below) and implement only the MVP slice here.
 - When the consumer has product `middleware/` packages: run focused `uv run pytest` on affected packages and
   `uv run ruff format --config pyproject.toml` / `ruff check` on touched files (same bar as `/review-fixer`). This
   Devinfra repo has no product `middleware/` tree — skip those commands here.
 
-After apply: **pause** for the user (see OpenSpec cadence §2). After their next `go`: **`/opsx-archive`** (§3).
+After apply: **pause** for the user (see OpenSpec cadence §2). After their next `go`: draft PR (if needed) +
+**`/opsx-archive`** (§3).
 
 ## Split / deferred work (via create-issue)
 
@@ -208,6 +237,6 @@ Provide:
 - Whether `/opsx-explore` ran and what was locked
 - OpenSpec change name / path; which cadence pause is next (`propose` / `apply` / `archive` done or pending)
 - Branch name
-- Draft PR URL (or “skipped PR creation” + draft)
+- Draft PR URL when opened (or “PR deferred until real commits” / “skipped PR creation”)
 - Created sub-issue / linked-issue URLs (or none)
 - Reminder: user commits, pushes, and marks the PR ready; agent does not auto-commit fix commits

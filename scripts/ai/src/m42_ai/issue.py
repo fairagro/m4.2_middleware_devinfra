@@ -153,6 +153,126 @@ def create_issue(
     )
 
 
+def _parse_issue_type(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        name = raw.strip()
+        return name or None
+    if isinstance(raw, dict):
+        name = str(raw.get("name") or "").strip()
+        return name or None
+    return None
+
+
+def _label_names(labels_raw: list[Any]) -> list[str]:
+    names: list[str] = []
+    for item in labels_raw:
+        raw = item.get("name") if isinstance(item, dict) else item
+        if raw is None:
+            continue
+        name = str(raw).strip()
+        if name:
+            names.append(name)
+    return names
+
+
+def _triage_from_labels(label_names: list[str]) -> dict[str, str | None]:
+    severity = next((n for n in label_names if n.startswith("severity:")), None)
+    practicality = next((n for n in label_names if n.startswith("practicality:")), None)
+    cost = next((n for n in label_names if n.startswith("cost:")), None)
+    return {"severity": severity, "practicality": practicality, "cost": cost}
+
+
+def view_issue(issue: int, *, cwd: Path | None = None) -> dict[str, Any]:
+    """Fetch a stable triage-oriented JSON shape for an issue."""
+    proc = run_gh(
+        [
+            "issue",
+            "view",
+            str(issue),
+            "--json",
+            "number,title,url,body,labels,state,author,issueType",
+        ],
+        cwd=cwd,
+    )
+    meta = json.loads(proc.stdout)
+    labels_raw = meta.get("labels") or []
+    label_names = _label_names(labels_raw if isinstance(labels_raw, list) else [])
+    author = meta.get("author") or {}
+    author_login = author.get("login") if isinstance(author, dict) else None
+    return {
+        "number": int(meta["number"]),
+        "title": str(meta["title"]),
+        "url": str(meta["url"]),
+        "body": str(meta.get("body") or ""),
+        "state": str(meta.get("state") or ""),
+        "issue_type": _parse_issue_type(meta.get("issueType")),
+        "labels": label_names,
+        "triage": _triage_from_labels(label_names),
+        "author": author_login,
+    }
+
+
+def branch_ahead(*, base: str = "main", cwd: Path | None = None) -> dict[str, Any]:
+    """True when HEAD has commits not on origin/<base> (fetch first so the tip is fresh)."""
+    root = cwd or Path.cwd()
+    upstream = f"origin/{base}"
+    run_git(["fetch", "origin", base], cwd=root)
+    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
+    ahead = int(run_git(["rev-list", "--count", f"{upstream}..HEAD"], cwd=root).stdout.strip() or "0")
+    return {
+        "base": base,
+        "upstream": upstream,
+        "current_branch": current,
+        "ahead": ahead,
+        "ok": ahead > 0,
+    }
+
+
+def ensure_issue_branch(
+    *,
+    issue: int,
+    slug: str | None = None,
+    base: str = "main",
+    cwd: Path | None = None,
+) -> dict[str, Any]:
+    """Ensure local `issue-<n>-<slug>` exists and is checked out. No commit, push, or PR."""
+    root = cwd or Path.cwd()
+    if run_git(["status", "--porcelain"], cwd=root).stdout.strip():
+        raise RuntimeError("working tree/index must be clean before issue-branch / issue-start")
+
+    viewed = view_issue(issue, cwd=root)
+    title = viewed["title"]
+    branch = f"issue-{issue}-{slugify(slug) if slug else slugify(title)}"
+
+    current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
+    created = False
+    if current != branch:
+        if run_git(["branch", "--list", branch], cwd=root).stdout.strip():
+            run_git(["checkout", branch], cwd=root)
+        else:
+            run_git(["fetch", "origin", base], cwd=root)
+            run_git(["checkout", base], cwd=root)
+            run_git(["pull", "--ff-only", "origin", base], cwd=root)
+            run_git(["checkout", "-b", branch], cwd=root)
+            created = True
+
+    ahead_info = branch_ahead(base=base, cwd=root)
+    return {
+        "issue": {
+            "number": viewed["number"],
+            "url": viewed["url"],
+            "title": title,
+            "issue_type": viewed["issue_type"],
+        },
+        "branch": branch,
+        "created": created,
+        "base": base,
+        "ahead": ahead_info["ahead"],
+    }
+
+
 def issue_start(
     *,
     issue: int,
@@ -161,26 +281,18 @@ def issue_start(
     cwd: Path | None = None,
     draft_title: str | None = None,
 ) -> dict[str, Any]:
+    """Push issue branch and open a draft PR — requires commits ahead of base (no empty bootstrap)."""
     root = cwd or Path.cwd()
-    status = run_git(["status", "--porcelain"], cwd=root)
-    if status.stdout.strip():
-        raise RuntimeError("working tree/index must be clean before issue-start")
+    ensured = ensure_issue_branch(issue=issue, slug=slug, base=base, cwd=root)
+    if int(ensured["ahead"]) == 0:
+        raise RuntimeError(
+            f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)"
+        )
 
-    proc = run_gh(["issue", "view", str(issue), "--json", "title,url,number"], cwd=root)
-    meta = json.loads(proc.stdout)
-    title = str(meta["title"])
-    branch_slug = slugify(slug) if slug else slugify(title)
-    branch = f"issue-{issue}-{branch_slug}"
-
-    run_git(["fetch", "origin", base], cwd=root)
-    run_git(["checkout", base], cwd=root)
-    run_git(["pull", "--ff-only", "origin", base], cwd=root)
-    run_git(["checkout", "-b", branch], cwd=root)
-    run_git(["commit", "--allow-empty", "-m", f"Start issue #{issue}"], cwd=root)
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)
 
+    title = str(ensured["issue"]["title"])
     pr_title = draft_title or title
-    # Keep PR bodies free of tool marketing footers (e.g. "Made with Cursor").
     body = f"## Summary\n- MVP scope: (fill in)\n\nFixes #{issue}\n"
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as tmp:
         tmp.write(body)
@@ -206,8 +318,9 @@ def issue_start(
     pr_url = proc.stdout.strip()
     owner, name = repo_owner_name(cwd=root)
     return {
-        "issue": {"number": issue, "url": meta["url"], "title": title},
-        "branch": branch,
+        "issue": ensured["issue"],
+        "branch": ensured["branch"],
         "pr_url": pr_url,
         "repo": f"{owner}/{name}",
+        "ahead": ensured["ahead"],
     }
