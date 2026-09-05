@@ -2,19 +2,49 @@
   // Per-repo Cursor agent permissions (JSONC). Concatenated with ~/.cursor/permissions.json.
   // Docs: https://cursor.com/docs/reference/permissions
   //
-  // If `terminalAllowlist` is set here, it REPLACES the in-app terminal allowlist for this
-  // workspace (IDE entries are not merged). Add further prefixes as needed.
-  // Matching is case-sensitive prefix match.
+  // If `terminalAllowlist` is set here (or in ~/.cursor/permissions.json), the combined
+  // file list REPLACES the in-app terminal allowlist for this workspace (IDE entries are
+  // not merged). Matching is case-sensitive **prefix** match on the full command string.
+  // Prefer starting agent shell calls with an allowlisted prefix (e.g. m42-ai), not with
+  // `source` / `export` wrappers in front.
   //
-  // Run Mode: Settings → Agents → Approvals & Execution → Allowlist (or Auto-review + autoRun).
+  // Run Mode: Settings → Agents → Approvals & Execution → Auto-review / Allowlist /
+  // Run Everything. `autoRun` only steers Auto-review (not a hard guarantee).
+  //
+  // Tip: if repo allowlists seem ignored, also put the same `terminalAllowlist` entries in
+  // ~/.cursor/permissions.json (user-level is more reliably applied in some Cursor builds).
 
   "terminalAllowlist": [
-    "uv run --project scripts/ai m42-ai"
+    // Agent GitHub/git plumbing (issue-fixer / review-fixer / create-issue)
+    "uv run --project scripts/ai m42-ai",
+    "uv run --project scripts/ai --extra",
+    // Quality / OpenSpec happy path in this repo
+    "uv sync",
+    "uv lock",
+    "uv run pre-commit",
+    "uv run pytest",
+    "npm run format:md",
+    "npm run lint:md",
+    "npm run format:md:check",
+    "openspec",
+    // Wrapper when invoked by absolute/relative path (not bare `gh`)
+    "scripts/bin/gh",
+    "./scripts/bin/gh",
+    "/workspaces/m4.2_middleware_devinfra/scripts/bin/gh"
   ],
 
   "autoRun": {
     "allow_instructions": [
-      "Allow `uv run --project scripts/ai m42-ai` for review-fixer and issue-fixer plumbing (review-open, review-reply, review-resolve, auth-status, issue-view/create/branch/start, branch-ahead, pr-strip-footer) when using Dev Container GH_TOKEN helpers / scripts/bin/gh."
+      "Allow `uv run --project scripts/ai m42-ai` for review-fixer and issue-fixer plumbing: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer.",
+      "Allow those m42-ai commands even when the shell first sets PATH to scripts/bin or sources scripts/dev-tokens.sh / set-dev-tokens.sh so GH_TOKEN comes from the Linux Dev Container store (/commandhistory/tokens.env).",
+      "Allow m42-ai review-reply (including --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer.",
+      "Allow m42-ai issue-start and pr-strip-footer that create or edit draft PRs with Fixes #<n> and strip Cursor marketing footers — expected for /issue-fixer.",
+      "Allow `gh pr edit` / `gh pr view` / `gh pr list` when used only to fill draft PR title/body or inspect PR # state for the current issue-fixer/review-fixer flow.",
+      "Allow openspec status/list/archive/instructions and npm run format:md / lint:md after OpenSpec or docs edits in this repo."
+    ],
+    "block_instructions": [
+      "Still require approval for force-push, hard reset, git push --force, deleting remotes, or rewriting published history.",
+      "Still require approval for commands that print or exfiltrate raw token file contents (e.g. cat /commandhistory/tokens.env) or that change credentials outside the normal set-dev-tokens / gh auth flow."
     ]
   }
 }
