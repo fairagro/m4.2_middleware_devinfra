@@ -31,13 +31,16 @@ sources exist.
 
 `scripts/git-hooks/pre-push` MUST invoke `git lfs pre-push` with the hook arguments, then run the shared pre-commit
 configuration’s **pre-push** stage (via `uv run pre-commit`, project `.venv` `python -m pre_commit`, or `pre-commit` on
-`PATH`) using `.pre-commit-config.yaml` and `--hook-type=pre-push` (or equivalent `hook-impl`).
+`PATH`) using `.pre-commit-config.yaml` and `--hook-type=pre-push` (or equivalent `hook-impl`). Because both consumers
+read the git pre-push ref list from stdin, the hook MUST buffer that stdin once and replay it to LFS and to pre-commit
+(so the quality stage is not skipped after LFS drains stdin).
 
 #### Scenario: git push triggers LFS and quality pre-push
 
 - **WHEN** the installed `pre-push` hook runs on `git push`
-- **THEN** Git LFS pre-push runs first
-- **AND** the pre-commit pre-push stage runs afterward (pytest / container-structure-test when configured)
+- **THEN** Git LFS pre-push runs first with the ref list from stdin
+- **AND** the pre-commit pre-push stage runs afterward with the same ref list (pytest / container-structure-test when
+  configured)
 
 ### Requirement: LFS lifecycle hooks are version-controlled
 

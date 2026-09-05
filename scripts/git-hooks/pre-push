@@ -3,6 +3,9 @@
 # This file is version-controlled and should be installed via scripts/setup-git-lfs.sh
 #
 # Environment: host or Dev Container (needs git-lfs + uv/pre-commit for the quality stage).
+#
+# Git feeds the ref list on stdin. Both `git lfs pre-push` and `pre-commit hook-impl`
+# consume it, so we buffer once and replay to each.
 
 set -euo pipefail
 
@@ -14,7 +17,12 @@ command -v git-lfs >/dev/null 2>&1 || {
   echo >&2 ""
   exit 2
 }
-git lfs pre-push "$@"
+
+stdin_file="$(mktemp)"
+trap 'rm -f "${stdin_file}"' EXIT
+cat >"${stdin_file}"
+
+git lfs pre-push "$@" <"${stdin_file}"
 
 # Resolve repo root (hooks run with cwd = worktree root for normal pushes).
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -25,15 +33,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ARGS+=(--hook-dir "${HERE}" -- "$@")
 
 if command -v uv >/dev/null 2>&1 && [[ -f "${repo_root}/pyproject.toml" ]]; then
-  exec uv run pre-commit "${ARGS[@]}"
+  uv run pre-commit "${ARGS[@]}" <"${stdin_file}"
+  exit $?
 fi
 
 if [[ -x "${repo_root}/.venv/bin/python" ]]; then
-  exec "${repo_root}/.venv/bin/python" -m pre_commit "${ARGS[@]}"
+  "${repo_root}/.venv/bin/python" -m pre_commit "${ARGS[@]}" <"${stdin_file}"
+  exit $?
 fi
 
 if command -v pre-commit >/dev/null 2>&1; then
-  exec pre-commit "${ARGS[@]}"
+  pre-commit "${ARGS[@]}" <"${stdin_file}"
+  exit $?
 fi
 
 echo >&2 "pre-commit not found. Run: uv sync && ensure 'uv' is on PATH (or activate .venv)."
