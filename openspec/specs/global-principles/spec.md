@@ -13,10 +13,10 @@ The repository MUST provide `openspec/principles.global.md` as the canonical sha
 middleware consumers. That file MUST include at least: shared values (including **Simplicity**: smallest readable
 change, abstractions only when needed, delete unused structure; and **Supported environment first** with the surface
 quality bar for product vs agent plumbing), Supported development environment detail, Type Safety core rules, shared
-code-quality expectations (`uv` and the standard lint/type/security gates), and the rule that application code must not
-read configuration via direct `os.environ` (configuration goes through the project's config wrapper pattern).
-Product-only technology stacks, module graphs, and scaling notes MUST NOT be normative content of
-`principles.global.md`.
+code-quality expectations (`uv` and the standard lint/type/security gates), **Python tooling: `uv` exclusively** (no
+`pip` / `poetry` / `pipenv` for project or CI dependency management), and the rule that application code must not read
+configuration via direct `os.environ` (configuration goes through the project's config wrapper pattern). Product-only
+technology stacks, module graphs, and scaling notes MUST NOT be normative content of `principles.global.md`.
 
 #### Scenario: Agent looks up supported environment
 

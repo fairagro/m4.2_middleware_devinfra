@@ -65,9 +65,25 @@ and scaling notes live in the local `principles.md` (or product capability specs
 
 ---
 
+## Python tooling
+
+- **`uv` only** — install, sync, lock, run, and tool invocation for Python use **`uv`** / **`uvx`** exclusively
+  (`uv sync`, `uv run …`, `uv add`, `uv lock`, `uv python`, `uv tool`).
+- **Do not use `pip`, `pip-tools`, `poetry`, `pipenv`, or bare `python -m pip`** for project or CI dependency
+  management. Do not document or suggest those as alternatives.
+- Project dependencies and Python CLIs invoked from hooks/scripts belong in `pyproject.toml` (and the lockfile) and are
+  run via `uv run` (or an equivalent `uv`-managed environment), not a separately pip-installed global site-packages.
+- **One pin source:** exact Python (and other toolchain) versions live in `versions.env`. `.python-version` is derived
+  from that and may drift — do not add further pins in `pyproject.toml` (no `tool.mypy.python_version`, no
+  `tool.ruff.target-version`, no patch-exact `requires-python` floor). `requires-python` MAY be a compatible **range**
+  (e.g. `>=3.12`). Let ruff infer from that range; let mypy follow the running interpreter selected via uv /
+  `.python-version`.
+
+---
+
 ## Code Quality
 
-Product application code under `middleware/` must pass (via `uv`, config from `pyproject.toml` / `.bandit` as
+Product application code under `middleware/` must pass (via `uv run`, config from `pyproject.toml` / `.bandit` as
 applicable):
 
 - `uv run ruff format --check --config pyproject.toml middleware/` — formatting

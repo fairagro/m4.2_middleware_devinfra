@@ -1,0 +1,25 @@
+[project]
+name = "m4-2-middleware-devinfra"
+version = "0.0.0"
+description = "Shared Devinfra tooling pins and scripts (not a product middleware package)"
+# Compatible range only — exact interpreter pin is versions.env → `.python-version` (do not re-pin here).
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pre-commit>=4.0.0",
+  "ggshield>=1.43.0",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+# No ruff target-version / mypy python_version pins — those would drift from versions.env.
+# Ruff infers from requires-python; mypy uses the running interpreter (uv + `.python-version`).
+
+[tool.ruff]
+# Product hooks use middleware/; this file exists so `uv run ruff` resolves if invoked.
+
+[tool.mypy]
+pretty = true

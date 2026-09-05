@@ -33,8 +33,22 @@ Update to newer upstream releases when intentional:
 gh skill update
 ```
 
-Markdownlint and Prettier already exclude those paths. When a pre-commit skeleton lands later, apply the same excludes
-there.
+Markdownlint and Prettier already exclude those paths. The shared [`.pre-commit-config.yaml`](.pre-commit-config.yaml)
+applies the same vendor excludes.
+
+## Quality (pre-commit)
+
+Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md):
+
+```bash
+uv sync
+./scripts/quality-check.sh          # commit-stage only
+./scripts/quality-fix.sh            # autofix hooks
+pre-commit install --hook-type pre-commit   # usually postCreate / #10
+```
+
+Pre-push **git** hook install is [#9](https://github.com/fairagro/m4.2_middleware_devinfra/issues/9). CST runner params
+(`CST_DOCKERFILE`, `CST_IMAGE_TAG`, `CST_CONFIG`) are documented in `docs/quality.md`.
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
@@ -62,6 +76,7 @@ steps.
 
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
+- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, install boundaries (#9 / #10)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
 - [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
@@ -71,31 +86,37 @@ steps.
 
 ## Layout
 
-| Path                               | Role                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| `docs/`                            | Feature documentation (grows over time)                               |
-| `docs/ai_review_policy.md`         | Canonical AI review (Finder/Fixer) policy                             |
-| `docs/review-fixer.md`             | Thin index for `/review-fixer`                                        |
-| `docs/create-issue.md`             | Org issue types + triage labels + relation for `/create-issue`        |
-| `docs/issue-fixer.md`              | Thin index for `/issue-fixer`                                         |
-| `scripts/ai/`                      | `m42-ai` CLI (auth, review, issue-view/branch/start, pr-strip-footer) |
-| `openspec/principles.global.md`    | Shared principles base (synced; do not diverge in consumers)          |
-| `openspec/principles.md`           | Repo-local principles extension (points at `.global`)                 |
-| `.agents/skills/review-fixer/`     | Shared `/review-fixer` Fixer skill                                    |
-| `.agents/skills/create-issue/`     | Shared `/create-issue` creator skill                                  |
-| `.agents/skills/issue-fixer/`      | Shared `/issue-fixer` Fixer skill                                     |
-| `.agents/skills/gh/`               | Vendor `gh` skill (committed; do not hand-edit)                       |
-| `.agents/skills/docker/`           | Vendor Docker skill (committed; do not hand-edit)                     |
-| `.agents/skills/hadolint/`         | Vendor hadolint skill (committed; do not hand-edit)                   |
-| `.agents/skills/uv/`               | Vendor `uv` skill (committed; do not hand-edit)                       |
-| `.cursor/commands/review-fixer.md` | Cursor slash command for review-fixer                                 |
-| `.cursor/commands/create-issue.md` | Cursor slash command for create-issue                                 |
-| `.cursor/commands/issue-fixer.md`  | Cursor slash command for issue-fixer                                  |
-| `.github/prompts/`                 | Copilot prompts (review-fixer, create-issue, issue-fixer)             |
-| `.cursor/`                         | Shared Cursor config (incl. `BUGBOT.md`)                              |
-| `.github/`                         | Shared workflows / prompts (incl. `copilot-instructions.md`)          |
-| `scripts/dev-tokens.sh`            | Personal token load / prompt                                          |
-| `scripts/bin/`                     | `gh` / `git` PATH wrappers                                            |
-| `scripts/`                         | Shared scripts                                                        |
-| `.devcontainer/`                   | Dev Container definition                                              |
-| `versions.env`                     | Toolchain version pins                                                |
+| Path                                      | Role                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| `docs/`                                   | Feature documentation (grows over time)                               |
+| `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                             |
+| `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                        |
+| `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`        |
+| `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                         |
+| `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params                      |
+| `scripts/quality-check.sh`                | Commit-stage quality check                                            |
+| `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                            |
+| `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                    |
+| `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                 |
+| `.bandit`                                 | Bandit config for `middleware/` consumers                             |
+| `scripts/ai/`                             | `m42-ai` CLI (auth, review, issue-view/branch/start, pr-strip-footer) |
+| `openspec/principles.global.md`           | Shared principles base (synced; do not diverge in consumers)          |
+| `openspec/principles.md`                  | Repo-local principles extension (points at `.global`)                 |
+| `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                    |
+| `.agents/skills/create-issue/`            | Shared `/create-issue` creator skill                                  |
+| `.agents/skills/issue-fixer/`             | Shared `/issue-fixer` Fixer skill                                     |
+| `.agents/skills/gh/`                      | Vendor `gh` skill (committed; do not hand-edit)                       |
+| `.agents/skills/docker/`                  | Vendor Docker skill (committed; do not hand-edit)                     |
+| `.agents/skills/hadolint/`                | Vendor hadolint skill (committed; do not hand-edit)                   |
+| `.agents/skills/uv/`                      | Vendor `uv` skill (committed; do not hand-edit)                       |
+| `.cursor/commands/review-fixer.md`        | Cursor slash command for review-fixer                                 |
+| `.cursor/commands/create-issue.md`        | Cursor slash command for create-issue                                 |
+| `.cursor/commands/issue-fixer.md`         | Cursor slash command for issue-fixer                                  |
+| `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, issue-fixer)             |
+| `.cursor/`                                | Shared Cursor config (incl. `BUGBOT.md`)                              |
+| `.github/`                                | Shared workflows / prompts (incl. `copilot-instructions.md`)          |
+| `scripts/dev-tokens.sh`                   | Personal token load / prompt                                          |
+| `scripts/bin/`                            | `gh` / `git` PATH wrappers                                            |
+| `scripts/`                                | Shared scripts                                                        |
+| `.devcontainer/`                          | Dev Container definition                                              |
+| `versions.env`                            | Toolchain version pins                                                |

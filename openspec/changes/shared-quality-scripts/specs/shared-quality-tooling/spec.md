@@ -35,8 +35,8 @@ The repository MUST provide a root `.pre-commit-config.yaml` that defines:
   `scripts/run-container-structure-test.sh`.
 
 Python-oriented hooks MUST target the `middleware/` package root (per path conventions). Config MUST exclude vendor
-agent skill trees `.agents/skills/gh/**` and `.agents/skills/scan-secrets/**` from hooks that walk the tree (or
-equivalent exclude lists).
+agent skill trees that are pinned under `.agents/skills/` (at least `gh`, `docker`, `hadolint`, `uv`, and `scan-secrets`
+when present) from hooks that walk the tree (or equivalent exclude lists).
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -47,7 +47,8 @@ equivalent exclude lists).
 #### Scenario: Vendor skills are excluded
 
 - **WHEN** commit-stage hooks that scan files run
-- **THEN** paths under `.agents/skills/gh/` and `.agents/skills/scan-secrets/` are excluded
+- **THEN** paths under pinned vendor skill directories (e.g. `.agents/skills/gh/`, `docker/`, `hadolint/`, `uv/`) are
+  excluded
 
 ### Requirement: Templated container-structure-test runner
 
