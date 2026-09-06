@@ -66,8 +66,17 @@ jobs:
       - name: Install Python from versions.env
         if: ${{ !inputs.skip }}
         run: |
-          # shellcheck source=scripts/load-versions-env.sh
-          source scripts/load-versions-env.sh
+          if [[ -f scripts/load-versions-env.sh ]]; then
+            # shellcheck source=scripts/load-versions-env.sh
+            source scripts/load-versions-env.sh
+          else
+            PYTHON_VERSION="$(grep -E '^PYTHON_VERSION=' versions.env | cut -d= -f2- | tr -d '[:space:]')"
+            if [[ -z "${PYTHON_VERSION}" ]]; then
+              echo "ERROR: PYTHON_VERSION missing in versions.env (and scripts/load-versions-env.sh not present)." >&2
+              exit 1
+            fi
+            export PYTHON_VERSION
+          fi
           uv python install "${PYTHON_VERSION}"
 
       - name: Install dependencies

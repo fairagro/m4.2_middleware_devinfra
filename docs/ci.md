@@ -54,18 +54,19 @@ The reusable workflows check out the **caller** repository (not Devinfra), so `v
 | `skip`                | `false`      | Successful no-op (keeps required check names green)        |
 
 Python version comes from the caller’s `versions.env` (`PYTHON_VERSION`) plus matching `.python-version` — there is no
-version override input.
+version override input. Prefer `scripts/load-versions-env.sh` when present; otherwise `PYTHON_VERSION` is read from
+`versions.env` directly.
 
 The job display name stays **`Code Quality Check (3.12)`** for existing branch rulesets.
 
 ### `reusable-check.yml`
 
-| Input             | Default                        | Purpose                                                 |
-| ----------------- | ------------------------------ | ------------------------------------------------------- |
-| `version`         | `""`                           | Build version string (required when `skip` is false)    |
-| `components`      | `["api"]`                      | JSON array; matrix over components                      |
-| `image_base_name` | `fairagro-advanced-middleware` | Prefix for `local/<name>-<component>:<version>`         |
-| `skip`            | `false`                        | Skip licence/security jobs; CST job no-ops successfully |
+| Input             | Default                        | Purpose                                                            |
+| ----------------- | ------------------------------ | ------------------------------------------------------------------ |
+| `version`         | `""`                           | Build version string (required when `skip` is false)               |
+| `components`      | `["api"]`                      | JSON array; matrix over components                                 |
+| `image_base_name` | `fairagro-advanced-middleware` | Prefix for `local/<name>-<component>:<version>`                    |
+| `skip`            | `false`                        | Successful no-op on all check jobs (keeps required statuses green) |
 
 ## Check artifact contract
 

@@ -43,7 +43,6 @@ env:
 jobs:
   licence-check:
     name: Licence Check
-    if: ${{ !inputs.skip }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,15 +51,32 @@ jobs:
       contents: read
 
     steps:
+      - name: No code changes — skipping checks
+        if: ${{ inputs.skip }}
+        run: echo "No code files changed. Exiting with success."
+
+      - name: Require version when not skipping
+        if: ${{ !inputs.skip }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ -z "${VERSION}" ]]; then
+            echo "ERROR: reusable-check requires non-empty 'version' when skip is false." >&2
+            exit 1
+          fi
+
       - name: Download Docker image artifact
+        if: ${{ !inputs.skip }}
         uses: actions/download-artifact@v8
         with:
           name: docker-image-${{ matrix.component }}-${{ inputs.version }}
 
       - name: Load Docker image
+        if: ${{ !inputs.skip }}
         run: docker load -i "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Trivy licence scanner
+        if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
@@ -71,7 +87,6 @@ jobs:
 
   security-check:
     name: Security Check
-    if: ${{ !inputs.skip }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -81,20 +96,38 @@ jobs:
       security-events: write
 
     steps:
+      - name: No code changes — skipping checks
+        if: ${{ inputs.skip }}
+        run: echo "No code files changed. Exiting with success."
+
+      - name: Require version when not skipping
+        if: ${{ !inputs.skip }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ -z "${VERSION}" ]]; then
+            echo "ERROR: reusable-check requires non-empty 'version' when skip is false." >&2
+            exit 1
+          fi
+
       - name: Download Docker image artifact
+        if: ${{ !inputs.skip }}
         uses: actions/download-artifact@v8
         with:
           name: docker-image-${{ matrix.component }}-${{ inputs.version }}
 
       - name: Download SBOM artifact
+        if: ${{ !inputs.skip }}
         uses: actions/download-artifact@v8
         with:
           name: sbom-${{ matrix.component }}-${{ inputs.version }}
 
       - name: Load Docker image
+        if: ${{ !inputs.skip }}
         run: docker load -i "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Trivy Vulnerability Scan (Image)
+        if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
@@ -103,6 +136,7 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Run Trivy Vulnerability Scan (SBOM)
+        if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: "sbom-${{ matrix.component }}.spdx.json"
@@ -113,14 +147,14 @@ jobs:
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: ${{ !inputs.skip && always() }}
         with:
           sarif_file: "trivy-image-results.sarif"
           category: "trivy-image-scan-${{ matrix.component }}"
 
       - name: Upload Trivy SBOM scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: ${{ !inputs.skip && always() }}
         with:
           sarif_file: "trivy-sbom-results.sarif"
           category: "trivy-sbom-scan-${{ matrix.component }}"
@@ -138,6 +172,16 @@ jobs:
       - name: No code changes — skipping checks
         if: ${{ inputs.skip }}
         run: echo "No code files changed. Exiting with success."
+
+      - name: Require version when not skipping
+        if: ${{ !inputs.skip }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ -z "${VERSION}" ]]; then
+            echo "ERROR: reusable-check requires non-empty 'version' when skip is false." >&2
+            exit 1
+          fi
 
       - name: Checkout code
         if: ${{ !inputs.skip }}
