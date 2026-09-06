@@ -73,7 +73,8 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: docker load -i "docker-image-${{ matrix.component }}.tar.gz"
+        # stdin load (not -i): Docker accepts gzipped archives from the documented *.tar.gz contract
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Trivy licence scanner
         if: ${{ !inputs.skip }}
@@ -124,7 +125,8 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: docker load -i "docker-image-${{ matrix.component }}.tar.gz"
+        # stdin load (not -i): Docker accepts gzipped archives from the documented *.tar.gz contract
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Trivy Vulnerability Scan (Image)
         if: ${{ !inputs.skip }}
@@ -195,7 +197,8 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: docker load -i "docker-image-${{ matrix.component }}.tar.gz"
+        # stdin load (not -i): Docker accepts gzipped archives from the documented *.tar.gz contract
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Container Structure Tests
         if: ${{ !inputs.skip }}
