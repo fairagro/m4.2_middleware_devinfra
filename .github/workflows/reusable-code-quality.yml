@@ -45,11 +45,22 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: actions/checkout@v7
 
+      - name: Read UV_VERSION from versions.env
+        if: ${{ !inputs.skip }}
+        id: uv-version
+        run: |
+          uv_version="$(awk -F= '/^UV_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          if [[ -z "$uv_version" ]]; then
+            echo "ERROR: UV_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$uv_version" >> "$GITHUB_OUTPUT"
+
       - name: Install uv
         if: ${{ !inputs.skip }}
         uses: astral-sh/setup-uv@v10.0.1
         with:
-          version: "latest"
+          version: ${{ steps.uv-version.outputs.version }}
 
       # Must run before load-versions-env.sh (which rewrites .python-version).
       - name: Assert .python-version matches versions.env
@@ -90,21 +101,21 @@ jobs:
           PKG: ${{ inputs.python_package_root }}
         run: |
           uv run bandit -r "${PKG}" -c .bandit -f json -o bandit-report.json --exit-zero
-          python3 -c "
+          python3 <<'PY'
           import json, sys
-          with open('bandit-report.json') as f:
+          with open("bandit-report.json") as f:
               data = json.load(f)
-          for r in data.get('results', []):
-              print(f\"  [{r['issue_severity']:6}] {r['filename']}:{r['line_number']}: {r['issue_text']}\")
-          t = data.get('metrics', {}).get('_totals', {})
-          low  = int(t.get('SEVERITY.LOW',    0) or 0)
-          med  = int(t.get('SEVERITY.MEDIUM', 0) or 0)
-          high = int(t.get('SEVERITY.HIGH',   0) or 0)
-          print(f'Bandit findings: LOW={low}, MEDIUM={med}, HIGH={high}')
+          for r in data.get("results", []):
+              print(f"  [{r['issue_severity']:6}] {r['filename']}:{r['line_number']}: {r['issue_text']}")
+          t = data.get("metrics", {}).get("_totals", {})
+          low = int(t.get("SEVERITY.LOW", 0) or 0)
+          med = int(t.get("SEVERITY.MEDIUM", 0) or 0)
+          high = int(t.get("SEVERITY.HIGH", 0) or 0)
+          print(f"Bandit findings: LOW={low}, MEDIUM={med}, HIGH={high}")
           if med + high > 0:
-              print(f'Failing: {med + high} MEDIUM/HIGH finding(s) found.')
+              print(f"Failing: {med + high} MEDIUM/HIGH finding(s) found.")
               sys.exit(1)
-          "
+          PY
 
       - name: Run tests
         if: ${{ !inputs.skip }}
