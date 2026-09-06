@@ -54,8 +54,7 @@ The reusable workflows check out the **caller** repository (not Devinfra), so `v
 | `skip`                | `false`      | Successful no-op (keeps required check names green)        |
 
 Python version comes from the caller’s `versions.env` (`PYTHON_VERSION`) plus matching `.python-version` — there is no
-version override input. Prefer `scripts/load-versions-env.sh` when present; otherwise `PYTHON_VERSION` is read from
-`versions.env` directly.
+version override input. Callers MUST ship `scripts/load-versions-env.sh` together with `versions.env` (same sync set).
 
 The job display name stays **`Code Quality Check (3.12)`** for existing branch rulesets.
 

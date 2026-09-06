@@ -10,12 +10,12 @@ call Devinfra by `uses:` instead of copying YAML.
 ### Requirement: Reusable code-quality workflow
 
 The repository MUST provide `.github/workflows/reusable-code-quality.yml` callable via `workflow_call`. It MUST install
-the caller’s Python toolchain from the caller checkout’s `versions.env` (via the shared load-versions pattern when
-present) and run the shared quality bar (format/lint type-check, Bandit with medium/high fail policy, and pytest)
-against a configurable package root. It MUST accept a boolean `skip` input that still runs the workflow job successfully
-with a no-op path when true (so required status checks are not left pending). The default Code Quality job display name
-MUST remain `Code Quality Check (3.12)` for branch-ruleset compatibility unless a later change explicitly migrates
-consumers.
+the caller’s Python toolchain from the caller checkout’s `versions.env` via `scripts/load-versions-env.sh` (callers that
+sync `versions.env` MUST also sync that script) and run the shared quality bar (format/lint type-check, Bandit with
+medium/high fail policy, and pytest) against a configurable package root. It MUST accept a boolean `skip` input that
+still runs the workflow job successfully with a no-op path when true (so required status checks are not left pending).
+The default Code Quality job display name MUST remain `Code Quality Check (3.12)` for branch-ruleset compatibility
+unless a later change explicitly migrates consumers.
 
 #### Scenario: Product calls code-quality with package root
 
