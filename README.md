@@ -59,6 +59,12 @@ Pre-push **git** hook (`scripts/git-hooks/pre-push`: Git LFS then pre-commit pre
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
 environment or Type Safety in the local file).
 
+## Reusable CI
+
+Shared `reusable-code-quality.yml` and `reusable-check.yml` — call with
+`uses: fairagro/m4.2_middleware_devinfra/.github/workflows/…@<ref>`. See [`docs/ci.md`](docs/ci.md) for inputs, refs,
+and the check artifact contract. Build/release reusables are not in this MVP.
+
 ## Personal tokens
 
 Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
@@ -102,6 +108,7 @@ steps.
 | `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`        |
 | `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                         |
 | `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params                      |
+| `docs/ci.md`                              | Reusable code-quality + check workflows (`uses:` contract)            |
 | `scripts/quality-check.sh`                | Commit-stage quality check                                            |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                            |
 | `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                    |
