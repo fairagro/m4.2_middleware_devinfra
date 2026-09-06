@@ -18,6 +18,7 @@ In the product workflow (e.g. `feature-pull-request.yml`):
 ```yaml
 jobs:
   code-quality:
+    needs: [detect-changes]
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@main
     with:
       python_package_root: middleware
