@@ -76,9 +76,11 @@ A prior **build** job in the same workflow run must upload:
 | `docker-image-<component>-<version>` | `docker-image-<component>.tar.gz` |
 | `sbom-<component>-<version>`         | `sbom-<component>.spdx.json`      |
 
-After `docker load`, checks tag:
+The build must save the image into that archive **already tagged** as:
 
 `local/<image_base_name>-<component>:<version>`
+
+After `docker load`, the reusable checks reference that same tag (they do not retag).
 
 Container structure tests load:
 

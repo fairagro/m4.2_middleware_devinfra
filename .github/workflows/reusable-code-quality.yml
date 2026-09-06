@@ -55,7 +55,7 @@ jobs:
       - name: Assert .python-version matches versions.env
         if: ${{ !inputs.skip }}
         run: |
-          expected="$(grep -E '^PYTHON_VERSION=' versions.env | cut -d= -f2- | tr -d '[:space:]')"
+          expected="$(awk -F= '/^PYTHON_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
           actual="$(tr -d '[:space:]' < .python-version)"
           if [[ -z "$expected" || "$expected" != "$actual" ]]; then
             echo "ERROR: .python-version ('${actual}') != PYTHON_VERSION in versions.env ('${expected}')" >&2
