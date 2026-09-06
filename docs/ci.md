@@ -31,18 +31,19 @@ jobs:
     if: always() && needs.detect-changes.result == 'success'
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-check.yml@main
     with:
-      version: ${{ needs.build.outputs.version || '' }}
+      version: ${{ needs.build.outputs.version }}
       components: '["api"]'
       image_base_name: fairagro-advanced-middleware
-      skip: ${{ needs.detect-changes.outputs.code != 'true' }}
+      skip: ${{ needs.detect-changes.outputs.code != 'true' || needs.build.result != 'success' }}
     secrets: inherit
 ```
 
 Replace `@main` with a **tag** or **commit SHA** once you want a frozen contract. `@main` is fine for early adoption
 while this repo’s CI surface is still moving.
 
-The reusable workflows check out the **caller** repository (not Devinfra), so `versions.env`, `pyproject.toml`,
-`middleware/`, and Docker CST configs must exist in the product repo.
+The reusable workflows check out the **caller** repository (not Devinfra), so `versions.env`, `.python-version`,
+`scripts/load-versions-env.sh`, `pyproject.toml`, `.bandit`, the package root (default `middleware/`), and Docker CST
+configs must exist in the product repo.
 
 ## Inputs
 
