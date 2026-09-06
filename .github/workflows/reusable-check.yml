@@ -139,7 +139,7 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
-          image-ref: "sbom-${{ matrix.component }}.spdx.json"
+          scan-ref: "sbom-${{ matrix.component }}.spdx.json"
           scan-type: "sbom"
           format: "sarif"
           output: "trivy-sbom-results.sarif"
