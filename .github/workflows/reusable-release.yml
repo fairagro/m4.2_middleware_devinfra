@@ -89,9 +89,7 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: |
-          docker load < "docker-image-${{ matrix.component }}.tar.gz"
-          echo "LOCAL_TAG=local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}" >> "$GITHUB_ENV"
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Login to DockerHub
         if: ${{ !inputs.skip }}
@@ -104,8 +102,9 @@ jobs:
         if: ${{ !inputs.skip }}
         id: push
         run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
           DH_TAG="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
-          docker tag "${{ env.LOCAL_TAG }}" "$DH_TAG"
+          docker tag "$LOCAL_TAG" "$DH_TAG"
           docker push "$DH_TAG"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
@@ -134,9 +133,7 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: |
-          docker load < "docker-image-${{ matrix.component }}.tar.gz"
-          echo "LOCAL_TAG=local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}" >> "$GITHUB_ENV"
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Login to GitHub Container Registry
         if: ${{ !inputs.skip }}
@@ -149,9 +146,10 @@ jobs:
       - name: Tag and Push to GHCR
         if: ${{ !inputs.skip }}
         run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           GHCR_TAG="ghcr.io/$REPO_LOWER/${{ matrix.component }}:${{ inputs.version }}"
-          docker tag "${{ env.LOCAL_TAG }}" "$GHCR_TAG"
+          docker tag "$LOCAL_TAG" "$GHCR_TAG"
           docker push "$GHCR_TAG"
           echo "Pushed to GHCR: $GHCR_TAG"
 

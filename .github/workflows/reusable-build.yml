@@ -214,10 +214,7 @@ jobs:
 
       - name: Load Docker image
         if: ${{ !inputs.skip }}
-        run: |
-          docker load < "docker-image-${{ matrix.component }}.tar.gz"
-          IMAGE_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.version.outputs.version }}"
-          echo "SBOM_IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Create SBOM directory
         if: ${{ !inputs.skip }}
@@ -227,7 +224,7 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.SBOM_IMAGE_TAG }}
+          image: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.version.outputs.version }}
           output-file: sboms/sbom-${{ matrix.component }}.spdx.json
           format: spdx-json
 
