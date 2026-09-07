@@ -12,13 +12,14 @@ OpenSpec **specs/changes** for product work stay in the product repos
 
 ## Layout
 
-| Path                               | Purpose                                                      |
-| ---------------------------------- | ------------------------------------------------------------ |
-| `.devcontainer/devcontainer.json`  | Compose service, DinD, mounts, extensions, postCreate        |
-| `.devcontainer/docker-compose.yml` | Build args from `versions.env` via `.env` symlink            |
-| `.devcontainer/Dockerfile`         | Pinned shared tooling image                                  |
-| `versions.env`                     | Single source of truth for tool versions                     |
-| `.devcontainer/.env`               | Symlink → `../versions.env` (Compose build-arg substitution) |
+| Path                                                | Purpose                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| `.devcontainer/devcontainer.json`                   | Compose service, DinD, mounts, extensions, postCreate        |
+| `.devcontainer/docker-compose.yml`                  | Build args from `versions.env` via `.env` symlink            |
+| `.devcontainer/Dockerfile`                          | Pinned shared tooling image                                  |
+| [`.vscode/settings.json`](../.vscode/settings.json) | Shared workspace IDE settings (also apply on host clones)    |
+| `versions.env`                                      | Single source of truth for tool versions                     |
+| `.devcontainer/.env`                                | Symlink → `../versions.env` (Compose build-arg substitution) |
 
 ## Tool versions
 

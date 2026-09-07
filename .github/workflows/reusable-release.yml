@@ -1,0 +1,421 @@
+# Canonical reusable Docker release for m4.2 product repos (issue #12).
+# Call from the product repo:
+#   uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-release.yml@<ref>
+#
+# Consumes build artifacts from reusable-build.yml (same workflow run).
+# Does not publish to PyPI — keep PyPI jobs in the product repo (API-local).
+name: Reusable Release
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version calculated in Build phase"
+        required: true
+        type: string
+      pep440_version:
+        description: "PEP 440 version (accepted for caller compatibility; unused — no PyPI in this workflow)"
+        required: false
+        type: string
+        default: ""
+      components:
+        description: "JSON array of components to release"
+        required: false
+        type: string
+        default: '["api"]'
+      image_base_name:
+        description: "Image name prefix matching build tags (local/<prefix>-<component>:<version>)"
+        required: false
+        type: string
+        default: "fairagro-advanced-middleware"
+      dockerhub_namespace:
+        description: "Docker Hub namespace / organization"
+        required: false
+        type: string
+        default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
+      release_type:
+        description: "Type of release (feature or final)"
+        required: true
+        type: string
+      create_github_release:
+        description: "Whether to create the git release tag and GitHub Release (false: image pushes only)"
+        required: false
+        type: boolean
+        default: true
+      tag_prefix:
+        description: "Prefix for the git release tag (must stay docker-v for shared Helm appVersion discovery)"
+        required: false
+        type: string
+        default: "docker-v"
+      skip:
+        description: "Exit successfully without releasing"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DOCKERHUB_USER:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  push-dockerhub:
+    name: DockerPush/DockerHub
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+    # Job stays green when secrets are absent (skipped); real push failures fail the job.
+    # github-release still runs (always) and documents the outcome in the release body.
+
+    steps:
+      - name: Skipping release
+        if: ${{ inputs.skip }}
+        run: echo "Skip requested. Exiting with success."
+
+      - name: Check DockerHub secrets
+        if: ${{ !inputs.skip }}
+        id: dh_secrets
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          mkdir -p status digests
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            reason="DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+            echo "skipped" > "status/dockerhub-${{ matrix.component }}.status"
+            echo "${reason}" > "status/dockerhub-${{ matrix.component }}.reason"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload DockerHub skip status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'false' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+
+      - name: Download Docker image artifact
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: docker-image-${{ matrix.component }}-${{ inputs.version }}
+
+      - name: Load Docker image
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Login to DockerHub
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag and Push to DockerHub
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        id: push
+        run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          DH_TAG="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          docker tag "$LOCAL_TAG" "$DH_TAG"
+          docker push "$DH_TAG"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
+          mkdir -p digests status
+          echo "$DIGEST" > "digests/dockerhub-${{ matrix.component }}.digest"
+          echo "success" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "Pushed ${DH_TAG}" > "status/dockerhub-${{ matrix.component }}.reason"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Pushed to DockerHub: $DH_TAG (@$DIGEST)"
+
+      - name: Upload DockerHub digest and status artifacts
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-digest-${{ matrix.component }}-${{ inputs.version }}
+          path: |
+            digests/
+            status/
+          retention-days: 1
+
+      - name: Record DockerHub push failure
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        run: |
+          mkdir -p status
+          echo "failure" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "DockerHub login/push failed for component ${{ matrix.component }} (see job logs)" > "status/dockerhub-${{ matrix.component }}.reason"
+
+      - name: Upload DockerHub failure status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+
+  push-ghcr:
+    name: DockerPush/GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+
+    steps:
+      - name: Skipping release
+        if: ${{ inputs.skip }}
+        run: echo "Skip requested. Exiting with success."
+
+      - name: Download Docker image artifact
+        if: ${{ !inputs.skip }}
+        uses: actions/download-artifact@v8
+        with:
+          name: docker-image-${{ matrix.component }}-${{ inputs.version }}
+
+      - name: Load Docker image
+        if: ${{ !inputs.skip }}
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Login to GitHub Container Registry
+        if: ${{ !inputs.skip }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push to GHCR
+        if: ${{ !inputs.skip }}
+        run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          GHCR_TAG="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          docker tag "$LOCAL_TAG" "$GHCR_TAG"
+          docker push "$GHCR_TAG"
+          echo "Pushed to GHCR: $GHCR_TAG"
+
+  create-release-tag:
+    name: CreateReleaseTag/Release
+    # Intentional: GitHub-internal identity (tag) first; registry push may fail afterward.
+    # github-release documents push outcomes in the release body.
+    if: ${{ !inputs.skip && inputs.create_github_release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      timestamp: ${{ steps.timestamp.outputs.value }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "value=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Create version tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ steps.timestamp.outputs.value }}-${{ inputs.tag_prefix }}${{ inputs.version }}
+          tag_prefix: ""
+
+  github-release:
+    name: GitHubRelease/Release
+    if: ${{ always() && !inputs.skip && inputs.create_github_release == true && needs.create-release-tag.result == 'success' }}
+    needs: [push-dockerhub, push-ghcr, create-release-tag]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download SBOM artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: sbom-*
+          merge-multiple: true
+          path: sboms
+
+      - name: Download DockerHub digest/status artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: dockerhub-*
+          merge-multiple: true
+          path: dockerhub-meta
+
+      - name: Generate release body
+        run: |
+          COMPONENTS_JSON='${{ inputs.components }}'
+          COMPONENT=$(echo "$COMPONENTS_JSON" | jq -r '.[0] // empty')
+          if [[ -z "$COMPONENT" || "$COMPONENT" == "null" ]]; then
+            echo "::error::reusable-release requires a non-empty components JSON array (got: ${COMPONENTS_JSON})" >&2
+            exit 1
+          fi
+          DH_NS="${{ inputs.dockerhub_namespace }}"
+          IMG_BASE="${{ inputs.image_base_name }}"
+          VER="${{ inputs.version }}"
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
+          REPO_BASENAME=$(basename "${{ github.repository }}")
+          DH_JOB="${{ needs.push-dockerhub.result }}"
+          GHCR_JOB="${{ needs.push-ghcr.result }}"
+
+          {
+            echo "## Registry status"
+            echo ""
+            echo "Git tags / this GitHub Release are created even when a registry push fails or is skipped."
+            echo "Re-publish to registries is tracked as a follow-up (retry workflow)."
+            echo ""
+
+            echo "### DockerHub"
+            echo ""
+            echo "- **Job result:** \`${DH_JOB}\`"
+            any_dh=false
+            while IFS= read -r comp; do
+              st=$(find dockerhub-meta -type f -name "dockerhub-${comp}.status" 2>/dev/null | head -1)
+              rs=$(find dockerhub-meta -type f -name "dockerhub-${comp}.reason" 2>/dev/null | head -1)
+              dg=$(find dockerhub-meta -type f -name "dockerhub-${comp}.digest" 2>/dev/null | head -1)
+              if [[ -n "$st" && -f "$st" ]]; then
+                any_dh=true
+                status=$(tr -d '[:space:]' < "$st")
+                reason=""
+                if [[ -n "$rs" && -f "$rs" ]]; then
+                  reason=$(tr -d '\r' < "$rs" 2>/dev/null || true)
+                fi
+                echo "- **\`${comp}\`:** \`${status}\`${reason:+ — ${reason}}"
+                if [[ "$status" == "success" && -n "$dg" && -f "$dg" ]]; then
+                  echo "  - digest: \`$(tr -d '[:space:]' < "$dg")\`"
+                fi
+              fi
+            done < <(echo "$COMPONENTS_JSON" | jq -r '.[]')
+            if [[ "$any_dh" != "true" ]]; then
+              if [[ "$DH_JOB" == "failure" ]]; then
+                echo "- Push job failed before status artifacts were uploaded — see the DockerPush/DockerHub job logs."
+              elif [[ "$DH_JOB" == "skipped" ]]; then
+                echo "- Push job was skipped."
+              else
+                echo "- No per-component status artifacts found (unexpected)."
+              fi
+            fi
+            if [[ "$DH_JOB" == "success" ]] && find dockerhub-meta -type f -name 'dockerhub-*.digest' 2>/dev/null | grep -q .; then
+              echo ""
+              echo "**Pull from DockerHub**"
+              echo '```bash'
+              echo "$COMPONENTS_JSON" | jq -r --arg ns "$DH_NS" --arg base "$IMG_BASE" --arg ver "$VER" \
+                '.[] | "docker pull \($ns)/\($base)-\(.):\($ver)"'
+              echo '```'
+            fi
+            echo ""
+
+            echo "### GHCR"
+            echo ""
+            echo "- **Job result:** \`${GHCR_JOB}\`"
+            if [[ "$GHCR_JOB" == "success" ]]; then
+              echo "- Push succeeded for matrix components."
+              echo ""
+              echo "**Pull from GHCR**"
+              echo '```bash'
+              echo "$COMPONENTS_JSON" | jq -r --arg ns "$GHCR_NS" --arg base "$IMG_BASE" --arg ver "$VER" \
+                '.[] | "docker pull ghcr.io/\($ns)/\($base)-\(.):\($ver)"'
+              echo '```'
+            elif [[ "$GHCR_JOB" == "failure" ]]; then
+              echo "- Push failed — see the DockerPush/GHCR job logs. Images for this tag may be missing on GHCR."
+            else
+              echo "- Push job result \`${GHCR_JOB}\` — no GHCR pull instructions."
+            fi
+            echo ""
+
+            echo "## Build from Source"
+            echo ""
+            echo '```bash'
+            echo "git clone https://github.com/${{ github.repository }}.git"
+            echo "cd ${REPO_BASENAME}"
+            echo "git checkout ${TAG}"
+            echo "source scripts/load-versions-env.sh"
+            echo "docker build -f docker/Dockerfile.${COMPONENT} \\"
+            echo "  --build-arg PYTHON_VERSION=\$PYTHON_VERSION \\"
+            echo "  --build-arg ALPINE_VERSION=\$ALPINE_VERSION \\"
+            echo "  --build-arg ALPINE_MINOR=\$ALPINE_MINOR \\"
+            echo "  --build-arg PIP_VERSION=\$PIP_VERSION \\"
+            echo "  --build-arg UV_VERSION=\$UV_VERSION \\"
+            echo "  -t ${COMPONENT}:${VER} ."
+            echo '```'
+          } > release-body.md
+
+      - name: Create GitHub Release (Draft)
+        id: create_release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}
+          name: ${{ inputs.tag_prefix }}${{ inputs.version }}
+          body_path: release-body.md
+          draft: true
+          prerelease: ${{ inputs.release_type == 'feature' }}
+          generate_release_notes: true
+
+      - name: Upload SBOM assets when present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(sboms/*)
+          if (( ${#files[@]} == 0 )); then
+            echo "No SBOM files to attach; release created without artifacts."
+            exit 0
+          fi
+          TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
+          gh release upload "$TAG" "${files[@]}" --clobber
+          echo "Attached ${#files[@]} SBOM file(s) to $TAG"
+
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
+          echo "Finalizing release for tag: $TAG"
+          sleep 5
+
+          if RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id' 2>/dev/null); then
+            echo "Found release ID via tag: $RELEASE_ID"
+          else
+            RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases" --jq ".[] | select(.tag_name == \"${TAG}\") | .id")
+            if [[ -z "$RELEASE_ID" ]]; then
+              echo "Release not found for tag $TAG" >&2
+              exit 1
+            fi
+          fi
+
+          gh api "repos/${{ github.repository }}/releases/$RELEASE_ID" \
+            --method PATCH \
+            --field draft=false
+          echo "Release finalized successfully"

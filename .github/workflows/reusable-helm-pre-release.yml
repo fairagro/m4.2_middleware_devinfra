@@ -1,0 +1,227 @@
+# Canonical reusable Helm chart pre-release for m4.2 product repos (issue #12).
+# Thin product caller: workflow_dispatch → uses this file with chart_dir / chart_name inputs.
+# Requires a prior Docker release tag matching *-docker-v* (for chart appVersion).
+# Keep reusable-release tag_prefix at docker-v so this discovery matches.
+# Creates a prerelease chart version (…-rc.<branch>.<run>) and pushes OCI; no GitHub Release.
+name: Reusable Helm Pre Release
+
+permissions:
+  contents: write
+  packages: write
+
+on:
+  workflow_call:
+    inputs:
+      chart_dir:
+        description: "Path to the chart directory in the caller checkout"
+        required: true
+        type: string
+      chart_name:
+        description: "Chart name; must match name: in Chart.yaml (validated) and used as OCI repository name"
+        required: true
+        type: string
+      dockerhub_namespace:
+        description: "Docker Hub namespace for OCI push"
+        required: false
+        type: string
+        default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      DOCKERHUB_USER:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.calc-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next chart pre-release version
+        id: calc-version
+        run: |
+          LATEST_CHART_VERSION=$(git tag --list '*-chart-v*' \
+            | grep -E '^[0-9]+-chart-v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed 's/^[0-9]*-chart-v//' \
+            | sort -V \
+            | tail -1 || true)
+          if [ -z "$LATEST_CHART_VERSION" ]; then LATEST_CHART_VERSION="0.0.0"; fi
+
+          MAJOR=$(echo "$LATEST_CHART_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_CHART_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_CHART_VERSION" | cut -d. -f3)
+          PATCH=$((PATCH + 1))
+
+          BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}-rc.${BRANCH_LABEL}.${{ github.run_number }}"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Report version to summary
+        run: |
+          echo "## Helm Chart Pre-Release Version" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Type | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Chart Version** | \`${{ steps.calc-version.outputs.version }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Chart Name** | \`${{ inputs.chart_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  helm-pre-release:
+    name: Pre Release
+    needs: version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    env:
+      CHART_VERSION: ${{ needs.version.outputs.version }}
+
+    steps:
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "value=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate chart_name matches Chart.yaml
+        run: |
+          actual=$(grep -E '^name:' "${{ inputs.chart_dir }}/Chart.yaml" | head -1 \
+            | sed -E 's/^name:[[:space:]]*//; s/[\"'\'']//g; s/[[:space:]]*$//')
+          expected="${{ inputs.chart_name }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::chart_name input '${expected}' does not match Chart.yaml name '${actual}'"
+            exit 1
+          fi
+
+      - name: Load HELM_VERSION from versions.env
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          HELM_PIN="${HELM_VERSION#v}"
+          if [[ -z "$HELM_PIN" ]]; then
+            echo "::error::HELM_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ steps.versions.outputs.helm }}
+
+      - name: Detect current Docker release version
+        id: docker-version
+        run: |
+          # Final tags (*-docker-vX.Y.Z) and feature pre-release tags (*-docker-vX.Y.Z-rc.<branch>.<run>).
+          LATEST=$(git tag --list '*-docker-v*' \
+            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[^/]+)?$' \
+            | sed 's/^[0-9]*-docker-v//' \
+            | sort -V \
+            | tail -1 || true)
+          if [ -z "$LATEST" ]; then
+            echo "::error::No docker release tag found. Publish a Docker image first."
+            exit 1
+          fi
+          echo "value=${LATEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Chart.yaml version
+        run: |
+          sed -i "s/^version:.*/version: ${{ env.CHART_VERSION }}/" "${{ inputs.chart_dir }}/Chart.yaml"
+          echo "Chart.yaml version set to ${{ env.CHART_VERSION }}"
+
+      - name: Package Helm chart
+        id: package_chart
+        run: |
+          helm package "./${{ inputs.chart_dir }}" \
+            --version "${{ env.CHART_VERSION }}" \
+            --app-version "${{ steps.docker-version.outputs.value }}"
+          CHART_PACKAGE=$(ls *.tgz | head -1)
+          echo "chart-package=$CHART_PACKAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Create version tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ steps.timestamp.outputs.value }}-chart-v${{ env.CHART_VERSION }}
+          tag_prefix: ""
+          create_annotated_tag: true
+
+      - name: Push Helm chart to Docker Hub
+        id: push_dh
+        continue-on-error: true
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "${DOCKERHUB_TOKEN}" | helm registry login \
+            -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
+          helm push "${{ steps.package_chart.outputs.chart-package }}" \
+            "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=Pushed to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
+          echo "Pushed Helm chart to Docker Hub"
+
+      - name: Push Helm chart to GHCR
+        id: push_ghcr
+        continue-on-error: true
+        run: |
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
+            -u "${{ github.actor }}" --password-stdin ghcr.io
+          helm push "${{ steps.package_chart.outputs.chart-package }}" \
+            "oci://ghcr.io/${GHCR_NS}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=Pushed to oci://ghcr.io/${GHCR_NS}" >> "$GITHUB_OUTPUT"
+          echo "Pushed Helm chart to GHCR"
+
+      - name: Registry status summary
+        run: |
+          {
+            echo "## Helm pre-release registry status"
+            echo ""
+            if [[ -n "${{ steps.push_dh.outputs.status }}" ]]; then
+              echo "- **DockerHub:** \`${{ steps.push_dh.outputs.status }}\` — ${{ steps.push_dh.outputs.reason }}"
+            elif [[ "${{ steps.push_dh.outcome }}" == "failure" ]]; then
+              echo "- **DockerHub:** \`failure\` — login/push failed (see logs)"
+            else
+              echo "- **DockerHub:** \`${{ steps.push_dh.outcome }}\`"
+            fi
+            if [[ -n "${{ steps.push_ghcr.outputs.status }}" ]]; then
+              echo "- **GHCR:** \`${{ steps.push_ghcr.outputs.status }}\` — ${{ steps.push_ghcr.outputs.reason }}"
+            elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
+              echo "- **GHCR:** \`failure\` — login/push failed (see logs)"
+            else
+              echo "- **GHCR:** \`${{ steps.push_ghcr.outcome }}\`"
+            fi
+            echo ""
+            echo "Chart tag was still created. Re-publish is a follow-up (retry workflow)."
+          } >> "$GITHUB_STEP_SUMMARY"

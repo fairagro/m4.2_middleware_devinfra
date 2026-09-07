@@ -55,9 +55,9 @@ When dismissing unsupported-host findings (macOS, Windows, Homebrew, unofficial 
 
 ### Requirement: Fetch open work via review-open CLI
 
-When a PR is known, `/review-fixer` MUST start from `uv run --project scripts/ai m42-ai review-open --pr <n>` (or
-equivalent) and triage the shaped JSON. It MUST NOT dump the raw GraphQL payload into the model as the primary fetch
-path. Replies and resolves SHOULD use `m42-ai review-reply` / `review-resolve` when the CLI is present.
+When a PR is known, `/review-fixer` MUST start from `uv run m42-ai review-open --pr <n>` (or equivalent) and triage the
+shaped JSON. It MUST NOT dump the raw GraphQL payload into the model as the primary fetch path. Replies and resolves
+SHOULD use `m42-ai review-reply` / `review-resolve` when the CLI is present.
 
 #### Scenario: review-fixer starts from review-open JSON
 

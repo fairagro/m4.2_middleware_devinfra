@@ -17,6 +17,7 @@
 
   "terminalAllowlist": [
     // Agent GitHub/git plumbing (issue-fixer / review-fixer / create-issue)
+    "uv run m42-ai",
     "uv run --project scripts/ai m42-ai",
     "uv run --project scripts/ai --extra",
     // Common wrappers when PATH/token load precedes m42-ai (prefix match on full command)
@@ -49,7 +50,7 @@
   "autoRun": {
     "allow_instructions": [
       "This repo's /review-fixer and /issue-fixer workflows MUST auto-run without approval when they use the standard Dev Container token helper and m42-ai/gh plumbing. Do not treat sourcing scripts/dev-tokens.sh or set-dev-tokens.sh as credential exfiltration — that only loads GH_TOKEN / GITGUARDIAN_API_KEY from /commandhistory/tokens.env into the shell for the subsequent command.",
-      "Allow `uv run --project scripts/ai m42-ai` for all plumbing subcommands: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer — including when the same shell command first runs `export PATH=…/scripts/bin:$PATH` and/or `source …/dev-tokens.sh` / `set-dev-tokens.sh`.",
+      "Allow `uv run m42-ai` (and equivalent `uv run --project scripts/ai m42-ai`) for all plumbing subcommands: auth-status, review-open, review-reply, review-resolve, issue-view, issue-create, issue-branch, issue-start, branch-ahead, pr-strip-footer — including when the same shell command first runs `export PATH=…/scripts/bin:$PATH` and/or `source …/dev-tokens.sh` / `set-dev-tokens.sh`.",
       "Allow compound multi-line shell commands that begin with an allowlisted export PATH=…/scripts/bin or source …/dev-tokens.sh line and then run m42-ai or scripts/bin/gh — required for /review-fixer and /issue-fixer.",
       "Allow m42-ai review-reply (thread --in-reply-to and --conversation) and review-resolve that post Fixed/Dismissed/Follow-up on PRs and resolve AI review threads — expected for /review-fixer phase 1 (dismiss/follow-up) and phase 2 (`Fixed in <sha>` after the user committed). These are intentional GitHub writes for the current PR, not unsanctioned shared-state changes.",
       "Allow m42-ai issue-start and pr-strip-footer that create or edit draft PRs with Fixes #<n> and strip Cursor marketing footers — expected for /issue-fixer.",

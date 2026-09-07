@@ -62,10 +62,9 @@ fails, it MUST skip GitHub writes and print the draft title/body/type/labels.
 
 ### Requirement: Prefer issue-create CLI
 
-When creating issues, `/create-issue` MUST prefer `uv run --project scripts/ai m42-ai issue-create` (org type, triage
-labels, optional `--parent`) when the CLI is present in the checkout. Raw `gh issue create` remains a documented
-fallback only when the CLI is unavailable. Duplicate-create rules (no second create after a produced issue URL) still
-apply.
+When creating issues, `/create-issue` MUST prefer `uv run m42-ai issue-create` (org type, triage labels, optional
+`--parent`) when the CLI is present in the checkout. Raw `gh issue create` remains a documented fallback only when the
+CLI is unavailable. Duplicate-create rules (no second create after a produced issue URL) still apply.
 
 #### Scenario: create-issue documents CLI first
 

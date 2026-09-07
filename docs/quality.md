@@ -13,7 +13,7 @@ Not every file under `scripts/` is Dev Container-only. Personal-token helpers ar
 | `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                |
 | `setup-git-lfs.sh` / `git-hooks/`     | Host or Dev Container  | Needs `git-lfs` on PATH; copies hooks into `.git/hooks/`                                                                                                 |
 | `load-versions-env.sh`                | Host or Dev Container  | Reads `versions.env`, writes `.python-version`                                                                                                           |
-| `scripts/ai/` (`m42-ai`)              | Host or Dev Container  | Needs `gh` on `PATH` and auth (`GH_TOKEN` / `gh auth`)                                                                                                   |
+| `scripts/ai/` (`m42-ai`)              | Host or Dev Container  | uv workspace member; `uv sync` then `uv run m42-ai` (needs `gh` + auth)                                                                                  |
 | `dev-tokens.sh` / `set-dev-tokens.sh` | **Dev Container only** | Store: `/commandhistory/tokens.env`                                                                                                                      |
 | `scripts/bin/gh`, `scripts/bin/git`   | **Dev Container only** | On `PATH` via `remoteEnv`; load the token store                                                                                                          |
 | `devcontainer-post-create.sh`         | **Dev Container only** | Invoked from `devcontainer.json`                                                                                                                         |
@@ -24,18 +24,25 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 
 ## Files
 
-| Path                                      | Role                                                |
-| ----------------------------------------- | --------------------------------------------------- |
-| `.pre-commit-config.yaml`                 | Commit-stage + pre-push hook skeleton               |
-| `scripts/quality-check.sh`                | Run **commit-stage** hooks only (check)             |
-| `scripts/quality-fix.sh`                  | Run commit-stage **autofix** hooks only             |
-| `scripts/run-container-structure-test.sh` | Templated Docker build + `container-structure-test` |
-| `scripts/setup-git-lfs.sh`                | Install Git LFS (local) + copy `scripts/git-hooks/` |
-| `scripts/git-hooks/`                      | `pre-push` (LFS + pre-commit) + LFS lifecycle hooks |
-| `.bandit`                                 | Bandit config (`bandit -c .bandit`)                 |
-| `.markdownlint.json` (+ ignore / cli2)    | Markdownlint (also used by the markdownlint hook)   |
+| Path                                                | Role                                                                                         |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `.pre-commit-config.yaml`                           | Commit-stage + pre-push hook skeleton                                                        |
+| `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                      |
+| `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                      |
+| `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                          |
+| `scripts/setup-git-lfs.sh`                          | Install Git LFS (local) + copy `scripts/git-hooks/`                                          |
+| `scripts/git-hooks/`                                | `pre-push` (LFS + pre-commit) + LFS lifecycle hooks                                          |
+| `.bandit`                                           | Bandit config (`bandit -c .bandit`)                                                          |
+| `.markdownlint.json` (+ ignore / cli2)              | Markdownlint (also used by the markdownlint hook)                                            |
+| [`.vscode/settings.json`](../.vscode/settings.json) | Shared IDE baseline (interpreter, Ruff, pytest, Prettier); products extend for `middleware/` |
 
-## Install
+## IDE (workspace settings)
+
+[`.vscode/settings.json`](../.vscode/settings.json) is part of the shared Devinfra surface (host + Dev Container). It
+points the Python extension at the root `.venv` from `uv sync`, configures Ruff like pre-commit/CI, discovers
+`scripts/ai` tests, and sets Prettier as default formatter for Markdown/JSON/YAML. Product repos should keep the same
+interpreter/Ruff/Prettier contract and add local `python.analysis.extraPaths` (and Helm/SOPS associations) for their
+`middleware/` packages — do not copy product-only paths back into this file.
 
 ### Commit stage
 
