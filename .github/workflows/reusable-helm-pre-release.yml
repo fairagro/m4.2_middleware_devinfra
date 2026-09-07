@@ -131,8 +131,9 @@ jobs:
       - name: Detect current Docker release version
         id: docker-version
         run: |
+          # Final tags (*-docker-vX.Y.Z) and feature pre-release tags (*-docker-vX.Y.Z-rc.<branch>.<run>).
           LATEST=$(git tag --list '*-docker-v*' \
-            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[^/]+)?$' \
             | sed 's/^[0-9]*-docker-v//' \
             | sort -V \
             | tail -1)
@@ -181,6 +182,7 @@ jobs:
           helm push "${{ steps.package_chart.outputs.chart-package }}" \
             "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
           echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=Pushed to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
           echo "Pushed Helm chart to Docker Hub"
 
       - name: Push Helm chart to GHCR

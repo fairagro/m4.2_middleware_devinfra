@@ -297,15 +297,18 @@ jobs:
             echo "- **Job result:** \`${DH_JOB}\`"
             any_dh=false
             while IFS= read -r comp; do
-              st="dockerhub-meta/dockerhub-${comp}.status"
-              rs="dockerhub-meta/dockerhub-${comp}.reason"
-              dg="dockerhub-meta/dockerhub-${comp}.digest"
-              if [[ -f "$st" ]]; then
+              st=$(find dockerhub-meta -type f -name "dockerhub-${comp}.status" 2>/dev/null | head -1)
+              rs=$(find dockerhub-meta -type f -name "dockerhub-${comp}.reason" 2>/dev/null | head -1)
+              dg=$(find dockerhub-meta -type f -name "dockerhub-${comp}.digest" 2>/dev/null | head -1)
+              if [[ -n "$st" && -f "$st" ]]; then
                 any_dh=true
                 status=$(tr -d '[:space:]' < "$st")
-                reason=$(tr -d '\r' < "$rs" 2>/dev/null || true)
+                reason=""
+                if [[ -n "$rs" && -f "$rs" ]]; then
+                  reason=$(tr -d '\r' < "$rs" 2>/dev/null || true)
+                fi
                 echo "- **\`${comp}\`:** \`${status}\`${reason:+ — ${reason}}"
-                if [[ "$status" == "success" && -f "$dg" ]]; then
+                if [[ "$status" == "success" && -n "$dg" && -f "$dg" ]]; then
                   echo "  - digest: \`$(tr -d '[:space:]' < "$dg")\`"
                 fi
               fi
@@ -319,7 +322,7 @@ jobs:
                 echo "- No per-component status artifacts found (unexpected)."
               fi
             fi
-            if [[ "$DH_JOB" == "success" ]] && ls dockerhub-meta/dockerhub-*.digest >/dev/null 2>&1; then
+            if [[ "$DH_JOB" == "success" ]] && find dockerhub-meta -type f -name 'dockerhub-*.digest' 2>/dev/null | grep -q .; then
               echo ""
               echo "**[Pull from DockerHub](${DH_URL})**"
               echo '```bash'
