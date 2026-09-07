@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from m42_ai import __version__
 from m42_ai.auth import auth_status
@@ -178,7 +179,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     ic = sub.add_parser("issue-create", help="Create an issue with org type + triage labels")
     ic.add_argument("--title", required=True)
-    ic.add_argument("--type", required=True, choices=["Bug", "Security", "Feature", "Task", "Discussion", "Refactoring"])
+    ic.add_argument(
+        "--type", required=True, choices=["Bug", "Security", "Feature", "Task", "Discussion", "Refactoring"]
+    )
     ic.add_argument(
         "--severity",
         required=True,

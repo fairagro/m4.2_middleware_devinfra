@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from m42_ai.auth import auth_status
 from m42_ai.issue import branch_ahead, ensure_issue_branch, view_issue
 from m42_ai.pr import pr_strip_footer, strip_marketing_footers
@@ -137,9 +136,12 @@ def test_pr_strip_footer_edits_when_changed() -> None:
         calls.append(list(args))
         if args[:2] == ["pr", "view"]:
             return MagicMock(
-                stdout=__import__("json").dumps(
-                    {"number": 25, "url": "https://github.com/o/r/pull/25", "title": "t", "body": dirty}
-                )
+                stdout=__import__("json").dumps({
+                    "number": 25,
+                    "url": "https://github.com/o/r/pull/25",
+                    "title": "t",
+                    "body": dirty,
+                })
             )
         if args[:2] == ["pr", "edit"]:
             return MagicMock(stdout="")
@@ -160,9 +162,12 @@ def test_pr_strip_footer_noop_skips_edit() -> None:
         calls.append(list(args))
         if args[:2] == ["pr", "view"]:
             return MagicMock(
-                stdout=__import__("json").dumps(
-                    {"number": 25, "url": "https://github.com/o/r/pull/25", "title": "t", "body": clean}
-                )
+                stdout=__import__("json").dumps({
+                    "number": 25,
+                    "url": "https://github.com/o/r/pull/25",
+                    "title": "t",
+                    "body": clean,
+                })
             )
         raise AssertionError(args)
 

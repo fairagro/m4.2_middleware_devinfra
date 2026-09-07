@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from m42_ai.issue import slugify
 from m42_ai.review import extract_suppressed_comments, is_ai_author, is_submitted_review, shape_review_open
 
@@ -56,15 +55,13 @@ def test_shape_ignores_pending_ai_reviews() -> None:
     payload = _payload()
     nodes = payload["data"]["repository"]["pullRequest"]["reviews"]["nodes"]
     before = shape_review_open(payload)["round_count"]
-    nodes.append(
-        {
-            "databaseId": 999,
-            "author": {"login": "copilot-pull-request-reviewer"},
-            "submittedAt": None,
-            "state": "PENDING",
-            "body": "## Suppressed comments\n\n- phantom",
-        }
-    )
+    nodes.append({
+        "databaseId": 999,
+        "author": {"login": "copilot-pull-request-reviewer"},
+        "submittedAt": None,
+        "state": "PENDING",
+        "body": "## Suppressed comments\n\n- phantom",
+    })
     shaped = shape_review_open(payload)
     assert shaped["round_count"] == before
     assert all(r["database_id"] != 999 for r in shaped["ai_reviews"])
@@ -121,15 +118,13 @@ def test_older_suppressed_closed_by_explicit_review_link() -> None:
     nodes = payload["data"]["repository"]["pullRequest"]["reviews"]["nodes"]
     nodes[1]["body"] = COPILOT_SUPPRESSED_BODY
     nodes[1]["submittedAt"] = "2026-09-02T10:00:00Z"
-    nodes.append(
-        {
-            "databaseId": 99,
-            "author": {"login": "copilot-pull-request-reviewer"},
-            "submittedAt": "2026-09-04T12:00:00Z",
-            "state": "COMMENTED",
-            "body": COPILOT_SUPPRESSED_BODY,
-        }
-    )
+    nodes.append({
+        "databaseId": 99,
+        "author": {"login": "copilot-pull-request-reviewer"},
+        "submittedAt": "2026-09-04T12:00:00Z",
+        "state": "COMMENTED",
+        "body": COPILOT_SUPPRESSED_BODY,
+    })
     payload["data"]["repository"]["pullRequest"]["comments"] = {
         "nodes": [
             {

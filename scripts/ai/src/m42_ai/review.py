@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from m42_ai.gh import run_gh, repo_owner_name
+from m42_ai.gh import repo_owner_name, run_gh
 
 AI_AUTHOR_RE = re.compile(r"copilot|bugbot|cursor", re.I)
 
@@ -176,9 +176,7 @@ def answered_suppressed_review_ids(
         if not is_triage_reply_body(body):
             continue
         candidates = [
-            r
-            for r in ordered
-            if int(r["databaseId"]) not in answered and _event_time(r, "submittedAt") <= at
+            r for r in ordered if int(r["databaseId"]) not in answered and _event_time(r, "submittedAt") <= at
         ]
         if candidates:
             answered.add(int(candidates[-1]["databaseId"]))
@@ -207,28 +205,24 @@ def shape_review_open(
         author = (first.get("author") or {}).get("login")
         if not is_ai_author(author):
             continue
-        threads_out.append(
-            {
-                "thread_id": thread["id"],
-                "is_resolved": False,
-                "path": first.get("path"),
-                "first_comment": {
-                    "database_id": first.get("databaseId"),
-                    "author": author,
-                    "body": first.get("body") or "",
-                    "original_position": first.get("originalPosition"),
-                },
-                "comment_count": len(comments),
-            }
-        )
+        threads_out.append({
+            "thread_id": thread["id"],
+            "is_resolved": False,
+            "path": first.get("path"),
+            "first_comment": {
+                "database_id": first.get("databaseId"),
+                "author": author,
+                "body": first.get("body") or "",
+                "original_position": first.get("originalPosition"),
+            },
+            "comment_count": len(comments),
+        })
 
     all_reviews = list(pr["reviews"]["nodes"])
     all_ai = [
         r
         for r in all_reviews
-        if r.get("author")
-        and is_ai_author((r["author"] or {}).get("login"))
-        and is_submitted_review(r)
+        if r.get("author") and is_ai_author((r["author"] or {}).get("login")) and is_submitted_review(r)
     ]
     all_ai.sort(key=lambda r: (_event_time(r, "submittedAt"), r.get("databaseId") or 0))
 
@@ -276,16 +270,14 @@ def shape_review_open(
         if not summary_open:
             continue
         for item in suppressed:
-            summary_only.append(
-                {
-                    "review_database_id": rid,
-                    "author": entry["author"],
-                    "path": item.get("path"),
-                    "line": item.get("line"),
-                    "text": item.get("text") or "",
-                    "resolvable": False,
-                }
-            )
+            summary_only.append({
+                "review_database_id": rid,
+                "author": entry["author"],
+                "path": item.get("path"),
+                "line": item.get("line"),
+                "text": item.get("text") or "",
+                "resolvable": False,
+            })
 
     latest = reviews_out[-1] if reviews_out else None
     return {
@@ -309,29 +301,25 @@ def fetch_review_open(
 ) -> dict[str, Any]:
     if owner is None or repo is None:
         owner, repo = repo_owner_name()
-    proc = run_gh(
-        [
-            "api",
-            "graphql",
-            "-f",
-            f"query={REVIEW_OPEN_QUERY}",
-            "-F",
-            f"owner={owner}",
-            "-F",
-            f"name={repo}",
-            "-F",
-            f"n={pr}",
-        ]
-    )
+    proc = run_gh([
+        "api",
+        "graphql",
+        "-f",
+        f"query={REVIEW_OPEN_QUERY}",
+        "-F",
+        f"owner={owner}",
+        "-F",
+        f"name={repo}",
+        "-F",
+        f"n={pr}",
+    ])
     payload = json.loads(proc.stdout)
     if payload.get("errors"):
         raise RuntimeError(f"GraphQL errors: {payload['errors']}")
     try:
         return shape_review_open(payload, review_id=review_id)
     except RuntimeError:
-        raise RuntimeError(
-            f"pullRequest is null for {owner}/{repo}#{pr} (wrong number or no access)"
-        ) from None
+        raise RuntimeError(f"pullRequest is null for {owner}/{repo}#{pr} (wrong number or no access)") from None
 
 
 def review_reply(
@@ -379,16 +367,14 @@ def review_reply(
 
 
 def review_resolve(thread_id: str) -> dict[str, Any]:
-    proc = run_gh(
-        [
-            "api",
-            "graphql",
-            "-f",
-            f"query={RESOLVE_MUTATION}",
-            "-F",
-            f"id={thread_id}",
-        ]
-    )
+    proc = run_gh([
+        "api",
+        "graphql",
+        "-f",
+        f"query={RESOLVE_MUTATION}",
+        "-F",
+        f"id={thread_id}",
+    ])
     payload = json.loads(proc.stdout)
     if payload.get("errors"):
         raise RuntimeError(f"GraphQL errors: {payload['errors']}")

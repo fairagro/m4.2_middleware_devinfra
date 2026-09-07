@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from m42_ai.gh import GhError
 from m42_ai.issue import create_issue, ensure_labels, issue_start
 
@@ -130,17 +129,15 @@ def test_issue_start_refuses_when_not_ahead(tmp_path: Path) -> None:
 
     def fake_gh(args: list[str], **kwargs: object) -> MagicMock:
         if args[:2] == ["issue", "view"]:
-            return MagicMock(
-                stdout='{"title":"Example","url":"https://github.com/o/r/issues/16","number":16}'
-            )
+            return MagicMock(stdout='{"title":"Example","url":"https://github.com/o/r/issues/16","number":16}')
         raise AssertionError(f"unexpected gh call: {args}")
 
     with (
         patch("m42_ai.issue.run_git", side_effect=fake_git),
         patch("m42_ai.issue.run_gh", side_effect=fake_gh),
+        pytest.raises(RuntimeError, match="no commits ahead"),
     ):
-        with pytest.raises(RuntimeError, match="no commits ahead"):
-            issue_start(issue=16, slug="example", cwd=tmp_path)
+        issue_start(issue=16, slug="example", cwd=tmp_path)
 
     assert not any(c[:2] == ["commit", "--allow-empty"] for c in git_calls)
     assert not any(c[:1] == ["push"] for c in git_calls)
