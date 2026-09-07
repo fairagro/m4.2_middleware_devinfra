@@ -82,22 +82,32 @@ required jobs MUST complete successfully via a no-op path where callers need sta
 ### Requirement: Reusable Docker release workflow
 
 The repository MUST provide `.github/workflows/reusable-release.yml` callable via `workflow_call`. When not skipped it
-MUST consume the build artifact contract, push each component image to DockerHub and GHCR using caller-supplied (or
-explicitly defaulted) naming inputs, and MAY create a GitHub release and git tag using a configurable `tag_prefix`
-(default `docker-v`) with the repository’s timestamp-prefixed tag pattern. It MUST NOT publish to PyPI or TestPyPI.
-Product-distinguishing image and registry namespace values MUST be expressible via `workflow_call` inputs.
+MUST create the git release tag (and optional GitHub Release) using a configurable `tag_prefix` (default `docker-v`)
+with the repository’s timestamp-prefixed tag pattern **before or independently of** requiring successful registry pushes
+(tag-first). It MUST attempt to push each component image to DockerHub and GHCR using caller-supplied (or explicitly
+defaulted) naming inputs. DockerHub credentials MAY be omitted; when omitted the DockerHub push MUST be skipped without
+failing the overall release identity. When a registry push is skipped or fails, and a GitHub Release is created, the
+release body MUST include an explicit registry-status section stating the outcome and reason (including missing
+secrets). It MUST NOT publish to PyPI or TestPyPI. Product-distinguishing image and registry namespace values MUST be
+expressible via `workflow_call` inputs.
 
 #### Scenario: Release pushes images without PyPI
 
 - **WHEN** a product workflow calls the reusable Docker release workflow with version, components, image naming inputs,
-  and required registry secrets/token permissions
-- **THEN** images are pushed to DockerHub and GHCR for each component
+  and DockerHub secrets provided
+- **THEN** images are pushed to DockerHub and GHCR for each component when those pushes succeed
 - **AND** no PyPI or TestPyPI publish step runs as part of this workflow
 
 #### Scenario: Optional GitHub release tag
 
 - **WHEN** the caller requests GitHub release creation with `tag_prefix` defaulting to `docker-v`
-- **THEN** a release tag consistent with the `*-docker-v*` scheme is created for that version
+- **THEN** a release tag consistent with the `*-docker-v*` scheme is created for that version even if a registry push
+  later fails
+
+#### Scenario: Release body documents failed or skipped registry push
+
+- **WHEN** DockerHub secrets are missing or a registry push fails and a GitHub Release is created
+- **THEN** the release body states which registry was skipped or failed and why
 
 ### Requirement: Reusable Helm publish workflows
 
@@ -106,21 +116,28 @@ The repository MUST provide reusable Helm publish workflow file(s) under `.githu
 release flows. Callers MUST pass chart location and chart name via inputs (`chart_dir`, `chart_name`, and related
 naming). The workflows MUST version charts using the shared `*-chart-vX.Y.Z` tag scheme, package the chart from the
 **caller** checkout, set chart `appVersion` from the latest Docker release tag when that coupling exists in the source
-flows, and push chart packages to DockerHub and GHCR OCI registries. ns-pages publishing MUST remain out of these shared
-workflows.
+flows, and attempt to push chart packages to DockerHub and GHCR OCI registries. DockerHub credentials MAY be omitted.
+When a registry push is skipped or fails, final Helm GitHub Releases MUST document registry status and reason in the
+release body; pre-release flows MUST surface the same information in the job summary. ns-pages publishing MUST remain
+out of these shared workflows.
 
 #### Scenario: Helm final publish from product caller
 
 - **WHEN** a product thin caller invokes the reusable Helm final publish workflow with chart inputs and registry
   credentials
 - **THEN** a chart package is built from the caller’s chart directory
-- **AND** the chart is pushed to the configured DockerHub and GHCR OCI locations
 - **AND** a `*-chart-v*` release tag is created according to the shared scheme
+- **AND** successful registry pushes publish the chart to the corresponding OCI locations
 
 #### Scenario: Helm requires prior Docker release tag
 
 - **WHEN** Helm publish needs an app version from Docker tags and no matching `*-docker-v*` tag exists
 - **THEN** the workflow fails with a clear error that a Docker release must exist first
+
+#### Scenario: Helm release documents skipped DockerHub
+
+- **WHEN** DockerHub secrets are not provided to the Helm final publish workflow
+- **THEN** the GitHub Release body states that DockerHub publish was skipped and why
 
 ### Requirement: Consumer call documentation
 
@@ -131,6 +148,8 @@ between build and check, and that `@main` is acceptable for early adoption while
 recommended for stability. Documentation MUST include concrete caller snippets for feature-PR and release-style Docker
 flows, and for thin Helm `workflow_dispatch` callers that invoke the shared Helm publish reusables. Documentation MUST
 state that PyPI and ns-pages workflows remain product-local (API) and are not provided as shared reusables here.
+Documentation MUST describe tag-first release identity and that registry push failures/skips are reported in the GitHub
+Release body (or Helm pre-release job summary).
 
 #### Scenario: Contributor reads CI docs
 
@@ -139,3 +158,5 @@ state that PyPI and ns-pages workflows remain product-local (API) and are not pr
   Helm publish
 - **AND** they learn required inputs and the build→check artifact contract
 - **AND** they learn PyPI and ns-pages stay product-local
+- **AND** they learn registry pushes may fail or skip (e.g. missing DockerHub secrets) with status recorded on the
+  release

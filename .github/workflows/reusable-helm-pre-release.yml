@@ -87,7 +87,6 @@ jobs:
 
     env:
       CHART_VERSION: ${{ needs.version.outputs.version }}
-      DOCKERHUB_AVAILABLE: ${{ secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '' }}
 
     steps:
       - name: Generate timestamp
@@ -161,18 +160,53 @@ jobs:
           create_annotated_tag: true
 
       - name: Push Helm chart to Docker Hub
-        if: env.DOCKERHUB_AVAILABLE == 'true'
+        id: push_dh
+        continue-on-error: true
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login \
-            -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin registry-1.docker.io
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "${DOCKERHUB_TOKEN}" | helm registry login \
+            -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
           helm push "${{ steps.package_chart.outputs.chart-package }}" \
             "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
           echo "Pushed Helm chart to Docker Hub"
 
       - name: Push Helm chart to GHCR
+        id: push_ghcr
+        continue-on-error: true
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
             -u "${{ github.actor }}" --password-stdin ghcr.io
           helm push "${{ steps.package_chart.outputs.chart-package }}" \
             "oci://ghcr.io/${{ github.repository_owner }}"
           echo "Pushed Helm chart to GHCR"
+
+      - name: Registry status summary
+        run: |
+          {
+            echo "## Helm pre-release registry status"
+            echo ""
+            if [[ -n "${{ steps.push_dh.outputs.status }}" ]]; then
+              echo "- **DockerHub:** \`${{ steps.push_dh.outputs.status }}\` — ${{ steps.push_dh.outputs.reason }}"
+            elif [[ "${{ steps.push_dh.outcome }}" == "failure" ]]; then
+              echo "- **DockerHub:** \`failure\` — login/push failed (see logs)"
+            else
+              echo "- **DockerHub:** \`${{ steps.push_dh.outcome }}\`"
+            fi
+            if [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
+              echo "- **GHCR:** \`success\`"
+            elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
+              echo "- **GHCR:** \`failure\` — login/push failed (see logs)"
+            else
+              echo "- **GHCR:** \`${{ steps.push_ghcr.outcome }}\`"
+            fi
+            echo ""
+            echo "Chart tag was still created. Re-publish is a follow-up (retry workflow)."
+          } >> "$GITHUB_STEP_SUMMARY"

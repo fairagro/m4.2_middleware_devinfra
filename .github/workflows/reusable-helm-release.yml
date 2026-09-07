@@ -126,7 +126,6 @@ jobs:
 
     env:
       CHART_VERSION: ${{ needs.version.outputs.version }}
-      DOCKERHUB_AVAILABLE: ${{ secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '' }}
 
     steps:
       - name: Generate timestamp
@@ -199,6 +198,126 @@ jobs:
           tag_prefix: ""
           create_annotated_tag: true
 
+      - name: Push Helm chart to Docker Hub
+        id: push_dh
+        continue-on-error: true
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "${DOCKERHUB_TOKEN}" | helm registry login -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
+          helm push "${{ steps.package_chart.outputs.chart-package }}" \
+            "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=Pushed to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
+          echo "Pushed Helm chart to Docker Hub"
+
+      - name: Normalize DockerHub push outcome
+        id: dh
+        run: |
+          if [[ -n "${{ steps.push_dh.outputs.status }}" ]]; then
+            echo "status=${{ steps.push_dh.outputs.status }}" >> "$GITHUB_OUTPUT"
+            echo "reason=${{ steps.push_dh.outputs.reason }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.push_dh.outcome }}" == "failure" ]]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "reason=DockerHub login/push failed — see job logs" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=${{ steps.push_dh.outcome }}" >> "$GITHUB_OUTPUT"
+            echo "reason=DockerHub push did not complete successfully" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push Helm chart to GHCR
+        id: push_ghcr
+        continue-on-error: true
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
+            -u "${{ github.actor }}" --password-stdin ghcr.io
+          helm push "${{ steps.package_chart.outputs.chart-package }}" \
+            "oci://ghcr.io/${{ github.repository_owner }}"
+          echo "Pushed Helm chart to GHCR"
+
+      - name: Normalize GHCR push outcome
+        id: ghcr
+        run: |
+          if [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "reason=Pushed to oci://ghcr.io/${{ github.repository_owner }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "reason=GHCR login/push failed — see job logs" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=${{ steps.push_ghcr.outcome }}" >> "$GITHUB_OUTPUT"
+            echo "reason=GHCR push did not complete successfully" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write release body
+        if: ${{ inputs.create_github_release }}
+        env:
+          CHART_VERSION: ${{ env.CHART_VERSION }}
+          APP_VERSION: ${{ steps.docker-version.outputs.value }}
+          DH_STATUS: ${{ steps.dh.outputs.status }}
+          DH_REASON: ${{ steps.dh.outputs.reason }}
+          GHCR_STATUS: ${{ steps.ghcr.outputs.status }}
+          GHCR_REASON: ${{ steps.ghcr.outputs.reason }}
+          HELM_INSTALL_NAME: ${{ inputs.helm_install_name }}
+          DOCKERHUB_NAMESPACE: ${{ inputs.dockerhub_namespace }}
+          CHART_NAME: ${{ inputs.chart_name }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+        run: |
+          {
+            echo "## Helm Chart Release v${CHART_VERSION}"
+            echo ""
+            echo "**Chart Version**: \`${CHART_VERSION}\`"
+            echo "**App Version (Docker image tag)**: \`${APP_VERSION}\`"
+            echo ""
+            echo "## Registry status"
+            echo ""
+            echo "Chart git tags / this GitHub Release are created even when a registry push fails or is skipped."
+            echo "Re-publish to registries is a follow-up (retry workflow)."
+            echo ""
+            echo "### DockerHub"
+            echo "- **Status:** \`${DH_STATUS}\`"
+            echo "- **Detail:** ${DH_REASON}"
+            echo ""
+            echo "### GHCR"
+            echo "- **Status:** \`${GHCR_STATUS}\`"
+            echo "- **Detail:** ${GHCR_REASON}"
+            echo ""
+            echo "### Install via OCI registry (Docker Hub)"
+            if [[ "${DH_STATUS}" == "success" ]]; then
+              echo '```bash'
+              echo "helm upgrade --install ${HELM_INSTALL_NAME} \\"
+              echo "  oci://registry-1.docker.io/${DOCKERHUB_NAMESPACE}/${CHART_NAME} \\"
+              echo "  --version ${CHART_VERSION}"
+              echo '```'
+            else
+              echo "_Not published to DockerHub for this release (see Registry status)._"
+            fi
+            echo ""
+            echo "### Install via OCI registry (GHCR)"
+            if [[ "${GHCR_STATUS}" == "success" ]]; then
+              echo '```bash'
+              echo "helm upgrade --install ${HELM_INSTALL_NAME} \\"
+              echo "  oci://ghcr.io/${GHCR_OWNER}/${CHART_NAME} \\"
+              echo "  --version ${CHART_VERSION}"
+              echo '```'
+            else
+              echo "_Not published to GHCR for this release (see Registry status)._"
+            fi
+            echo ""
+            echo "### Fallback (install from attached file)"
+            echo "Download the \`.tgz\` attached to this release, then:"
+            echo '```bash'
+            echo "helm upgrade --install ${HELM_INSTALL_NAME} \\"
+            echo "  ${CHART_NAME}-${CHART_VERSION}.tgz"
+            echo '```'
+          } > release-body.md
+
       - name: Create GitHub Release (Draft)
         if: ${{ inputs.create_github_release }}
         id: create_release
@@ -206,32 +325,7 @@ jobs:
         with:
           tag_name: ${{ steps.timestamp.outputs.value }}-chart-v${{ env.CHART_VERSION }}
           name: chart-v${{ env.CHART_VERSION }}
-          body: |
-            ## Helm Chart Release v${{ env.CHART_VERSION }}
-
-            **Chart Version**: `${{ env.CHART_VERSION }}`
-            **App Version (Docker image tag)**: `${{ steps.docker-version.outputs.value }}`
-
-            ### Install via OCI registry (Docker Hub)
-            ```bash
-            helm upgrade --install ${{ inputs.helm_install_name }} \
-              oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}/${{ inputs.chart_name }} \
-              --version ${{ env.CHART_VERSION }}
-            ```
-
-            ### Install via OCI registry (GHCR)
-            ```bash
-            helm upgrade --install ${{ inputs.helm_install_name }} \
-              oci://ghcr.io/${{ github.repository_owner }}/${{ inputs.chart_name }} \
-              --version ${{ env.CHART_VERSION }}
-            ```
-
-            ### Fallback (install from attached file)
-            Download the `.tgz` attached to this release, then:
-            ```bash
-            helm upgrade --install ${{ inputs.helm_install_name }} \
-              ${{ inputs.chart_name }}-${{ env.CHART_VERSION }}.tgz
-            ```
+          body_path: release-body.md
           files: ${{ steps.package_chart.outputs.chart-package }}
           draft: true
           prerelease: false
@@ -257,19 +351,3 @@ jobs:
           gh api "repos/${{ github.repository }}/releases/$RELEASE_ID" \
             --method PATCH \
             --field draft=false
-
-      - name: Push Helm chart to Docker Hub
-        if: env.DOCKERHUB_AVAILABLE == 'true'
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin registry-1.docker.io
-          helm push "${{ steps.package_chart.outputs.chart-package }}" \
-            "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
-          echo "Pushed Helm chart to Docker Hub"
-
-      - name: Push Helm chart to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
-            -u "${{ github.actor }}" --password-stdin ghcr.io
-          helm push "${{ steps.package_chart.outputs.chart-package }}" \
-            "oci://ghcr.io/${{ github.repository_owner }}"
-          echo "Pushed Helm chart to GHCR"

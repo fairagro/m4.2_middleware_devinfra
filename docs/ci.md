@@ -189,7 +189,10 @@ Outputs: `version`, `pep440_version`, `components`. Version scheme is shared acr
 | `tag_prefix`            | `docker-v`                     | Tag shape `{timestamp}-{prefix}{version}`   |
 | `skip`                  | `false`                        | Successful no-op                            |
 
-Secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN`. GHCR uses `GITHUB_TOKEN` (`packages: write` on the reusable job).
+Secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` (optional — if missing, DockerHub push is skipped and the GitHub Release
+body states why). GHCR uses `GITHUB_TOKEN` (`packages: write` on the reusable job). Git tags / GitHub Releases are
+created even when a registry push fails; the release body includes a **Registry status** section. Re-pushing an existing
+release is a follow-up (retry workflow).
 
 GHCR image tag shape: `ghcr.io/<ghcr_namespace>/<image_base_name>-<component>:<version>` (aligned with DockerHub
 naming).
@@ -208,8 +211,10 @@ When `create_github_release` is false, no git tag or GitHub Release is created (
 | `create_github_release` | `true`                | Final release only                           |
 | `helm_install_name`     | `fairagro-middleware` | Example name in release notes (final only)   |
 
-Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Optional secrets: `DOCKERHUB_USER`,
-`DOCKERHUB_TOKEN` (GHCR push always attempted with `GITHUB_TOKEN`).
+Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Secrets `DOCKERHUB_USER` / `DOCKERHUB_TOKEN`
+are optional; if missing or a push fails, the Helm GitHub Release body (final) or job summary (pre-release) MUST state
+the registry status and reason. GHCR uses `GITHUB_TOKEN`. Chart tags are created before registry pushes (same tag-first
+policy as Docker release).
 
 ## Check artifact contract
 

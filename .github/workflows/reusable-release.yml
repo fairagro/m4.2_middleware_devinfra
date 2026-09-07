@@ -62,9 +62,9 @@ on:
         default: false
     secrets:
       DOCKERHUB_USER:
-        required: true
+        required: false
       DOCKERHUB_TOKEN:
-        required: true
+        required: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -78,31 +78,59 @@ jobs:
     strategy:
       matrix:
         component: ${{ fromJson(inputs.components) }}
+    # Job stays green when secrets are absent (skipped); real push failures fail the job.
+    # github-release still runs (always) and documents the outcome in the release body.
 
     steps:
       - name: Skipping release
         if: ${{ inputs.skip }}
         run: echo "Skip requested. Exiting with success."
 
-      - name: Download Docker image artifact
+      - name: Check DockerHub secrets
         if: ${{ !inputs.skip }}
+        id: dh_secrets
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          mkdir -p status digests
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            reason="DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+            echo "skipped" > "status/dockerhub-${{ matrix.component }}.status"
+            echo "${reason}" > "status/dockerhub-${{ matrix.component }}.reason"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload DockerHub skip status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'false' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+
+      - name: Download Docker image artifact
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: docker-image-${{ matrix.component }}-${{ inputs.version }}
 
       - name: Load Docker image
-        if: ${{ !inputs.skip }}
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
         run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Login to DockerHub
-        if: ${{ !inputs.skip }}
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Tag and Push to DockerHub
-        if: ${{ !inputs.skip }}
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
         id: push
         run: |
           LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
@@ -110,18 +138,36 @@ jobs:
           docker tag "$LOCAL_TAG" "$DH_TAG"
           docker push "$DH_TAG"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
-          mkdir -p digests
-          # Per-component file — github-release reads these (matrix job outputs are unreliable)
+          mkdir -p digests status
           echo "$DIGEST" > "digests/dockerhub-${{ matrix.component }}.digest"
+          echo "success" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "Pushed ${DH_TAG}" > "status/dockerhub-${{ matrix.component }}.reason"
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "Pushed to DockerHub: $DH_TAG (@$DIGEST)"
 
-      - name: Upload DockerHub digest artifact
-        if: ${{ !inputs.skip }}
+      - name: Upload DockerHub digest and status artifacts
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && success() }}
         uses: actions/upload-artifact@v7
         with:
           name: dockerhub-digest-${{ matrix.component }}-${{ inputs.version }}
-          path: digests/dockerhub-${{ matrix.component }}.digest
+          path: |
+            digests/
+            status/
+          retention-days: 1
+
+      - name: Record DockerHub push failure
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        run: |
+          mkdir -p status
+          echo "failure" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "DockerHub login/push failed for component ${{ matrix.component }} (see job logs)" > "status/dockerhub-${{ matrix.component }}.reason"
+
+      - name: Upload DockerHub failure status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
           retention-days: 1
 
   push-ghcr:
@@ -173,6 +219,8 @@ jobs:
 
   create-release-tag:
     name: CreateReleaseTag/Release
+    # Intentional: GitHub-internal identity (tag) first; registry push may fail afterward.
+    # github-release documents push outcomes in the release body.
     if: ${{ !inputs.skip && inputs.create_github_release }}
     runs-on: ubuntu-latest
     permissions:
@@ -206,19 +254,20 @@ jobs:
 
     steps:
       - name: Download SBOM artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           pattern: sbom-*
           merge-multiple: true
           path: sboms
 
-      - name: Download DockerHub digest artifacts
-        if: ${{ needs.push-dockerhub.result == 'success' }}
+      - name: Download DockerHub digest/status artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          pattern: dockerhub-digest-*
+          pattern: dockerhub-*
           merge-multiple: true
-          path: digests
+          path: dockerhub-meta
 
       - name: Generate release body
         run: |
@@ -233,56 +282,84 @@ jobs:
           GHCR_IMAGE="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
           TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
           REPO_BASENAME=$(basename "${{ github.repository }}")
-          DOCKER_SUCCESS=$([[ "${{ needs.push-dockerhub.result }}" == "success" || "${{ needs.push-ghcr.result }}" == "success" ]] && echo "true" || echo "false")
+          DH_JOB="${{ needs.push-dockerhub.result }}"
+          GHCR_JOB="${{ needs.push-ghcr.result }}"
 
           {
-            echo "## Docker Image"
+            echo "## Registry status"
             echo ""
-            if [[ "$DOCKER_SUCCESS" == "true" ]]; then
-              if [[ "${{ needs.push-dockerhub.result }}" == "success" ]]; then
-                echo "| Component | Platform | Image Digest |"
-                echo "| --- | --- | --- |"
-                while IFS= read -r comp; do
-                  digest_file="digests/dockerhub-${comp}.digest"
-                  if [[ -f "$digest_file" ]]; then
-                    digest=$(tr -d '[:space:]' < "$digest_file")
-                    echo "| \`${comp}\` | linux/amd64 | \`${digest}\` |"
-                  else
-                    echo "| \`${comp}\` | linux/amd64 | _digest unavailable_ |"
-                  fi
-                done < <(echo '${{ inputs.components }}' | jq -r '.[]')
-                echo ""
-                echo "**[Pull from DockerHub](${DH_URL})**"
-                echo '```bash'
-                echo "docker pull ${DH_IMAGE}"
-                echo '```'
-                echo ""
+            echo "Git tags / this GitHub Release are created even when a registry push fails or is skipped."
+            echo "Re-publish to registries is tracked as a follow-up (retry workflow)."
+            echo ""
+
+            echo "### DockerHub"
+            echo ""
+            echo "- **Job result:** \`${DH_JOB}\`"
+            any_dh=false
+            while IFS= read -r comp; do
+              st="dockerhub-meta/dockerhub-${comp}.status"
+              rs="dockerhub-meta/dockerhub-${comp}.reason"
+              dg="dockerhub-meta/dockerhub-${comp}.digest"
+              if [[ -f "$st" ]]; then
+                any_dh=true
+                status=$(tr -d '[:space:]' < "$st")
+                reason=$(tr -d '\r' < "$rs" 2>/dev/null || true)
+                echo "- **\`${comp}\`:** \`${status}\`${reason:+ — ${reason}}"
+                if [[ "$status" == "success" && -f "$dg" ]]; then
+                  echo "  - digest: \`$(tr -d '[:space:]' < "$dg")\`"
+                fi
               fi
-              if [[ "${{ needs.push-ghcr.result }}" == "success" ]]; then
-                echo "**Pull from GHCR** (\`${GHCR_IMAGE}\`)"
-                echo '```bash'
-                echo "docker pull ${GHCR_IMAGE}"
-                echo '```'
-                echo ""
+            done < <(echo '${{ inputs.components }}' | jq -r '.[]')
+            if [[ "$any_dh" != "true" ]]; then
+              if [[ "$DH_JOB" == "failure" ]]; then
+                echo "- Push job failed before status artifacts were uploaded — see the DockerPush/DockerHub job logs."
+              elif [[ "$DH_JOB" == "skipped" ]]; then
+                echo "- Push job was skipped."
+              else
+                echo "- No per-component status artifacts found (unexpected)."
               fi
-              echo "## Build from Source"
-              echo ""
-              echo '```bash'
-              echo "git clone https://github.com/${{ github.repository }}.git"
-              echo "cd ${REPO_BASENAME}"
-              echo "git checkout ${TAG}"
-              echo "source scripts/load-versions-env.sh"
-              echo "docker build -f docker/Dockerfile.${COMPONENT} \\"
-              echo "  --build-arg PYTHON_VERSION=\$PYTHON_VERSION \\"
-              echo "  --build-arg ALPINE_VERSION=\$ALPINE_VERSION \\"
-              echo "  --build-arg ALPINE_MINOR=\$ALPINE_MINOR \\"
-              echo "  --build-arg PIP_VERSION=\$PIP_VERSION \\"
-              echo "  --build-arg UV_VERSION=\$UV_VERSION \\"
-              echo "  -t ${COMPONENT}:${{ inputs.version }} ."
-              echo '```'
-            else
-              echo "_No Docker registries were successfully updated for this release._"
             fi
+            if [[ "$DH_JOB" == "success" ]] && ls dockerhub-meta/dockerhub-*.digest >/dev/null 2>&1; then
+              echo ""
+              echo "**[Pull from DockerHub](${DH_URL})**"
+              echo '```bash'
+              echo "docker pull ${DH_IMAGE}"
+              echo '```'
+            fi
+            echo ""
+
+            echo "### GHCR"
+            echo ""
+            echo "- **Job result:** \`${GHCR_JOB}\`"
+            if [[ "$GHCR_JOB" == "success" ]]; then
+              echo "- Push succeeded for matrix components."
+              echo ""
+              echo "**Pull from GHCR** (\`${GHCR_IMAGE}\`)"
+              echo '```bash'
+              echo "docker pull ${GHCR_IMAGE}"
+              echo '```'
+            elif [[ "$GHCR_JOB" == "failure" ]]; then
+              echo "- Push failed — see the DockerPush/GHCR job logs. Images for this tag may be missing on GHCR."
+            else
+              echo "- Push job result \`${GHCR_JOB}\` — no GHCR pull instructions."
+            fi
+            echo ""
+
+            echo "## Build from Source"
+            echo ""
+            echo '```bash'
+            echo "git clone https://github.com/${{ github.repository }}.git"
+            echo "cd ${REPO_BASENAME}"
+            echo "git checkout ${TAG}"
+            echo "source scripts/load-versions-env.sh"
+            echo "docker build -f docker/Dockerfile.${COMPONENT} \\"
+            echo "  --build-arg PYTHON_VERSION=\$PYTHON_VERSION \\"
+            echo "  --build-arg ALPINE_VERSION=\$ALPINE_VERSION \\"
+            echo "  --build-arg ALPINE_MINOR=\$ALPINE_MINOR \\"
+            echo "  --build-arg PIP_VERSION=\$PIP_VERSION \\"
+            echo "  --build-arg UV_VERSION=\$UV_VERSION \\"
+            echo "  -t ${COMPONENT}:${{ inputs.version }} ."
+            echo '```'
           } > release-body.md
 
       - name: Create GitHub Release (Draft)
