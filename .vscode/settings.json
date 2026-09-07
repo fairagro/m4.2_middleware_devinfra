@@ -60,5 +60,15 @@
   },
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "cursorpyright.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/.venv",
+    "**/venv"
+  ],
+  "cursorpyright.analysis.extraPaths": [
+    "${workspaceFolder}/scripts/ai/src"
+  ]
 }
