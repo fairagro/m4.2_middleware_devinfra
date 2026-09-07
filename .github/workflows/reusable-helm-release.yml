@@ -1,6 +1,7 @@
 # Canonical reusable Helm chart final release for m4.2 product repos (issue #12).
 # Thin product caller: workflow_dispatch → uses this file with chart_dir / chart_name inputs.
-# Requires a prior Docker release tag matching *-docker-vX.Y.Z (for chart appVersion).
+# Requires a prior Docker release tag matching *-docker-v* (for chart appVersion).
+# Keep reusable-release tag_prefix at docker-v so this discovery matches.
 name: Reusable Helm Release
 
 permissions:

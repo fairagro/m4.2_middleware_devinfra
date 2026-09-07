@@ -46,12 +46,12 @@ on:
         required: true
         type: string
       create_github_release:
-        description: "Whether to create a GitHub release"
+        description: "Whether to create the git release tag and GitHub Release (false: image pushes only)"
         required: false
         type: boolean
         default: true
       tag_prefix:
-        description: "Prefix for the git release tag (e.g. docker-v)"
+        description: "Prefix for the git release tag (must stay docker-v for shared Helm appVersion discovery)"
         required: false
         type: string
         default: "docker-v"

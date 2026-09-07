@@ -81,15 +81,16 @@ required jobs MUST complete successfully via a no-op path where callers need sta
 
 ### Requirement: Reusable Docker release workflow
 
-The repository MUST provide `.github/workflows/reusable-release.yml` callable via `workflow_call`. When not skipped it
-MUST create the git release tag (and optional GitHub Release) using a configurable `tag_prefix` (default `docker-v`)
-with the repository’s timestamp-prefixed tag pattern **before or independently of** requiring successful registry pushes
-(tag-first). It MUST attempt to push each component image to DockerHub and GHCR using caller-supplied (or explicitly
-defaulted) naming inputs. DockerHub credentials MAY be omitted; when omitted the DockerHub push MUST be skipped without
-failing the overall release identity. When a registry push is skipped or fails, and a GitHub Release is created, the
-release body MUST include an explicit registry-status section stating the outcome and reason (including missing
-secrets). It MUST NOT publish to PyPI or TestPyPI. Product-distinguishing image and registry namespace values MUST be
-expressible via `workflow_call` inputs.
+The repository MUST provide `.github/workflows/reusable-release.yml` callable via `workflow_call`. When not skipped and
+`create_github_release` is true it MUST create the git release tag (and optional GitHub Release) using a configurable
+`tag_prefix` (default `docker-v`) with the repository’s timestamp-prefixed tag pattern **before or independently of**
+requiring successful registry pushes (tag-first). When `create_github_release` is false it MUST NOT create a git tag or
+GitHub Release, but MAY still attempt registry pushes. It MUST attempt to push each component image to DockerHub and
+GHCR using caller-supplied (or explicitly defaulted) naming inputs. DockerHub credentials MAY be omitted; when omitted
+the DockerHub push MUST be skipped without failing the overall release identity. When a registry push is skipped or
+fails, and a GitHub Release is created, the release body MUST include an explicit registry-status section stating the
+outcome and reason (including missing secrets). It MUST NOT publish to PyPI or TestPyPI. Product-distinguishing image
+and registry namespace values MUST be expressible via `workflow_call` inputs.
 
 #### Scenario: Release pushes images without PyPI
 
@@ -100,9 +101,15 @@ expressible via `workflow_call` inputs.
 
 #### Scenario: Optional GitHub release tag
 
-- **WHEN** the caller requests GitHub release creation with `tag_prefix` defaulting to `docker-v`
+- **WHEN** the caller sets `create_github_release: true` with `tag_prefix` defaulting to `docker-v`
 - **THEN** a release tag consistent with the `*-docker-v*` scheme is created for that version even if a registry push
   later fails
+
+#### Scenario: Image push without tag when release disabled
+
+- **WHEN** the caller sets `create_github_release: false` and `skip: false`
+- **THEN** the workflow does not create a git tag or GitHub Release
+- **AND** it may still attempt DockerHub/GHCR image pushes
 
 #### Scenario: Release body documents failed or skipped registry push
 

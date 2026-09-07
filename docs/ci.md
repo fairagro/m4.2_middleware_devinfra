@@ -140,6 +140,10 @@ jobs:
 Order: publish a **Docker** release (so a `*-docker-v*` tag exists) before Helm final/pre-release. Helm sets chart
 `appVersion` from the latest Docker tag.
 
+**Helm ↔ `tag_prefix`:** Shared Helm reusables discover Docker tags with the fixed pattern `*-docker-v*` (semver /
+optional `-rc.…` on pre-release). Callers MUST keep `reusable-release.yml` `tag_prefix` at the default `docker-v`. A
+custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm (out of scope here).
+
 ## Inputs
 
 ### `reusable-code-quality.yml`
@@ -178,18 +182,18 @@ Outputs: `version`, `pep440_version`, `components`. Version scheme is shared acr
 
 ### `reusable-release.yml`
 
-| Input                   | Default                        | Purpose                                     |
-| ----------------------- | ------------------------------ | ------------------------------------------- |
-| `version`               | (required)                     | From build                                  |
-| `pep440_version`        | `""`                           | Caller compatibility; unused (no PyPI here) |
-| `components`            | `["api"]`                      | Matrix push                                 |
-| `image_base_name`       | `fairagro-advanced-middleware` | Must match build                            |
-| `dockerhub_namespace`   | `zalf`                         | Docker Hub org/user                         |
-| `ghcr_namespace`        | `""` → `repository_owner`      | GHCR namespace; empty uses owner            |
-| `release_type`          | (required)                     | `feature` or `final` (prerelease flag)      |
-| `create_github_release` | `true`                         | Draft→publish GitHub release + tag          |
-| `tag_prefix`            | `docker-v`                     | Tag shape `{timestamp}-{prefix}{version}`   |
-| `skip`                  | `false`                        | Successful no-op                            |
+| Input                   | Default                        | Purpose                                                              |
+| ----------------------- | ------------------------------ | -------------------------------------------------------------------- |
+| `version`               | (required)                     | From build                                                           |
+| `pep440_version`        | `""`                           | Caller compatibility; unused (no PyPI here)                          |
+| `components`            | `["api"]`                      | Matrix push                                                          |
+| `image_base_name`       | `fairagro-advanced-middleware` | Must match build                                                     |
+| `dockerhub_namespace`   | `zalf`                         | Docker Hub org/user                                                  |
+| `ghcr_namespace`        | `""` → `repository_owner`      | GHCR namespace; empty uses owner                                     |
+| `release_type`          | (required)                     | `feature` or `final` (prerelease flag)                               |
+| `create_github_release` | `true`                         | When true: git tag + GitHub Release; when false: pushes only         |
+| `tag_prefix`            | `docker-v`                     | Tag shape `{timestamp}-{prefix}{version}` (keep `docker-v` for Helm) |
+| `skip`                  | `false`                        | Successful no-op                                                     |
 
 Secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` (optional — if missing, DockerHub push is skipped and the GitHub Release
 body states why). GHCR uses `GITHUB_TOKEN` (`packages: write` on the reusable job). Git tags / GitHub Releases are
