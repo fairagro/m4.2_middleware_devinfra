@@ -77,7 +77,9 @@ def cmd_review_resolve(args: argparse.Namespace) -> int:
 
 def cmd_issue_create(args: argparse.Namespace) -> int:
     body = _read_body(args)
-    labels = [args.severity, args.practicality, args.cost]
+    labels = [args.severity, args.cost]
+    if args.practicality:
+        labels.insert(1, args.practicality)
     data = create_issue(
         title=args.title,
         body=body,
@@ -189,7 +191,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ic.add_argument(
         "--practicality",
-        required=True,
+        required=False,
+        default=None,
         choices=[
             "practicality:high",
             "practicality:medium",
@@ -197,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
             "practicality:none",
             "practicality:seen-in-the-wild",
         ],
+        help="Optional; omit for Feature/Task/etc. with no defect path",
     )
     ic.add_argument(
         "--cost",

@@ -10,8 +10,8 @@ description: "Create GitHub issues from AI findings with org issue type + triage
 Create a new GitHub issue from an AI finding or discussion request.
 
 This command classifies the issue (org issue type: `Bug`, `Security`, `Feature`, `Task`, `Discussion`, `Refactoring`)
-and attaches triage labels (`severity:*`, `practicality:*`, `cost:*`). Missing allowlisted labels are created on demand.
-It does **not** re-run `/review-fixer` triage.
+and attaches triage labels (`severity:*` + `cost:*` required; `practicality:*` only when there is a defect path).
+Missing allowlisted labels are created on demand. It does **not** re-run `/review-fixer` triage.
 
 **Input:**
 

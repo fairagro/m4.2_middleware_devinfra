@@ -62,14 +62,15 @@ items, and resolving a review thread by GraphQL thread id. Multiline bodies MUST
 
 ### Requirement: issue-create
 
-`issue-create` MUST create a GitHub issue with exactly one org issue type and allowlisted triage labels (`severity:*`,
-`practicality:*`, `cost:*`), ensuring missing allowlisted labels are created. Optional `--parent` MUST attach a native
-sub-issue. Fallback to a linked create MUST occur only when no issue URL was produced; MUST NOT create a second issue
-after a partial success. Success JSON MUST always include `partial_failure` (false on full success; true on degraded /
-partial outcomes such as parent fallback or post-create errors with an existing URL). When `gh issue create --parent`
-exits non-zero, the CLI MUST inspect **both** stdout and stderr for an issue URL before any linked fallback create.
-`ensure_labels` MUST list existing labels with a high enough limit (or equivalent) so allowlisted labels past the
-default page size are not treated as missing.
+`issue-create` MUST create a GitHub issue with exactly one org issue type and allowlisted triage labels: required
+`severity:*` and `cost:*`, and optional `practicality:*` (omit when there is no defect path). It MUST ensure missing
+allowlisted labels it will attach are created. Optional `--parent` MUST attach a native sub-issue. Fallback to a linked
+create MUST occur only when no issue URL was produced; MUST NOT create a second issue after a partial success. Success
+JSON MUST always include `partial_failure` (false on full success; true on degraded / partial outcomes such as parent
+fallback or post-create errors with an existing URL). When `gh issue create --parent` exits non-zero, the CLI MUST
+inspect **both** stdout and stderr for an issue URL before any linked fallback create. `ensure_labels` MUST list
+existing labels with a high enough limit (or equivalent) so allowlisted labels past the default page size are not
+treated as missing.
 
 #### Scenario: Parent failure without URL falls back once
 

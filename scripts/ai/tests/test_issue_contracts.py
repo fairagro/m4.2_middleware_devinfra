@@ -11,6 +11,29 @@ from m42_ai.gh import GhError
 from m42_ai.issue import create_issue, ensure_labels, issue_start
 
 
+def test_cli_issue_create_omits_practicality_when_unset() -> None:
+    from argparse import Namespace
+
+    from m42_ai.cli import cmd_issue_create
+
+    with patch("m42_ai.cli.create_issue") as create:
+        create.return_value = {"url": "https://example/issues/1"}
+        rc = cmd_issue_create(
+            Namespace(
+                title="t",
+                type="Task",
+                severity="severity:low",
+                practicality=None,
+                cost="cost:medium",
+                parent=None,
+                body="b",
+                body_file=None,
+            )
+        )
+    assert rc == 0
+    assert create.call_args.kwargs["labels"] == ["severity:low", "cost:medium"]
+
+
 def test_ensure_labels_lists_with_high_limit() -> None:
     with patch("m42_ai.issue.run_gh") as run_gh:
         run_gh.return_value = MagicMock(stdout="severity:high\n")
