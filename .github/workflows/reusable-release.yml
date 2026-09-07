@@ -277,14 +277,14 @@ jobs:
             echo "::error::reusable-release requires a non-empty components JSON array (got: ${COMPONENTS_JSON})" >&2
             exit 1
           fi
-          DH_IMAGE="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
-          DH_URL="https://hub.docker.com/r/${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}"
+          DH_NS="${{ inputs.dockerhub_namespace }}"
+          IMG_BASE="${{ inputs.image_base_name }}"
+          VER="${{ inputs.version }}"
           GHCR_NS="${{ inputs.ghcr_namespace }}"
           if [[ -z "$GHCR_NS" ]]; then
             GHCR_NS="${{ github.repository_owner }}"
           fi
           GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
-          GHCR_IMAGE="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
           TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
           REPO_BASENAME=$(basename "${{ github.repository }}")
           DH_JOB="${{ needs.push-dockerhub.result }}"
@@ -317,7 +317,7 @@ jobs:
                   echo "  - digest: \`$(tr -d '[:space:]' < "$dg")\`"
                 fi
               fi
-            done < <(echo '${{ inputs.components }}' | jq -r '.[]')
+            done < <(echo "$COMPONENTS_JSON" | jq -r '.[]')
             if [[ "$any_dh" != "true" ]]; then
               if [[ "$DH_JOB" == "failure" ]]; then
                 echo "- Push job failed before status artifacts were uploaded — see the DockerPush/DockerHub job logs."
@@ -329,9 +329,10 @@ jobs:
             fi
             if [[ "$DH_JOB" == "success" ]] && find dockerhub-meta -type f -name 'dockerhub-*.digest' 2>/dev/null | grep -q .; then
               echo ""
-              echo "**[Pull from DockerHub](${DH_URL})**"
+              echo "**Pull from DockerHub**"
               echo '```bash'
-              echo "docker pull ${DH_IMAGE}"
+              echo "$COMPONENTS_JSON" | jq -r --arg ns "$DH_NS" --arg base "$IMG_BASE" --arg ver "$VER" \
+                '.[] | "docker pull \($ns)/\($base)-\(.):\($ver)"'
               echo '```'
             fi
             echo ""
@@ -342,9 +343,10 @@ jobs:
             if [[ "$GHCR_JOB" == "success" ]]; then
               echo "- Push succeeded for matrix components."
               echo ""
-              echo "**Pull from GHCR** (\`${GHCR_IMAGE}\`)"
+              echo "**Pull from GHCR**"
               echo '```bash'
-              echo "docker pull ${GHCR_IMAGE}"
+              echo "$COMPONENTS_JSON" | jq -r --arg ns "$GHCR_NS" --arg base "$IMG_BASE" --arg ver "$VER" \
+                '.[] | "docker pull ghcr.io/\($ns)/\($base)-\(.):\($ver)"'
               echo '```'
             elif [[ "$GHCR_JOB" == "failure" ]]; then
               echo "- Push failed — see the DockerPush/GHCR job logs. Images for this tag may be missing on GHCR."
@@ -366,7 +368,7 @@ jobs:
             echo "  --build-arg ALPINE_MINOR=\$ALPINE_MINOR \\"
             echo "  --build-arg PIP_VERSION=\$PIP_VERSION \\"
             echo "  --build-arg UV_VERSION=\$UV_VERSION \\"
-            echo "  -t ${COMPONENT}:${{ inputs.version }} ."
+            echo "  -t ${COMPONENT}:${VER} ."
             echo '```'
           } > release-body.md
 
