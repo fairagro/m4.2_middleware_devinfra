@@ -77,11 +77,12 @@ jobs:
             exit 0
           fi
 
+          # grep exits 1 on no match; with Actions pipefail that aborts before 0.0.0 fallback
           LATEST_TAG=$(git tag --list '*-docker-v*' \
             | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
             | sed 's/^[0-9]*-docker-v//' \
             | sort -V \
-            | tail -1)
+            | tail -1 || true)
           if [ -z "$LATEST_TAG" ]; then LATEST_TAG="0.0.0"; fi
 
           MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
@@ -216,16 +217,13 @@ jobs:
         if: ${{ !inputs.skip }}
         run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
-      - name: Create SBOM directory
-        if: ${{ !inputs.skip }}
-        run: mkdir -p sboms
-
       - name: Generate SBOM
         if: ${{ !inputs.skip }}
         uses: anchore/sbom-action@v0
         with:
           image: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.version.outputs.version }}
-          output-file: sboms/sbom-${{ matrix.component }}.spdx.json
+          # Workspace-root path: upload-artifact keeps directories; check expects sbom-<component>.spdx.json
+          output-file: sbom-${{ matrix.component }}.spdx.json
           format: spdx-json
 
       - name: Upload SBOM artifact
@@ -233,5 +231,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ matrix.component }}-${{ needs.version.outputs.version }}
-          path: sboms/sbom-${{ matrix.component }}.spdx.json
+          path: sbom-${{ matrix.component }}.spdx.json
           retention-days: 1
