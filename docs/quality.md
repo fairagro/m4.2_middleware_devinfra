@@ -167,6 +167,10 @@ On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hook
 | Image tag   | `app:structure-test`                                 | `CST_IMAGE_TAG` or `$2`  |
 | Test config | `docker/container-structure-tests` (dir of `*.yaml`) | `CST_CONFIG` or `$3`     |
 
+If the default Dockerfile is missing **and** this checkout has no `docker/` directory (Devinfra), the script **skips**
+with a warning and exits 0 so pre-push can succeed. Product repos that use `docker/` still fail hard when paths are
+wrong.
+
 Optional Docker `--build-arg` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`,
 `ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`).
 

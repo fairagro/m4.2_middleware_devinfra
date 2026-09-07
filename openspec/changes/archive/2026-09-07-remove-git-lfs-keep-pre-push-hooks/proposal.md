@@ -10,8 +10,8 @@ after sync.
 ## What Changes
 
 - Drop `git-lfs` / `git lfs install --system` from the shared Dev Container Dockerfile (**D1**)
-- Replace `scripts/setup-git-lfs.sh` with `scripts/setup-git-hooks.sh` (hooks only); **delete** the old script name
-  (no stub)
+- Replace `scripts/setup-git-lfs.sh` with `scripts/setup-git-hooks.sh` (hooks only); **delete** the old script name (no
+  stub)
 - Slim `scripts/git-hooks/pre-push` to pre-commit pre-push only; delete LFS-only `post-*` hooks (**C1**)
 - postCreate calls `setup-git-hooks.sh`
 - Rename OpenSpec capability `shared-git-hooks-lfs` → `shared-git-hooks` (**A1**); update `shared-devcontainer-base` and
@@ -34,8 +34,7 @@ after sync.
 
 ## Impact
 
-- `.devcontainer/Dockerfile`, `scripts/setup-git-hooks.sh`, `scripts/git-hooks/`,
-  `scripts/devcontainer-post-create.sh`
+- `.devcontainer/Dockerfile`, `scripts/setup-git-hooks.sh`, `scripts/git-hooks/`, `scripts/devcontainer-post-create.sh`
 - Docs + README; OpenSpec specs above
 - Sync (#13): consumers migrate installer name; sql-to-arc (and any LFS user) adds product-local `git-lfs`
 - Issue: [#39](https://github.com/fairagro/m4.2_middleware_devinfra/issues/39)
