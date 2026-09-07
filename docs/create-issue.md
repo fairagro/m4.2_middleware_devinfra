@@ -25,16 +25,23 @@ Provisioning the types in the GitHub org is out of band (org admin).
 
 Allowlisted families (created on demand by `/create-issue` if missing — one-shot per repo):
 
-- `severity:blocker|high|medium|low`
-- `practicality:high|medium|low|none|seen-in-the-wild`
-- `cost:cheap|medium|expensive`
+- `severity:blocker|high|medium|low` — **required**
+- `cost:cheap|medium|expensive` — **required**
+- `practicality:high|medium|low|none|seen-in-the-wild` — **only** when there is a concrete path to a **bad outcome**
+  (typical for `Bug` / `Security`, or review-fixer deferrals). Omit for Feature/Task/Discussion/Refactoring work items
+  with no defect path; do **not** set `practicality:high` just because the work is implementable.
 
-Core meanings of severity / practicality / cost come from [`ai_review_policy.md`](ai_review_policy.md). Issue-only
-extensions: `practicality:seen-in-the-wild`, `cost:medium` (see the skill).
+Core meanings come from [`ai_review_policy.md`](ai_review_policy.md). Issue-only extensions and defaults (see the
+skill):
+
+- `Feature` / `Task` / `Discussion` / `Refactoring` default **`severity:low`** unless there is a clear operator/CI break
+  or the user sets urgency — never default to medium “because it matters”
+- `practicality:seen-in-the-wild`, `cost:medium`
 
 Do **not** invent other triage label names in the skill. Free-text labels are forbidden.
 
-Prefer `uv run m42-ai issue-create …` (see [`scripts/ai/README.md`](../scripts/ai/README.md)).
+Prefer `uv run m42-ai issue-create …` (see [`scripts/ai/README.md`](../scripts/ai/README.md)); `--practicality` is
+optional.
 
 ## Relation: sub-of vs linked
 

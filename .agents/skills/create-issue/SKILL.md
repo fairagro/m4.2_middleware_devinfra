@@ -2,9 +2,9 @@
 name: create-issue
 description: >-
   Creates a GitHub issue with one org issue type and triage labels (severity,
-  practicality, cost), optionally as a GitHub sub-issue. Use when the user asks
-  to /create-issue, open a follow-up from review-fixer, or split work from
-  issue-fixer — not for implementing fixes.
+  optional practicality, cost), optionally as a GitHub sub-issue. Use when the
+  user asks to /create-issue, open a follow-up from review-fixer, or split work
+  from issue-fixer — not for implementing fixes.
 ---
 
 # Create issue
@@ -22,7 +22,7 @@ Accept any of:
 1. A PR number or URL plus a finding summary. The user may include triage fields in plain text:
    - `type: Bug|Security|Feature|Task|Discussion|Refactoring`
    - `severity: Blocker|High|Medium|Low`
-   - `practicality: High|Medium|Low|None|seen-in-the-wild`
+   - `practicality: High|Medium|Low|None|seen-in-the-wild` (optional — see below)
    - `cost: cheap|medium|expensive`
    - affected `path:` sentences
    - `relation: sub-of #<issue_number> | linked` (optional; default `linked`)
@@ -66,12 +66,7 @@ PAT).
 ## Decision inputs
 
 Use [`docs/ai_review_policy.md`](../../../docs/ai_review_policy.md) for the core definitions of **severity**,
-**practicality**, and **cost**.
-
-### Issue-oriented extensions
-
-- `practicality:seen-in-the-wild` — user provides evidence it already happens in real usage (logs, incidents, reports)
-- `cost:medium` — between cheap and expensive for issue planning (review-fixer cost table is only `cheap|expensive`)
+**practicality**, and **cost**. Do **not** copy review-fixer defaults blindly onto every new issue.
 
 ### Org issue type (exactly one)
 
@@ -88,17 +83,45 @@ GitHub **Issue Types** (not `kind:*` labels):
 
 Do **not** use `Task` for major structural work — that is `Refactoring`.
 
-### Practicality → label
+### Severity (always attach exactly one)
 
-- `practicality:high` if a realistic path exists in this system (cite the path)
-- `practicality:medium|low|none` otherwise
-- `practicality:seen-in-the-wild` when evidence is provided
+Pick from the policy table (first match). **Anti-default:** never choose `severity:medium` merely because the work
+“matters” or is a shared-tooling improvement.
+
+| Org type                                       | Default when the user did not give severity                                                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Feature`, `Task`, `Discussion`, `Refactoring` | **`severity:low`** — upgrade to **medium** only for a clear operator/CI break, broken documented cadence, or user-stated urgency; **high/blocker** only when the policy table matches |
+| `Bug`, `Security`                              | Use the real policy severity — **do not** default to low or medium                                                                                                                    |
+
+Parity gaps, missing CI gates, docs debt, and “nice to close” follow-ups are usually **low**, not medium.
+
+### Practicality (attach only when there is a defect path)
+
+In review policy, **practicality** answers: “How realistic is the path to the **bad state**?” It is **not** “can we
+implement this issue?” Almost every Feature/Task is implementable — that must **not** become `practicality:high`.
+
+| Situation                                                                                           | Action                                                                             |
+| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `Bug` / `Security`, or any item with a concrete path sentence to a bad outcome                      | Attach a `practicality:*` label; cite the path (or `seen-in-the-wild`)             |
+| `Feature` / `Task` / `Discussion` / `Refactoring` with **no** defect path (improvement / work item) | **Omit** the practicality label; body triage: `practicality: n/a (no defect path)` |
+| `/review-fixer` Medium+ follow-up                                                                   | Keep practicality from the deferred checklists (defect findings)                   |
+
+Issue-oriented extensions:
+
+- `practicality:seen-in-the-wild` — user provides evidence it already happens in real usage (logs, incidents, reports)
+- `cost:medium` — between cheap and expensive for issue planning (review-fixer cost table is only `cheap|expensive`)
+
+### Cost (always attach exactly one)
+
+Estimate implementation/planning cost: `cheap` | `medium` | `expensive`.
 
 ## Triage label allowlist (create-if-missing)
 
 Attach **only** labels from this allowlist. Before `gh issue create`, ensure each label you will attach exists. If
 missing, create it with the fixed color/description below (`gh label create`). Never create free-text or off-allowlist
 labels.
+
+Required on every issue: one `severity:*` and one `cost:*`. `practicality:*` only when the Decision inputs say so.
 
 | Label                           | Color     | Description                                |
 | ------------------------------- | --------- | ------------------------------------------ |
@@ -120,14 +143,23 @@ labels.
 Prefer the plumbing CLI (still uses `gh` on `PATH` / `GH_TOKEN`):
 
 ```bash
+# Improvement / Task with no defect path — omit --practicality
 uv run m42-ai issue-create \
   --title "..." \
   --type Task \
+  --severity severity:low \
+  --cost cost:medium \
+  --body-file /tmp/issue.md \
+  [--parent 42]
+
+# Bug / Security (or Task that closes a real failure mode) — include --practicality
+uv run m42-ai issue-create \
+  --title "..." \
+  --type Bug \
   --severity severity:high \
   --practicality practicality:high \
   --cost cost:cheap \
-  --body-file /tmp/issue.md \
-  [--parent 42]
+  --body-file /tmp/issue.md
 ```
 
 See [`scripts/ai/README.md`](../../../scripts/ai/README.md). Fall back to raw `gh` only if the CLI is unavailable in the
@@ -155,11 +187,14 @@ Example ensure + create pattern:
 gh label list --json name --jq '.[].name' | grep -Fxq "$NAME" \
   || gh label create "$NAME" --color "${COLOR#\#}" --description "$DESC"
 
-# Linked (default):
+# Linked Task (no practicality):
+gh issue create --title "..." --body-file /tmp/issue.md --label "severity:low" --label "cost:medium" --type Task
+
+# Bug with defect path:
 gh issue create --title "..." --body-file /tmp/issue.md --label "severity:high" --label "practicality:high" --label "cost:cheap" --type Bug
 
 # Sub-issue of parent 42:
-gh issue create --title "..." --body-file /tmp/issue.md --label "severity:high" --label "practicality:high" --label "cost:cheap" --type Task --parent 42
+gh issue create --title "..." --body-file /tmp/issue.md --label "severity:low" --label "cost:cheap" --type Task --parent 42
 ```
 
 (`--type` requires org Issue Types configured; if it fails, report clearly — provisioning types is out of skill scope.)
@@ -178,7 +213,7 @@ Bug | Security | Feature | Task | Discussion | Refactoring
 ## Triage
 
 - **severity:** …
-- **practicality:** … (path or “seen-in-the-wild” evidence)
+- **practicality:** … (path / seen-in-the-wild evidence) **or** `n/a (no defect path)`
 - **cost:** … (cheap | medium | expensive)
 
 ## Problem
@@ -205,13 +240,14 @@ Return:
 
 - the created issue URL (or “skipped GitHub writes” plus the draft title/body)
 - the selected org issue type
-- the attached labels
+- the attached labels (note when practicality was omitted)
 - the relation applied (`sub-of #<issue_number>` or `linked`), and whether `--parent` fell back to linked
 
 ## Guardrails
 
 - Do not commit or push unless asked.
 - Never rewrite/patch code; only create an issue (and allowlisted labels if missing).
+- Do not default every issue to `severity:medium` + `practicality:high`.
 - If correctness is unclear or the user provided no actionable content, ask a single follow-up question instead of
   creating a low-quality issue.
 - If label create fails due to permissions, stop attaching that label path, explain, and still offer the draft.

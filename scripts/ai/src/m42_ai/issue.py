@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from m42_ai.gh import GhError, run_gh, run_git, repo_owner_name
+from m42_ai.gh import GhError, repo_owner_name, run_gh, run_git
 
 LABEL_SPECS: dict[str, tuple[str, str]] = {
     "severity:blocker": ("B60205", "Blocks merge / data loss / broken contract"),
@@ -127,11 +127,7 @@ def create_issue(
             # Only fall back when no issue URL was produced. Parent attach can fail
             # after create; URL is often on stdout while stderr explains the error —
             # GhError keeps both streams so we do not open a second issue.
-            maybe = (
-                _extract_issue_url(exc.stdout)
-                or _extract_issue_url(exc.stderr)
-                or _extract_issue_url(str(exc))
-            )
+            maybe = _extract_issue_url(exc.stdout) or _extract_issue_url(exc.stderr) or _extract_issue_url(str(exc))
             if maybe:
                 return _result(
                     url=maybe,
@@ -285,9 +281,7 @@ def issue_start(
     root = cwd or Path.cwd()
     ensured = ensure_issue_branch(issue=issue, slug=slug, base=base, cwd=root)
     if int(ensured["ahead"]) == 0:
-        raise RuntimeError(
-            f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)"
-        )
+        raise RuntimeError(f"no commits ahead of {base}; commit real work before issue-start (no empty bootstrap)")
 
     run_git(["push", "-u", "origin", "HEAD"], cwd=root)
 

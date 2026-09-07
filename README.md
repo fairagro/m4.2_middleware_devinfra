@@ -94,6 +94,8 @@ steps.
 - [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks / LFS install (wired from
   postCreate)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
+- [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
+  extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
 - [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
 - [Issue-fixer](docs/issue-fixer.md) — explore → draft PR → local implement for `/issue-fixer`
@@ -107,6 +109,7 @@ steps.
 | `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                      |
 | `docs/`                                   | Feature documentation (grows over time)                                        |
 | `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                      |
+| `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)     |
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                 |
 | `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                 |
 | `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                  |

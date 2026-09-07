@@ -31,7 +31,7 @@ Dev Container token store and `scripts/bin/gh` wrapper are optional and DC-only.
 | `review-reply`                  | `in_reply_to` on a review comment, or `--conversation` PR comment                     |
 | `review-resolve --thread-id ID` | `resolveReviewThread`                                                                 |
 | `issue-view --issue N`          | Stable triage JSON (type, labels, body, url, triage:\* extract)                       |
-| `issue-create`                  | Type + triage labels (+ optional `--parent`)                                          |
+| `issue-create`                  | Type + severity/cost (+ optional `--practicality`, `--parent`)                        |
 | `issue-branch --issue N`        | Ensure `issue-N-slug` checked out from base (no commit / push / PR)                   |
 | `branch-ahead`                  | JSON ahead count vs `origin/<base>`; exit `1` when tip is not ahead                   |
 | `issue-start --issue N`         | Ensure branch, push when ahead of base, draft PR with `Fixes #N` (no empty commit)    |

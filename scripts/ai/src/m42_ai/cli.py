@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from m42_ai import __version__
 from m42_ai.auth import auth_status
@@ -77,7 +78,9 @@ def cmd_review_resolve(args: argparse.Namespace) -> int:
 
 def cmd_issue_create(args: argparse.Namespace) -> int:
     body = _read_body(args)
-    labels = [args.severity, args.practicality, args.cost]
+    labels = [args.severity, args.cost]
+    if args.practicality:
+        labels.insert(1, args.practicality)
     data = create_issue(
         title=args.title,
         body=body,
@@ -176,7 +179,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     ic = sub.add_parser("issue-create", help="Create an issue with org type + triage labels")
     ic.add_argument("--title", required=True)
-    ic.add_argument("--type", required=True, choices=["Bug", "Security", "Feature", "Task", "Discussion", "Refactoring"])
+    ic.add_argument(
+        "--type", required=True, choices=["Bug", "Security", "Feature", "Task", "Discussion", "Refactoring"]
+    )
     ic.add_argument(
         "--severity",
         required=True,
@@ -189,7 +194,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ic.add_argument(
         "--practicality",
-        required=True,
+        required=False,
+        default=None,
         choices=[
             "practicality:high",
             "practicality:medium",
@@ -197,6 +203,7 @@ def build_parser() -> argparse.ArgumentParser:
             "practicality:none",
             "practicality:seen-in-the-wild",
         ],
+        help="Optional; omit for Feature/Task/etc. with no defect path",
     )
     ic.add_argument(
         "--cost",

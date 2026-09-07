@@ -173,13 +173,9 @@ Not every path has the same bar. Classify the touched surface **before** step 5,
 accordingly. Finders may still comment; the fixer must not treat agent plumbing or shared Devinfra scripts like product
 middleware.
 
-| Surface                           | Typical paths                                                                 | Bar (what must work)                                                            | Default for exotic edge cases         |
-| --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------- |
-| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state                    | Full: real callers, contracts, security, data integrity                         | Fix when correct + in PR              |
-| **Shared Devinfra scripts**       | `scripts/` except `scripts/ai/` (quality, CST, tokens, Dev Container helpers) | Documented Dev Container + contributor/CI path (e.g. `quality-check.sh`, hooks) | `dismiss` (practicality Low)          |
-| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.                   | Happy path in the Linux Dev Container with normal skill/CLI args                | `dismiss` (practicality Low)          |
-| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts                             | Supported cadence runnable as written; fail bars match reality                  | **Low**/dismiss unless cadence breaks |
-| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                                      | Do not hand-edit; pin/update via install                                        | `dismiss` drive-by edits              |
+**Path map:** default rows are in [`docs/surface-quality-bar.global.md`](surface-quality-bar.global.md) (synced — do not
+hand-edit). Product repos MAY add rows in local [`docs/surface-quality-bar.md`](surface-quality-bar.md); sync of the
+`.global.md` file does not overwrite that overlay. Do not edit this policy file solely to add a path→surface row.
 
 For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
 Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
