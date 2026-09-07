@@ -3,7 +3,7 @@
 ## Context
 
 See proposal.md — Why. Explore lock-in for issue #39: **A1** rename capability to `shared-git-hooks`; **B1**
-`setup-git-hooks.sh` + stub at old name; **C1** delete LFS `post-*` hooks; **D1** drop `git-lfs` from shared image.
+`setup-git-hooks.sh` only (old name deleted); **C1** delete LFS `post-*` hooks; **D1** drop `git-lfs` from shared image.
 sql-to-arc still needs LFS → product-local install after sync (not thin `devcontainer.json` alone).
 
 ## Goals / Non-Goals
@@ -11,7 +11,7 @@ sql-to-arc still needs LFS → product-local install after sync (not thin `devco
 **Goals:**
 
 - Shared happy path: no LFS dependency; pre-push still runs pre-commit pre-push (pytest/CST as configured)
-- Clear sync migration: new script name + stub; docs for product-local LFS
+- Clear sync migration: new script name (old path deleted); docs for product-local LFS
 
 **Non-Goals:**
 
@@ -31,9 +31,8 @@ main spec at archive. Avoid keeping a misleading `*-lfs` capability name.
 | Path                         | Role                                                                  |
 | ---------------------------- | --------------------------------------------------------------------- |
 | `scripts/setup-git-hooks.sh` | Copy `scripts/git-hooks/pre-push` → `.git/hooks/`; no `git-lfs` check |
-| `scripts/setup-git-lfs.sh`   | Stub: print rename guidance, exec or exit directing to new script     |
 
-Stub keeps old sync paths from failing silently into “must have LFS”.
+`scripts/setup-git-lfs.sh` is **removed** (not a stub). Sync/#13 notes the rename for product adopters.
 
 ### D3 — Hooks (C1)
 
@@ -53,9 +52,9 @@ not ship LFS.
 
 ## Risks / Trade-offs
 
-- [sql-to-arc breaks until product installs LFS] → Mitigation: sync note + stub; follow-up on product via #13
-- [Old clones keep LFS hooks in `.git/hooks`] → Mitigation: re-run setup script / rebuild container
-- [Stub forever] → Acceptable until sync adopts new name; may remove stub in a later cleanup
+- [Sync list forgets to rename installer] → Mitigation: docs + #13; old `setup-git-lfs.sh` deleted so missing script
+  fails loudly
+- [Old clones keep LFS hooks in `.git/hooks`] → Mitigation: re-run `setup-git-hooks.sh` / rebuild container
 
 ## Migration Plan
 

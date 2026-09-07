@@ -89,9 +89,9 @@ else
   echo "WARNING: pre-commit not available after uv sync" >&2
 fi
 
-# ── Git LFS + project pre-push hooks ─────────────────────────────────────────
-echo "==> Install Git LFS hooks"
-bash "${script_dir}/setup-git-lfs.sh"
+# ── Project pre-push git hooks ───────────────────────────────────────────────
+echo "==> Install project git hooks"
+bash "${script_dir}/setup-git-hooks.sh"
 
 # ── public GPG keys (SOPS encrypt / recipient checks) ────────────────────────
 echo "==> Import public GPG keys (if present)"

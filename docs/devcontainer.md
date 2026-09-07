@@ -69,6 +69,10 @@ Shared fragments must **not** hardcode another product’s folder or volume name
 (and their extensions) **replace or supplement** prior product markdown format/lint setups. Prefer
 `signageos.signageos-vscode-sops` (Open VSX / Cursor) over `shipitsmarter.sops-edit`.
 
+**Git LFS** is not part of the shared image. Products that need it (e.g. sql-to-arc) install `git-lfs` in a
+**product-owned** path that sync of the shared Dockerfile does not overwrite (e.g. product postCreate snippet or a
+non-synced local fragment).
+
 ## Markdown (format + lint)
 
 | Tool                                                       | Role                                                                                     | VS Code / Cursor extension             |
@@ -140,7 +144,7 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
 - `uv sync` when `pyproject.toml` exists
 - `pre-commit install --hook-type pre-commit`
-- `./scripts/setup-git-lfs.sh` (LFS + project pre-push hooks)
+- `./scripts/setup-git-hooks.sh` (project pre-push quality hook; no Git LFS)
 - import `public_gpg_keys/*.asc` when present (skip if absent)
 - soft-fail install of recommended IDE extensions via Cursor/VS Code remote CLI (shared product set: Docker/Helm/
   Python/Ruff/Pylint/Mypy, PlantUML, signageos SOPS, Prettier, markdownlint, … — same list as `devcontainer.json`)

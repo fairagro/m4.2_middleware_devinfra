@@ -11,20 +11,13 @@ stage) after clone or Dev Container create, without requiring Git LFS.
 
 The repository MUST provide `scripts/setup-git-hooks.sh` that, from a git worktree, copies `scripts/git-hooks/pre-push`
 into `.git/hooks/pre-push` as an executable file when the source exists. The script MUST NOT require `git-lfs` on `PATH`
-and MUST NOT run `git lfs install`. The repository MAY provide `scripts/setup-git-lfs.sh` as a thin stub that directs
-callers to `setup-git-hooks.sh` (MUST NOT reintroduce a shared LFS install requirement).
+and MUST NOT run `git lfs install`. The repository MUST NOT ship `scripts/setup-git-lfs.sh`.
 
 #### Scenario: Contributor runs setup-git-hooks
 
 - **WHEN** a contributor runs `./scripts/setup-git-hooks.sh` in a clone
 - **THEN** `.git/hooks/pre-push` is installed from `scripts/git-hooks/pre-push`
 - **AND** the script succeeds without `git-lfs` on `PATH`
-
-#### Scenario: Legacy setup-git-lfs stub
-
-- **WHEN** a contributor runs `./scripts/setup-git-lfs.sh` after this change
-- **THEN** they are directed to use `./scripts/setup-git-hooks.sh`
-- **AND** the stub does not require installing Git LFS for the shared hooks path
 
 ### Requirement: pre-push runs pre-commit pre-push stage only
 
