@@ -4,17 +4,26 @@ version = "0.0.0"
 description = "Shared Devinfra tooling pins and scripts (not a product middleware package)"
 # Compatible range only — exact interpreter pin is versions.env → `.python-version` (do not re-pin here).
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "m42-ai-gh",
+]
 
 [dependency-groups]
 dev = [
   "pre-commit>=4.0.0",
   "ggshield>=1.43.0",
   "ruff>=0.15.0",
+  "pytest>=8.0",
 ]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = ["scripts/ai"]
+
+[tool.uv.sources]
+m42-ai-gh = { workspace = true }
 
 # No ruff target-version / mypy python_version pins — those would drift from versions.env.
 # Ruff infers from requires-python; mypy uses the running interpreter (uv + `.python-version`).
@@ -24,3 +33,6 @@ default-groups = ["dev"]
 
 [tool.mypy]
 pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["scripts/ai/tests"]

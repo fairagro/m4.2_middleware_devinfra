@@ -9,14 +9,16 @@ code.
 
 ### Requirement: CLI package under scripts/ai
 
-The repository MUST provide a Python CLI under `scripts/ai/` runnable with `uv` (e.g.
-`uv run --project scripts/ai m42-ai …`). Runtime MUST use `gh` (and `git` where needed) from `PATH` for auth and
-GitHub/git operations — MUST NOT introduce a second credential model. Host-environment policy (Linux Dev Container / GHA
-Linux) MUST remain outside the CLI (fixer policy only).
+The repository MUST provide a Python CLI under `scripts/ai/` as a **uv workspace member** of the repo-root
+`pyproject.toml` (editable install into the root `.venv` via `uv sync`). Agents MUST be able to run it with `uv` from
+the repo root as `uv run m42-ai …` (equivalent: `uv run --project scripts/ai m42-ai …`). Runtime MUST use `gh` (and
+`git` where needed) from `PATH` for auth and GitHub/git operations — MUST NOT introduce a second credential model.
+Host-environment policy (Linux Dev Container / GHA Linux) MUST remain outside the CLI (fixer policy only).
 
 #### Scenario: Agent invokes review-open
 
-- **WHEN** an agent runs `uv run --project scripts/ai m42-ai review-open --pr <n>`
+- **WHEN** an agent runs `uv run m42-ai review-open --pr <n>` (or
+  `uv run --project scripts/ai m42-ai review-open --pr <n>`)
 - **THEN** the CLI performs one GraphQL fetch via `gh` and prints shaped JSON to stdout
 - **AND** it does not prompt for a separate token store
 
@@ -166,6 +168,6 @@ Unit tests MUST cover JSON shaping/filtering with recorded fixtures and MUST NOT
 
 #### Scenario: pytest uses fixtures only
 
-- **WHEN** `uv run --project scripts/ai --extra dev pytest` runs in CI
+- **WHEN** `uv run pytest` runs in CI (tests under `scripts/ai/tests`)
 - **THEN** shaping tests pass using checked-in fixtures
 - **AND** no network GitHub API is required for those tests

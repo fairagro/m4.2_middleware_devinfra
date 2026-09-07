@@ -40,8 +40,8 @@ do not invent them. Never ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status`). If auth works,
-   continue with fetch / branch / PR as usual.
+3. After they confirm, retry `uv run m42-ai auth-status` (or `gh auth status`). If auth works, continue with fetch /
+   branch / PR as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print intended branch/PR drafts, and may still work
    locally when appropriate.
 
@@ -50,7 +50,7 @@ do not invent them. Never ask the user to paste a PAT into chat.
 1. Prefer the CLI for a stable shape:
 
    ```bash
-   uv run --project scripts/ai m42-ai issue-view --issue <issue_number>
+   uv run m42-ai issue-view --issue <issue_number>
    ```
 
    Use `issue_type`, `labels`, `triage`, `body`, and `url` from that JSON (fall back to `gh issue view` only if the CLI
@@ -98,7 +98,7 @@ On every run that will implement, after explore (when it ran) or immediately whe
 1. **Create the issue branch first** from `main` via CLI when possible:
 
    ```bash
-   uv run --project scripts/ai m42-ai issue-branch --issue <issue_number> [--slug <slug>]
+   uv run m42-ai issue-branch --issue <issue_number> [--slug <slug>]
    ```
 
    Do **not** commit, push, or open a draft PR yet. If already on the correct issue branch, skip creating it again.
@@ -152,7 +152,7 @@ on the issue branch and the user can commit during the spec-review pause. That s
 is `main`. Prefer the plumbing CLI when the tree is clean and the tip is already ahead of `main`:
 
 ```bash
-uv run --project scripts/ai m42-ai issue-start --issue <issue_number> [--slug <slug>]
+uv run m42-ai issue-start --issue <issue_number> [--slug <slug>]
 ```
 
 `issue-start` ensures branch `issue-<issue_number>-<slug>` (checkout/create from `main` if needed), refuses when there
@@ -167,7 +167,7 @@ is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a 
 immediately with:
 
 ```bash
-uv run --project scripts/ai m42-ai pr-strip-footer --pr <pr_number>
+uv run m42-ai pr-strip-footer --pr <pr_number>
 ```
 
 Manual equivalent if the CLI is unavailable:
@@ -236,10 +236,10 @@ Match the **Surface quality bar** in [`docs/ai_review_policy.md`](../../../docs/
 environment in [`openspec/principles.global.md`](../../../openspec/principles.global.md). This applies to explore
 lock-ins, OpenSpec design/tasks, and `/opsx-apply` — not only to review triage.
 
-| Surface | Implement | Do **not** implement unless the issue done-when explicitly requires it |
-| ------- | --------- | ---------------------------------------------------------------------- |
+| Surface                                             | Implement                                                                                                | Do **not** implement unless the issue done-when explicitly requires it                                                                                                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Shared Devinfra** `scripts/` except `scripts/ai/` | Documented Linux Dev Container + contributor/CI happy path (normal clone, tools on `PATH` as documented) | Linked git worktrees (`.git` as file), host Homebrew/apt auto-install, macOS/Windows/BSD userland, dual host token stores, legacy format parsers, speculative repair/`bashrc` branches, other exotic layouts |
-| **Agent plumbing** `scripts/ai/` + skill/CLI wiring | Default skill/CLI invocation in the Dev Container | Adversarial/partial argparse, host-only `PATH` fallbacks, wording-only polish |
+| **Agent plumbing** `scripts/ai/` + skill/CLI wiring | Default skill/CLI invocation in the Dev Container                                                        | Adversarial/partial argparse, host-only `PATH` fallbacks, wording-only polish                                                                                                                                |
 
 **Hard rule:** for those surfaces, prefer the **simplest** happy-path contract. Do not expand design/tasks with “also
 support worktrees / host X / legacy Y”. If that work is real but out of done-when, split via `/create-issue`

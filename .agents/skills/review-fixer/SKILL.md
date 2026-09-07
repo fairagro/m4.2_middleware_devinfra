@@ -82,8 +82,8 @@ do not invent them. Never ask the user to paste a PAT into chat.
 
    Then reply here when done (or decline).
 
-3. After they confirm, retry `uv run --project scripts/ai m42-ai auth-status` (or `gh auth status` / the GraphQL fetch).
-   If auth works, continue with fetch / replies / resolves as usual.
+3. After they confirm, retry `uv run m42-ai auth-status` (or `gh auth status` / the GraphQL fetch). If auth works,
+   continue with fetch / replies / resolves as usual.
 4. Only if they decline or auth still fails: skip GitHub writes, print the intended replies/resolves, and stop that
    part. Still apply local code fixes when triage says `fix`.
 
@@ -92,9 +92,9 @@ do not invent them. Never ask the user to paste a PAT into chat.
 **Start from the CLI** (do not dump raw GraphQL into context):
 
 ```bash
-uv run --project scripts/ai m42-ai review-open --pr PR
+uv run m42-ai review-open --pr PR
 # optional, when the user gave /pull/N#pullrequestreview-ID:
-uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
+uv run m42-ai review-open --pr PR --review-id ID
 ```
 
 The JSON already filters to unresolved AI threads and **summary-only findings from every AI review body**
@@ -218,10 +218,10 @@ On nit fixes only, append a plain line: `nit-lines this run: N` (budget tracking
 Prefer the CLI (auth still via `scripts/bin/gh` / `GH_TOKEN`):
 
 ```bash
-uv run --project scripts/ai m42-ai review-reply --pr PR --in-reply-to COMMENT_DATABASE_ID --body-file /tmp/reply.md
-uv run --project scripts/ai m42-ai review-resolve --thread-id THREAD_NODE_ID
+uv run m42-ai review-reply --pr PR --in-reply-to COMMENT_DATABASE_ID --body-file /tmp/reply.md
+uv run m42-ai review-resolve --thread-id THREAD_NODE_ID
 # summary-only / suppressed:
-uv run --project scripts/ai m42-ai review-reply --pr PR --conversation --body-file /tmp/reply.md
+uv run m42-ai review-reply --pr PR --conversation --body-file /tmp/reply.md
 ```
 
 ## Follow-up issue

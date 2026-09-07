@@ -102,6 +102,7 @@ steps.
 
 | Path                                      | Role                                                                           |
 | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                      |
 | `docs/`                                   | Feature documentation (grows over time)                                        |
 | `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                      |
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                 |
@@ -116,7 +117,7 @@ steps.
 | `scripts/git-hooks/`                      | pre-push (LFS + pre-commit) + LFS post-* hooks                                 |
 | `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                          |
 | `.bandit`                                 | Bandit config for `middleware/` consumers                                      |
-| `scripts/ai/`                             | `m42-ai` CLI (auth, review, issue-view/branch/start, pr-strip-footer)          |
+| `scripts/ai/`                             | `m42-ai` CLI (uv workspace member; `uv run m42-ai`)                            |
 | `openspec/principles.global.md`           | Shared principles base (synced; do not diverge in consumers)                   |
 | `openspec/principles.md`                  | Repo-local principles extension (points at `.global`)                          |
 | `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                             |

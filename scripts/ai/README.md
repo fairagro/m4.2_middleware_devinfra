@@ -2,20 +2,25 @@
 
 Small Python CLI for deterministic GitHub/git work used by `/review-fixer`, `/create-issue`, and `/issue-fixer`.
 
+Workspace member of the repo-root [`pyproject.toml`](../../pyproject.toml) (`tool.uv.workspace` → `scripts/ai`). After
+`uv sync` at the repo root, `m42_ai` is editable in `.venv` so the IDE can resolve imports when that interpreter is
+selected.
+
 ## Run
 
-From a clone of this repo (or another git checkout where `gh` can resolve the GitHub remote). Works on a **host** or in
-the Dev Container. Auth is whatever `gh` on your `PATH` uses (`GH_TOKEN` / `gh auth`) — the Dev Container token store
-and `scripts/bin/gh` wrapper are optional and DC-only. `--project` may point at this package from any path; GitHub
-commands still need a repo context (`gh` cwd / remotes), unless you pass `--owner` / `--repo` where the command supports
-them:
+From the **repo root** (preferred):
 
 ```bash
-uv run --project scripts/ai m42-ai --help
-uv run --project scripts/ai m42-ai review-open --pr 22
+uv sync
+uv run m42-ai --help
+uv run m42-ai review-open --pr 22
 ```
 
-Auth: uses `gh` on `PATH` (Dev Container: `scripts/bin/gh` + `GH_TOKEN`). No second credential model.
+Equivalent (still supported): `uv run --project scripts/ai m42-ai …`.
+
+Works on a **host** or in the Dev Container. Auth is whatever `gh` on your `PATH` uses (`GH_TOKEN` / `gh auth`) — the
+Dev Container token store and `scripts/bin/gh` wrapper are optional and DC-only. GitHub commands need a repo context
+(`gh` cwd / remotes), unless you pass `--owner` / `--repo` where the command supports them.
 
 ## Commands
 
@@ -34,8 +39,10 @@ Auth: uses `gh` on `PATH` (Dev Container: `scripts/bin/gh` + `GH_TOKEN`). No sec
 
 ## Tests
 
+From the repo root (pytest configured in root `pyproject.toml`):
+
 ```bash
-uv run --project scripts/ai pytest
+uv run pytest
 ```
 
 Fixtures only — no live GitHub in CI.

@@ -34,7 +34,7 @@ extensions: `practicality:seen-in-the-wild`, `cost:medium` (see the skill).
 
 Do **not** invent other triage label names in the skill. Free-text labels are forbidden.
 
-Prefer `uv run --project scripts/ai m42-ai issue-create …` (see [`scripts/ai/README.md`](../scripts/ai/README.md)).
+Prefer `uv run m42-ai issue-create …` (see [`scripts/ai/README.md`](../scripts/ai/README.md)).
 
 ## Relation: sub-of vs linked
 
