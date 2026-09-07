@@ -39,9 +39,10 @@ applies the same vendor excludes.
 ## Quality (pre-commit)
 
 Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md). Includes syncable Python
-quality fragments (`ruff.toml`, `mypy.ini`, `.pylintrc`). Needs `uv` (and, for the markdownlint hook, Node/`npm`: Dev
-Container has them global; on a host clone run `npm install` once). Prefer `uv run pre-commit …` so the tool need not be
-on `PATH`:
+quality fragments (`ruff.toml`, `mypy.ini`, `.pylintrc`). IDE, hooks, and GitHub CI must use those shared configs and
+produce matching gate outcomes ([environment parity](docs/quality.md#environment-parity-ide-hooks-ci)). Needs `uv` (and,
+for the markdownlint hook, Node/`npm`: Dev Container has them global; on a host clone run `npm install` once). Prefer
+`uv run pre-commit …` so the tool need not be on `PATH`:
 
 ```bash
 uv sync

@@ -100,6 +100,8 @@ jobs:
         env:
           PKG: ${{ inputs.python_package_root }}
         run: |
+          # Log all severities; fail only on MEDIUM/HIGH (hooks use -ll for the same fail bar).
+          # Severity gate is CLI: `.bandit` has no fail-on-severity key (see docs/quality.md).
           uv run bandit -r "${PKG}" -c .bandit -f json -o bandit-report.json --exit-zero
           python3 <<'PY'
           import json, sys

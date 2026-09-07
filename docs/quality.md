@@ -22,6 +22,38 @@ Supported day-to-day development remains the Linux Dev Container ([principles](.
 checkouts may run the **host-or-DC** scripts above; they do not get the personal-token store or PATH wrappers — use
 tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth` as you prefer.
 
+## Environment parity (IDE, hooks, CI)
+
+Shared quality tools must agree across three surfaces for the same tree and toolchain pins (`versions.env` / `uv sync` /
+Node as documented):
+
+| Environment   | How it runs                                                                   | Config source                                |
+| ------------- | ----------------------------------------------------------------------------- | -------------------------------------------- |
+| **IDE**       | [`.vscode/settings.json`](../.vscode/settings.json) + recommended extensions  | Same fragment / config files as hooks and CI |
+| **Hooks**     | pre-commit (commit) / pre-push stage; `./scripts/quality-check.sh`            | `.pre-commit-config.yaml` → shared configs   |
+| **GitHub CI** | [`reusable-code-quality.yml`](../.github/workflows/reusable-code-quality.yml) | Same shared configs                          |
+
+**Matching results** means the same pass/fail gate and the same policy findings (rule id + location). Log formatting may
+differ (IDE diagnostics vs CLI).
+
+**Minimal CLI / IDE args:** pass only the config-file path (when the tool does not auto-discover it), target paths, and
+documented product path overlays (`MYPYPATH`, pylint `--source-roots`). Do not restate line length, rule selects, ignore
+lists, or similar policy on the command line when the shared config file already defines them.
+
+| Tool                    | IDE                                              | Hooks             | CI                              | Notes                                                               |
+| ----------------------- | ------------------------------------------------ | ----------------- | ------------------------------- | ------------------------------------------------------------------- |
+| Ruff format/lint        | yes (`ruff.toml`)                                | yes               | yes                             | Primary IDE Python lint/format                                      |
+| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension) | yes               | via commit-stage / docs scripts | Shared `.markdownlint*` + Prettier                                  |
+| Mypy                    | **hooks + CI only**                              | yes (`mypy.ini`)  | yes                             | No shared IDE mypy settings — do not add a second config            |
+| Pylint                  | **hooks + CI only**                              | yes (`.pylintrc`) | yes                             | Same as Mypy                                                        |
+| Bandit                  | **hooks + CI only**                              | yes (`.bandit`)   | yes                             | Medium/high fail; see Bandit note below                             |
+| pytest                  | IDE discovers tests where configured             | pre-push          | yes                             | Product `middleware/` vs Devinfra `scripts/ai` paths differ by repo |
+
+**Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks and CI use Bandit’s `-ll` (report
+MEDIUM+) so LOW findings can still be logged in CI without failing the gate, matching
+[principles Code Quality](../openspec/principles.global.md#code-quality). Do not reintroduce a second severity policy
+only on one surface.
+
 ## Files
 
 | Path                                                | Role                                                                                         |
@@ -74,6 +106,10 @@ points the Python extension at the root `.venv` from `uv sync`, configures Ruff 
 discovers `scripts/ai` tests, and sets Prettier as default formatter for Markdown/JSON/YAML. Product repos should keep
 the same interpreter/Ruff/Prettier contract and add local `python.analysis.extraPaths` (and Helm/SOPS associations) for
 their `middleware/` packages — do not copy product-only paths back into this file.
+
+Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
+[Environment parity](#environment-parity-ide-hooks-ci)) — do not add product-local IDE settings that invent a second
+config for those tools.
 
 ### Commit stage
 
