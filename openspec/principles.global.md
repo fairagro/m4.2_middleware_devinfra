@@ -24,7 +24,7 @@ and scaling notes live in the local `principles.md` (or product capability specs
   quality bar**: product / domain code must hold contracts real callers hit; **shared Devinfra scripts** (`scripts/`
   except agent CLI) are judged on the documented Dev Container / contributor / CI happy path; **agent plumbing**
   (`scripts/ai/`, skill wiring) on the default skill/CLI happy path — not every exotic edge case (see
-  `docs/ai_review_policy.md` Surface quality bar).
+  `docs/ai_review_policy.md` Surface quality bar and `docs/surface-quality-bar.global.md`).
 
 ---
 

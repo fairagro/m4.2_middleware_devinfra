@@ -161,14 +161,15 @@ Decision order (stop at first match) — same as the policy:
    feature)
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
    nit-budget). **Except** agent-plumbing / shared Devinfra scripts / docs / vendor surfaces: apply the **surface
-   quality bar** in `docs/ai_review_policy.md` first — exotic CLI/host edges and wording nits are practicality Low → not
-   step 5. **Docs / comment-only** inaccuracies that do not break the supported cadence are severity **Low** (never
-   Medium via “misleads operators”) → nit or dismiss, not Fixed non-nit.
+   quality bar** ([rules](../../../docs/ai_review_policy.md#surface-quality-bar-fixer-triage),
+   [path map](../../../docs/surface-quality-bar.global.md)) first — exotic CLI/host edges and wording nits are
+   practicality Low → not step 5. **Docs / comment-only** inaccuracies that do not break the supported cadence are
+   severity **Low** (never Medium via “misleads operators”) → nit or dismiss, not Fixed non-nit.
 6. Else nit:
    - **First:** if the finding is an **exotic edge** on shared Devinfra `scripts/` (except `scripts/ai/`), agent
      plumbing, docs wording, or vendor skills — `dismiss` (practicality Low). **Nit-budget does not override** the
      surface quality bar (e.g. linked git worktrees, host-only installs, BSD/`base64` quirks). See
-     `docs/ai_review_policy.md`.
+     `docs/ai_review_policy.md` and `docs/surface-quality-bar.global.md`.
    - Cheap + prior PR nit spend + this run’s nit lines still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the previous fixer pass introduced → `fix` if cheap (counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only when expensive or practicality is not High)
