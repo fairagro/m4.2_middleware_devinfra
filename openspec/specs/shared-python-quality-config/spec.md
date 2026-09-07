@@ -22,14 +22,17 @@ and MUST NOT encode Devinfra-only package layout as the sole target in a way tha
 ### Requirement: Shared Mypy fragment exists
 
 The repository MUST provide a shared Mypy config file at a documented root-relative path that products can sync.
-Product-specific path overrides (e.g. extra `mypy_path` entries) MAY remain documented as local overlays; the shared
-file MUST be usable for type-checking `middleware/` in product checkouts after sync.
+Product-specific path overrides MUST be documented as product hook/CI env or args overlays (e.g. `MYPYPATH`, pylint
+`--source-roots`), not as `[tool.mypy]` / `[tool.pylint.*]` in product `pyproject.toml` when shared invocations use
+`--config-file mypy.ini` / `--rcfile .pylintrc`, and not as edits to the synced fragments. The shared file MUST be
+usable for type-checking `middleware/` in product checkouts after sync.
 
 #### Scenario: Shared mypy config targets middleware
 
 - **WHEN** a product adopts the shared Mypy fragment without replacing its root `[project]` / uv workspace
 - **THEN** Mypy can be run against `middleware/` using that fragment
-- **AND** adoption docs state what may stay product-local
+- **AND** adoption docs state that path overlays use product hook/CI env or args (not `pyproject` under
+  `--config-file`)
 
 ### Requirement: Shared Pylint fragment exists
 
@@ -46,12 +49,16 @@ policy (avoid duplicate noisy checks). It MUST be syncable into product repos at
 Documentation in this repository MUST list the fragment files in the sync set, state that product root `pyproject.toml`
 keeps `[project]`, uv workspace, and (unless later unified) pytest/coverage locally, and state that
 `scripts/ai/pyproject.toml` is Devinfra `m42-ai` package metadata and MUST NOT be treated as product quality sync
-content. Documentation MUST state that Dockerfile sharing is out of this capability’s MVP and point at the follow-up
-issue. Documentation MUST state that first product adoption smoke may happen via sync (#13) rather than in this change.
+content. Documentation MUST state that Mypy/Pylint path overlays belong on product hook/CI env or args because shared
+invocations use `--config-file mypy.ini` / `--rcfile .pylintrc` (so product `[tool.mypy]` / `[tool.pylint.*]` are
+ignored), and MUST NOT instruct editing synced fragments for those paths. Documentation MUST state that Dockerfile
+sharing is out of this capability’s MVP and point at the follow-up issue. Documentation MUST state that first product
+adoption smoke may happen via sync (#13) rather than in this change.
 
 #### Scenario: Contributor reads quality docs for fragments
 
 - **WHEN** a contributor opens the quality documentation for shared Python config
 - **THEN** they learn which fragment paths to sync
 - **AND** they learn what remains in product `pyproject.toml`
+- **AND** they learn path overlays for Mypy/Pylint go on product hook/CI env or args
 - **AND** they learn `scripts/ai/pyproject.toml` is excluded from that sync set

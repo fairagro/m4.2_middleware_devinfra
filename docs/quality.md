@@ -28,8 +28,8 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `.pre-commit-config.yaml`                           | Commit-stage + pre-push hook skeleton                                                        |
 | `ruff.toml`                                         | Shared Ruff lint/format (product sync; not Devinfra `[project]`)                             |
-| `mypy.ini`                                          | Shared Mypy strictness (products add `mypy_path` locally)                                    |
-| `.pylintrc`                                         | Shared Pylint (products set `source-roots` locally)                                          |
+| `mypy.ini`                                          | Shared Mypy strictness (path overlays via `MYPYPATH` / hook env — see below)                 |
+| `.pylintrc`                                         | Shared Pylint (path overlays via `--source-roots` on hook/CI — see below)                    |
 | `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                      |
 | `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                      |
 | `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                          |
@@ -45,12 +45,17 @@ Product repos historically kept large `[tool.ruff]` / `[tool.mypy]` / `[tool.pyl
 Canonical copies live here as **fragment files** so sync (#13) can overwrite them without replacing product `[project]`
 / uv workspace sections.
 
-| Sync into products | Keep product-local                                     |
-| ------------------ | ------------------------------------------------------ |
-| `ruff.toml`        | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps |
-| `mypy.ini`         | `mypy_path` (and similar path overlays)                |
-| `.pylintrc`        | `source-roots`                                         |
-| `.bandit`          | pytest / coverage tool tables (unless later unified)   |
+| Sync into products | Keep product-local                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `ruff.toml`        | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps                                 |
+| `mypy.ini`         | Import-path overlays via product hook/CI **env** (e.g. `MYPYPATH`), not `pyproject`    |
+| `.pylintrc`        | Import-path overlays via product hook/CI **args** (e.g. `--source-roots=…`), not edit  |
+| `.bandit`          | pytest / coverage tool tables (unless later unified)                                   |
+
+Shared hooks and reusable CI invoke `mypy --config-file mypy.ini` and `pylint --rcfile .pylintrc`. Those flags mean
+product `[tool.mypy]` / `[tool.pylint.*]` in `pyproject.toml` are **ignored**. Do **not** put path overlays into the
+synced fragments either — sync (#13) overwrites them. Override on the **product** pre-commit entry/args or CI env
+instead (examples in `mypy.ini` / `.pylintrc` headers).
 
 **Not** in the product quality sync set: `scripts/ai/pyproject.toml` (Devinfra `m42-ai-gh` package manifest only).
 

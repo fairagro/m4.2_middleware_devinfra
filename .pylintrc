@@ -1,8 +1,10 @@
 # Shared Pylint config for m4.2 product repos (sync into product checkout root).
 # Aligned with shared ruff.toml (duplicate checks disabled).
 #
-# Product-local overlay: set source-roots for your middleware layout under [MAIN], e.g.:
-#   source-roots=middleware/api/src,middleware/shared/src,...
+# Product path overlay: do not edit this synced file (sync overwrites it). Shared hooks/CI
+# pass --rcfile .pylintrc, so [tool.pylint.*] in product pyproject.toml is ignored.
+# Add product-specific import roots on the product hook/CI invocation, e.g.:
+#   uv run pylint --rcfile .pylintrc --source-roots=middleware/api/src,middleware/shared/src middleware/
 
 [FORMAT]
 max-line-length=120
