@@ -91,8 +91,8 @@ applicable):
 - `uv run ruff check --config ruff.toml middleware/` — linting
 - `uv run mypy --config-file mypy.ini middleware/` — static type checking
 - `uv run pylint --rcfile .pylintrc middleware/` — style and code smells
-- `uv run bandit -r middleware/ -c .bandit -ll` — security (hooks: MEDIUM+ only via `-ll`). CI may omit `-ll` to log
-  LOW while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md`
+- `uv run bandit -r middleware/ -c .bandit -ll` — security (hooks: MEDIUM+ only via `-ll`). CI may omit `-ll` to log LOW
+  while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md`
 
 Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):

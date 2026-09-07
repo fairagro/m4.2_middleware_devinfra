@@ -78,6 +78,9 @@ Each comment **must** include:
   wording when the supported path is the Dev Container (tools already present or loaded via `uv run`).
 - **Config / YAML style-only** on shared Devinfra hooks (e.g. pre-commit `entry` vs `args` split, table path-prefix
   consistency) when the documented Dev Container or CI command still works.
+- **Docs / comment clarification** when the supported path and fail bar already work (e.g. explaining that CI logs LOW
+  while hooks use `-ll`, or aligning a comment with existing CI behaviour). Prefer silence unless the written command or
+  config path is wrong.
 - **Re-hardening an intentional happy-path simplification** (e.g. postCreate `bashrc` marker edge cases after the repo
   deliberately dropped exotic repair branches) — do not ask to restore speculative hardening.
 - **One-shot local migration / ephemeral developer state:** a format or file that exists only on one machine or volume
@@ -119,7 +122,9 @@ Stop at the first matching step.
 5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
    **no** new abstraction → `fix`. Nit-budget does not defer these (any review round). Apply the
    [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing and
-   shared-Devinfra-script exotic / host-only / wording nits are Low, not step 5.
+   shared-Devinfra-script exotic / host-only / wording nits are Low, not step 5. **Docs / comment-only** findings are
+   **Low** (see [Severity](#severity-pick-the-first-match-do-not-upgrade-on-vibe)) unless the wrong text breaks the
+   supported cadence — they never become step 5 via “misleads operators”.
 6. **Nit.** Otherwise treat as a nit:
    - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
@@ -131,14 +136,19 @@ If the cheaper fix is unclear, default to `dismiss` rather than adding a layer.
 
 ## Severity (pick the first match; do not upgrade on vibe)
 
-| Level       | When (any one)                                                                                                                                                                                        |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Blocker** | Wrong domain result; data loss or silent overwrite; broken HTTP/API or documented contract; secret/credential in logs or persistence; documented race that can clobber a document or equivalent state |
-| **High**    | Error swallowed (empty `except`, success status on failure); idempotency / conflict handling wrong; authz/ownership bypass; resource leak on a hot path                                               |
-| **Medium**  | New behaviour with no test; error path that misleads operators; duplication that will diverge                                                                                                         |
-| **Low**     | Naming, comments, extra abstraction, defensive check inside already-validated data, micro-DRY                                                                                                         |
+| Level       | When (any one)                                                                                                                                                                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Blocker** | Wrong domain result; data loss or silent overwrite; broken HTTP/API or documented contract; secret/credential in logs or persistence; documented race that can clobber a document or equivalent state                                                                         |
+| **High**    | Error swallowed (empty `except`, success status on failure); idempotency / conflict handling wrong; authz/ownership bypass; resource leak on a hot path                                                                                                                       |
+| **Medium**  | New behaviour with no test; **runtime** error path that misleads operators (wrong exit status, success-on-failure logs, API/error payload); duplication that will diverge in code                                                                                             |
+| **Low**     | Naming, comments, extra abstraction, defensive check inside already-validated data, micro-DRY; **docs / OpenSpec / code-comment prose** that is inaccurate or contradictory but does **not** break the supported Dev Container / CI cadence or change the real pass/fail gate |
 
 If nothing matches Blocker/High/Medium → **Low**.
+
+**Do not upgrade docs to Medium.** “Misleads operators” means a **running system** lies to operators (exit code, log
+line, HTTP body) — not that a contributor reading `docs/` or a `#` comment might be confused. Inaccurate quality-doc
+wording (e.g. “hooks and CI both use `-ll`” when CI already implements the same fail bar differently) is **Low**. Fixers
+MUST NOT take step 5 or inflate **Fixed non-nit** solely for comment / docs clarification.
 
 ---
 
@@ -163,13 +173,13 @@ Not every path has the same bar. Classify the touched surface **before** step 5,
 accordingly. Finders may still comment; the fixer must not treat agent plumbing or shared Devinfra scripts like product
 middleware.
 
-| Surface                           | Typical paths                                                                 | Bar (what must work)                                                            | Default for exotic edge cases |
-| --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
-| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state                    | Full: real callers, contracts, security, data integrity                         | Fix when correct + in PR      |
-| **Shared Devinfra scripts**       | `scripts/` except `scripts/ai/` (quality, CST, tokens, Dev Container helpers) | Documented Dev Container + contributor/CI path (e.g. `quality-check.sh`, hooks) | `dismiss` (practicality Low)  |
-| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.                   | Happy path in the Linux Dev Container with normal skill/CLI args                | `dismiss` (practicality Low)  |
-| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts                             | Accurate instructions; no broken cadence                                        | `dismiss` wording-only nits   |
-| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                                      | Do not hand-edit; pin/update via install                                        | `dismiss` drive-by edits      |
+| Surface                           | Typical paths                                                                 | Bar (what must work)                                                            | Default for exotic edge cases         |
+| --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------- |
+| **Product / domain**              | `middleware/*/src/`, public APIs, workers, persisted state                    | Full: real callers, contracts, security, data integrity                         | Fix when correct + in PR              |
+| **Shared Devinfra scripts**       | `scripts/` except `scripts/ai/` (quality, CST, tokens, Dev Container helpers) | Documented Dev Container + contributor/CI path (e.g. `quality-check.sh`, hooks) | `dismiss` (practicality Low)          |
+| **Agent plumbing**                | `scripts/ai/`, skill/CLI wiring used by `/issue-fixer` etc.                   | Happy path in the Linux Dev Container with normal skill/CLI args                | `dismiss` (practicality Low)          |
+| **Docs / OpenSpec / entrypoints** | `docs/`, `openspec/`, `.cursor/commands`, prompts                             | Supported cadence runnable as written; fail bars match reality                  | **Low**/dismiss unless cadence breaks |
+| **Vendor skills**                 | `.agents/skills/{gh,docker,hadolint,uv}`                                      | Do not hand-edit; pin/update via install                                        | `dismiss` drive-by edits              |
 
 For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
 Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
@@ -182,8 +192,11 @@ mutate contrary to their contract).
 **Also dismiss** on this surface: pre-commit / shell **style-only** nits (`entry` vs `args`, comment polish) and
 **re-adding** exotic repair paths the PR intentionally removed, when the happy path still works.
 
-For **docs**, dismiss wording-only and host-prerequisite nits that do not break the Dev Container cadence; fix only when
-instructions are wrong for the supported path.
+For **docs**, dismiss wording-only and host-prerequisite nits that do not break the Dev Container cadence. When
+instructions are factually wrong but the **supported commands and fail bars still work** (wrong explanation of _how_ CI
+logs, intentional Bandit LOW visibility, comment polish in hooks YAML): severity stays **Low** → nit-budget or `dismiss`
+— **not** step 5. Escalate only when wrong docs would make the supported path fail (wrong command, wrong config path,
+cadence that cannot succeed as written).
 
 For **agent plumbing**, a realistic path is a **default skill invocation** (e.g. `issue-branch` / `issue-start` with
 `--base main`, `review-open --pr N`) — not adversarial argparse (`--base --all`), partial flag combinations, or
