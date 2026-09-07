@@ -1,11 +1,6 @@
-# shared-devcontainer-base Specification
+# shared-devcontainer-base Delta
 
-## Purpose
-
-Canonical shared Dev Container image, version pins, generic postCreate, and overlay docs so product repos keep only thin
-`devcontainer.json` overlays while the base toolchain lives in this Devinfra repo.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Shared Dev Container image and versions.env
 

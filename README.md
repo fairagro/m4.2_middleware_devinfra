@@ -50,12 +50,13 @@ npm install   # host clones; optional in Dev Container (global markdownlint/pret
 ./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
 uv run pre-commit install --hook-type pre-commit   # also run from Dev Container postCreate
-./scripts/setup-git-lfs.sh          # LFS + pre-push git hooks (also from postCreate / after clone)
+./scripts/setup-git-hooks.sh        # project pre-push git hooks (also from postCreate / after clone)
 ```
 
-Pre-push **git** hook (`scripts/git-hooks/pre-push`: Git LFS then pre-commit pre-push stage) is installed by
-`./scripts/setup-git-lfs.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_DOCKERFILE`,
-`CST_IMAGE_TAG`, `CST_CONFIG`) are documented there.
+Pre-push **git** hook (`scripts/git-hooks/pre-push`: pre-commit pre-push stage) is installed by
+`./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_DOCKERFILE`,
+`CST_IMAGE_TAG`, `CST_CONFIG`) are documented there. Git LFS is **not** part of the shared toolchain; products that need
+it (e.g. sql-to-arc) install `git-lfs` product-locally.
 
 **OpenSpec split:** product `openspec/specs/` and `openspec/changes/` stay local. The shared principles base is
 `openspec/principles.global.md`; each repo extends it with a local `openspec/principles.md` (do not weaken Supported
@@ -91,8 +92,7 @@ steps.
 
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
-- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks / LFS install (wired from
-  postCreate)
+- [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks install (wired from postCreate)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
 - [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
   extend via local `docs/surface-quality-bar.md`
@@ -118,8 +118,8 @@ steps.
 | `scripts/quality-check.sh`                | Commit-stage quality check                                                     |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                     |
 | `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                             |
-| `scripts/setup-git-lfs.sh`                | Local Git LFS init + install `scripts/git-hooks/`                              |
-| `scripts/git-hooks/`                      | pre-push (LFS + pre-commit) + LFS post-* hooks                                 |
+| `scripts/setup-git-hooks.sh`              | Install project `pre-push` hook from `scripts/git-hooks/`                      |
+| `scripts/git-hooks/`                      | Version-controlled `pre-push` (pre-commit pre-push stage)                      |
 | `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                          |
 | `.bandit`                                 | Bandit config for `middleware/` consumers                                      |
 | `scripts/ai/`                             | `m42-ai` CLI (uv workspace member; `uv run m42-ai`)                            |

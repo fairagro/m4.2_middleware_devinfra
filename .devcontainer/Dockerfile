@@ -38,12 +38,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     lsb-release \
     vim \
-    git-lfs \
     jq \
     bash-completion \
     default-jre-headless \
     graphviz \
-    && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
 # ── GitHub CLI (APT repos) ────────────────────────────────────────────────────

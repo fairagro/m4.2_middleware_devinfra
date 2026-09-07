@@ -36,6 +36,12 @@ CST_IMAGE_TAG="${2:-${CST_IMAGE_TAG:-app:structure-test}}"
 CST_CONFIG="${3:-${CST_CONFIG:-docker/container-structure-tests}}"
 
 if [[ ! -f "${CST_DOCKERFILE}" ]]; then
+  # Shared Devinfra (and similar checkouts) have no product `docker/` tree — do not fail every git push.
+  # Products that ship under docker/ still get a hard error when the path is wrong.
+  if [[ ! -e "${REPO_ROOT}/docker" ]]; then
+    echo "WARNING: skipping container-structure-test (no ${CST_DOCKERFILE}; no docker/ tree in this repo)." >&2
+    exit 0
+  fi
   echo "ERROR: Dockerfile not found: ${CST_DOCKERFILE}" >&2
   echo "Set CST_DOCKERFILE or pass path as \$1." >&2
   exit 1

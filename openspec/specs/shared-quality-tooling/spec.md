@@ -54,13 +54,22 @@ when present) from hooks that walk the tree (or equivalent exclude lists).
 
 The repository MUST provide `scripts/run-container-structure-test.sh` that builds a Docker image and runs
 `container-structure-test` against it. Dockerfile path, image tag, and test definition paths MUST be configurable
-(arguments and/or environment variables) so product repos can keep local values.
+(arguments and/or environment variables) so product repos can keep local values. When the configured Dockerfile path is
+missing and the repository has no `docker/` directory (shared Devinfra checkout), the script MUST exit successfully with
+a clear skip warning rather than failing the pre-push quality stage.
 
 #### Scenario: Runner uses product parameters
 
 - **WHEN** the script is invoked with product-specific Dockerfile, tag, and test paths
 - **THEN** it builds that image and runs container-structure-test with those tests
 - **AND** it does not hardcode another product’s paths as the only option
+
+#### Scenario: Devinfra without product docker tree skips
+
+- **WHEN** the script runs with the default Dockerfile path and that file is missing
+- **AND** the repository has no `docker/` directory
+- **THEN** the script prints a skip warning and exits 0
+- **AND** it does not attempt `docker build`
 
 ### Requirement: Bandit and markdownlint config files
 
@@ -76,15 +85,16 @@ The repository MUST provide a root `.bandit` suitable for `bandit -c`. It MUST p
 
 Documentation (README and/or `docs/`) MUST state that commit-stage installation is
 `pre-commit install --hook-type pre-commit` (performed by shared `scripts/devcontainer-post-create.sh` on Dev Container
-create, and runnable manually after clone), and that the pre-push **git** hook (Git LFS + pre-commit pre-push stage) is
-installed via `scripts/setup-git-lfs.sh` from the shared git-hooks extract (also invoked from that postCreate). Manual
-`uv run pre-commit run --hook-stage pre-push` remains valid without that git hook.
+create, and runnable manually after clone), and that the pre-push **git** hook (pre-commit pre-push stage only) is
+installed via `scripts/setup-git-hooks.sh` from the shared git-hooks extract (also invoked from that postCreate). Manual
+`uv run pre-commit run --hook-stage pre-push` remains valid without that git hook. Documentation MUST NOT require Git
+LFS for the shared pre-push quality path.
 
 #### Scenario: Contributor reads install docs
 
 - **WHEN** a contributor opens the quality / README docs for this tooling
 - **THEN** they learn how to install the commit-stage hook
-- **AND** they learn pre-push git-hook install is `./scripts/setup-git-lfs.sh` (wired from postCreate on the Dev
+- **AND** they learn pre-push git-hook install is `./scripts/setup-git-hooks.sh` (wired from postCreate on the Dev
   Container path)
 
 ### Requirement: Python tool config via syncable fragments
