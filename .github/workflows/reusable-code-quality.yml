@@ -90,10 +90,10 @@ jobs:
         env:
           PKG: ${{ inputs.python_package_root }}
         run: |
-          uv run ruff format --check --diff --config pyproject.toml "${PKG}"
-          uv run ruff check --config pyproject.toml "${PKG}"
-          uv run pylint --rcfile pyproject.toml "${PKG}"
-          uv run mypy --config-file pyproject.toml "${PKG}"
+          uv run ruff format --check --diff --config ruff.toml "${PKG}"
+          uv run ruff check --config ruff.toml "${PKG}"
+          uv run pylint --rcfile .pylintrc "${PKG}"
+          uv run mypy --config-file mypy.ini "${PKG}"
 
       - name: Security check with bandit
         if: ${{ !inputs.skip }}

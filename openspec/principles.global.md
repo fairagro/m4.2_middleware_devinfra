@@ -84,13 +84,13 @@ and scaling notes live in the local `principles.md` (or product capability specs
 
 ## Code Quality
 
-Product application code under `middleware/` must pass (via `uv run`, config from `pyproject.toml` / `.bandit` as
+Product application code under `middleware/` must pass (via `uv run`, config from shared fragments / `.bandit` as
 applicable):
 
-- `uv run ruff format --check --config pyproject.toml middleware/` — formatting
-- `uv run ruff check --config pyproject.toml middleware/` — linting
-- `uv run mypy --config-file pyproject.toml middleware/` — static type checking
-- `uv run pylint --rcfile pyproject.toml middleware/` — style and code smells
+- `uv run ruff format --check --config ruff.toml middleware/` — formatting
+- `uv run ruff check --config ruff.toml middleware/` — linting
+- `uv run mypy --config-file mypy.ini middleware/` — static type checking
+- `uv run pylint --rcfile .pylintrc middleware/` — style and code smells
 - `uv run bandit -r middleware/ -c .bandit` — security (low findings logged, medium/high fail)
 
 Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).

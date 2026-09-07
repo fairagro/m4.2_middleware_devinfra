@@ -35,12 +35,12 @@
     }
   },
 
-  // Same binary + root pyproject as `uv run ruff --config pyproject.toml` / pre-commit.
+  // Same binary + root ruff.toml as `uv run ruff --config ruff.toml` / pre-commit.
   "ruff.enable": true,
   "ruff.nativeServer": "on",
   "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
   "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
-  "ruff.configuration": "${workspaceFolder}/pyproject.toml",
+  "ruff.configuration": "${workspaceFolder}/ruff.toml",
   "ruff.configurationPreference": "editorOnly",
   "ruff.importStrategy": "fromEnvironment",
   "ruff.lint.enable": true,

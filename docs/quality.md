@@ -27,6 +27,9 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 | Path                                                | Role                                                                                         |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `.pre-commit-config.yaml`                           | Commit-stage + pre-push hook skeleton                                                        |
+| `ruff.toml`                                         | Shared Ruff lint/format (product sync; not Devinfra `[project]`)                             |
+| `mypy.ini`                                          | Shared Mypy strictness (products add `mypy_path` locally)                                    |
+| `.pylintrc`                                         | Shared Pylint (products set `source-roots` locally)                                          |
 | `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                      |
 | `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                      |
 | `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                          |
@@ -36,13 +39,36 @@ tokens already in your environment (e.g. exported from `~/.bashrc`) or `gh auth`
 | `.markdownlint.json` (+ ignore / cli2)              | Markdownlint (also used by the markdownlint hook)                                            |
 | [`.vscode/settings.json`](../.vscode/settings.json) | Shared IDE baseline (interpreter, Ruff, pytest, Prettier); products extend for `middleware/` |
 
+## Shared Python quality fragments (B2)
+
+Product repos historically kept large `[tool.ruff]` / `[tool.mypy]` / `[tool.pylint.*]` blocks in root `pyproject.toml`.
+Canonical copies live here as **fragment files** so sync (#13) can overwrite them without replacing product `[project]`
+/ uv workspace sections.
+
+| Sync into products | Keep product-local                                     |
+| ------------------ | ------------------------------------------------------ |
+| `ruff.toml`        | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps |
+| `mypy.ini`         | `mypy_path` (and similar path overlays)                |
+| `.pylintrc`        | `source-roots`                                         |
+| `.bandit`          | pytest / coverage tool tables (unless later unified)   |
+
+**Not** in the product quality sync set: `scripts/ai/pyproject.toml` (Devinfra `m42-ai-gh` package manifest only).
+
+After sync, products should **remove** duplicated `[tool.ruff]` / `[tool.mypy]` / `[tool.pylint.*]` from root
+`pyproject.toml` so the fragments are the single tool config. First adoption smoke is expected via sync / product PRs
+([#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13)), not in the Devinfra MVP PR
+([#28](https://github.com/fairagro/m4.2_middleware_devinfra/issues/28)).
+
+Shared **app Dockerfile** base + product-local last stage is deferred to
+[#36](https://github.com/fairagro/m4.2_middleware_devinfra/issues/36) (`sub-of` #28).
+
 ## IDE (workspace settings)
 
 [`.vscode/settings.json`](../.vscode/settings.json) is part of the shared Devinfra surface (host + Dev Container). It
-points the Python extension at the root `.venv` from `uv sync`, configures Ruff like pre-commit/CI, discovers
-`scripts/ai` tests, and sets Prettier as default formatter for Markdown/JSON/YAML. Product repos should keep the same
-interpreter/Ruff/Prettier contract and add local `python.analysis.extraPaths` (and Helm/SOPS associations) for their
-`middleware/` packages — do not copy product-only paths back into this file.
+points the Python extension at the root `.venv` from `uv sync`, configures Ruff via `ruff.toml` like pre-commit/CI,
+discovers `scripts/ai` tests, and sets Prettier as default formatter for Markdown/JSON/YAML. Product repos should keep
+the same interpreter/Ruff/Prettier contract and add local `python.analysis.extraPaths` (and Helm/SOPS associations) for
+their `middleware/` packages — do not copy product-only paths back into this file.
 
 ### Commit stage
 
