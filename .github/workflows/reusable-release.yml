@@ -271,7 +271,12 @@ jobs:
 
       - name: Generate release body
         run: |
-          COMPONENT=$(echo '${{ inputs.components }}' | jq -r '.[0]')
+          COMPONENTS_JSON='${{ inputs.components }}'
+          COMPONENT=$(echo "$COMPONENTS_JSON" | jq -r '.[0] // empty')
+          if [[ -z "$COMPONENT" || "$COMPONENT" == "null" ]]; then
+            echo "::error::reusable-release requires a non-empty components JSON array (got: ${COMPONENTS_JSON})" >&2
+            exit 1
+          fi
           DH_IMAGE="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
           DH_URL="https://hub.docker.com/r/${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}"
           GHCR_NS="${{ inputs.ghcr_namespace }}"
