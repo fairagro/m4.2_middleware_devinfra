@@ -38,8 +38,10 @@ applies the same vendor excludes.
 
 ## Quality (pre-commit)
 
-Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md). Needs `uv` (and, for the
-markdownlint hook, Node/`npm`: Dev Container has them global; on a host clone run `npm install` once). Prefer
+Shared commit-stage / pre-push skeleton and helpers — see [`docs/quality.md`](docs/quality.md). Includes syncable Python
+quality fragments (`ruff.toml`, `mypy.ini`, `.pylintrc`). IDE, hooks, and GitHub CI must use those shared configs and
+produce matching gate outcomes ([environment parity](docs/quality.md#environment-parity-ide-hooks-ci)). Needs `uv` (and,
+for the markdownlint hook, Node/`npm`: Dev Container has them global; on a host clone run `npm install` once). Prefer
 `uv run pre-commit …` so the tool need not be on `PATH`:
 
 ```bash
@@ -108,7 +110,7 @@ steps.
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                 |
 | `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                 |
 | `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                  |
-| `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params                               |
+| `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params, Python config fragments      |
 | `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm) |
 | `scripts/quality-check.sh`                | Commit-stage quality check                                                     |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                     |

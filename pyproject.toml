@@ -25,14 +25,8 @@ members = ["scripts/ai"]
 [tool.uv.sources]
 m42-ai-gh = { workspace = true }
 
-# No ruff target-version / mypy python_version pins — those would drift from versions.env.
-# Ruff infers from requires-python; mypy uses the running interpreter (uv + `.python-version`).
-
-[tool.ruff]
-# Product hooks use middleware/; this file exists so `uv run ruff` resolves if invoked.
-
-[tool.mypy]
-pretty = true
+# Product-oriented Ruff / Mypy / Pylint live in fragment files (ruff.toml, mypy.ini, .pylintrc)
+# for sync into product repos — not in this Devinfra [project] table. See docs/quality.md.
 
 [tool.pytest.ini_options]
 testpaths = ["scripts/ai/tests"]

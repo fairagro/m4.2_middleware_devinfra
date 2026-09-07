@@ -51,6 +51,12 @@ contract). Findings that only ask to **re-harden** an intentional happy-path sim
 prerequisite docs**, or change shared-hook **style** (`entry` vs `args`) without breaking the happy path MUST be
 dismissed.
 
+Docs, OpenSpec prose, and code-comment clarifications MUST be severity **Low** (nit or dismiss) when the supported Dev
+Container / CI commands and pass/fail gates already work — including inaccurate explanations of _how_ a gate is
+implemented (e.g. Bandit `-ll` on hooks vs CI logging). Fixers MUST NOT treat “contributor might be confused” as Medium
+“misleads operators” and MUST NOT take step 5 / count **Fixed non-nit** for those. Escalation to Medium+ for docs is
+allowed only when the written instructions would make the supported path fail.
+
 #### Scenario: Contributor opens the shared policy
 
 - **WHEN** a contributor opens `docs/ai_review_policy.md`
@@ -120,6 +126,14 @@ dismissed.
   `--base --all`) or is wording-only error-message polish
 - **THEN** the fixer treats practicality as Low (or None) and dismisses or budgets as a nit
 - **AND** does not apply step 5 merely because the suggested patch is cheap
+
+#### Scenario: Docs clarification stays Low (not step 5)
+
+- **WHEN** a finder reports inaccurate docs or comments about quality tooling (e.g. claiming hooks and CI both use
+  Bandit `-ll`) while the supported commands and MEDIUM/HIGH fail bar already match reality
+- **THEN** the fixer assigns severity Low and treats the item as a nit or dismisses it
+- **AND** does not take step 5 or count Fixed non-nit solely for that clarification
+- **AND** does not classify it as Medium via “misleads operators”
 
 ### Requirement: Bugbot entry points at the policy
 

@@ -90,16 +90,18 @@ jobs:
         env:
           PKG: ${{ inputs.python_package_root }}
         run: |
-          uv run ruff format --check --diff --config pyproject.toml "${PKG}"
-          uv run ruff check --config pyproject.toml "${PKG}"
-          uv run pylint --rcfile pyproject.toml "${PKG}"
-          uv run mypy --config-file pyproject.toml "${PKG}"
+          uv run ruff format --check --diff --config ruff.toml "${PKG}"
+          uv run ruff check --config ruff.toml "${PKG}"
+          uv run pylint --rcfile .pylintrc "${PKG}"
+          uv run mypy --config-file mypy.ini "${PKG}"
 
       - name: Security check with bandit
         if: ${{ !inputs.skip }}
         env:
           PKG: ${{ inputs.python_package_root }}
         run: |
+          # Log all severities; fail only on MEDIUM/HIGH (hooks use -ll for the same fail bar).
+          # Severity gate is CLI: `.bandit` has no fail-on-severity key (see docs/quality.md).
           uv run bandit -r "${PKG}" -c .bandit -f json -o bandit-report.json --exit-zero
           python3 <<'PY'
           import json, sys

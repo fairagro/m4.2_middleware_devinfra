@@ -36,21 +36,21 @@ repos:
 
       - id: ruff
         name: ruff lint
-        entry: uv run ruff check --config pyproject.toml middleware/
+        entry: uv run ruff check --config ruff.toml middleware/
         language: system
         files: ^middleware/
         pass_filenames: false
 
       - id: ruff-fix
         name: ruff lint (autofix)
-        entry: uv run ruff check --fix --exit-non-zero-on-fix --config pyproject.toml middleware/
+        entry: uv run ruff check --fix --exit-non-zero-on-fix --config ruff.toml middleware/
         language: system
         files: ^middleware/
         pass_filenames: false
 
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format --config pyproject.toml middleware/
+        entry: uv run ruff format --config ruff.toml middleware/
         language: system
         files: ^middleware/
         pass_filenames: false
@@ -61,18 +61,19 @@ repos:
         language: system
         files: ^middleware/
         pass_filenames: false
-        args: [--config-file, pyproject.toml]
+        args: [--config-file, mypy.ini]
 
       - id: bandit
         name: bandit security scan
-        entry: uv run bandit -r middleware/ -c .bandit
+        # -ll: MEDIUM+ only (`.bandit` has no fail-on-severity; same fail bar as CI — see docs/quality.md)
+        entry: uv run bandit -r middleware/ -c .bandit -ll
         language: system
         files: ^middleware/
         pass_filenames: false
 
       - id: pylint
         name: pylint
-        entry: uv run pylint --rcfile pyproject.toml middleware/
+        entry: uv run pylint --rcfile .pylintrc middleware/
         language: system
         files: ^middleware/
         pass_filenames: false

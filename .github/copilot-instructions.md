@@ -27,4 +27,5 @@ nothing Medium+ remains and the Low still meets the policy Report bar.
 ### Still skip
 
 Everything under **Do not comment on** in the policy (linters/formatters, unsupported hosts, one-shot local migration,
-type widening, drive-by on unchanged code, no-path theory). Those are noise — do not invent comments to hit a quota.
+type widening, drive-by on unchanged code, no-path theory, docs/comment clarifications when the supported path already
+works). Those are noise — do not invent comments to hit a quota.

@@ -162,7 +162,8 @@ Decision order (stop at first match) — same as the policy:
 5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
    nit-budget). **Except** agent-plumbing / shared Devinfra scripts / docs / vendor surfaces: apply the **surface
    quality bar** in `docs/ai_review_policy.md` first — exotic CLI/host edges and wording nits are practicality Low → not
-   step 5.
+   step 5. **Docs / comment-only** inaccuracies that do not break the supported cadence are severity **Low** (never
+   Medium via “misleads operators”) → nit or dismiss, not Fixed non-nit.
 6. Else nit:
    - **First:** if the finding is an **exotic edge** on shared Devinfra `scripts/` (except `scripts/ai/`), agent
      plumbing, docs wording, or vendor skills — `dismiss` (practicality Low). **Nit-budget does not override** the

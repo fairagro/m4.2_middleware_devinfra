@@ -84,14 +84,15 @@ and scaling notes live in the local `principles.md` (or product capability specs
 
 ## Code Quality
 
-Product application code under `middleware/` must pass (via `uv run`, config from `pyproject.toml` / `.bandit` as
+Product application code under `middleware/` must pass (via `uv run`, config from shared fragments / `.bandit` as
 applicable):
 
-- `uv run ruff format --check --config pyproject.toml middleware/` — formatting
-- `uv run ruff check --config pyproject.toml middleware/` — linting
-- `uv run mypy --config-file pyproject.toml middleware/` — static type checking
-- `uv run pylint --rcfile pyproject.toml middleware/` — style and code smells
-- `uv run bandit -r middleware/ -c .bandit` — security (low findings logged, medium/high fail)
+- `uv run ruff format --check --config ruff.toml middleware/` — formatting
+- `uv run ruff check --config ruff.toml middleware/` — linting
+- `uv run mypy --config-file mypy.ini middleware/` — static type checking
+- `uv run pylint --rcfile .pylintrc middleware/` — style and code smells
+- `uv run bandit -r middleware/ -c .bandit -ll` — security (hooks: MEDIUM+ only via `-ll`). CI may omit `-ll` to log LOW
+  while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md`
 
 Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):
@@ -107,6 +108,20 @@ suppressions; document any necessary ignore with a one-line reason.
 
 **Suppression comments** (`# noqa`, `# type: ignore`, `# pylint: disable`, hadolint ignores) are a last resort. A real
 fix is always preferred.
+
+### Environment parity (IDE, hooks, CI)
+
+Every shared quality gate above MUST run with the **same shared config file(s)** and produce the **same pass/fail
+outcome** (same policy findings) in:
+
+1. the **IDE** (workspace / extension settings), where a maintained integration exists;
+2. **pre-commit** (commit stage) and **pre-push** when that tool is a push gate;
+3. **GitHub** reusable / caller quality pipelines.
+
+Invocations MAY pass the config-file path, analysis target paths, and documented product path overlays (e.g. `MYPYPATH`,
+pylint `--source-roots`). They MUST NOT restate rule/severity/version policy as extra CLI or IDE flags when that policy
+is expressible in the shared config file. If a tool has no supported IDE integration, document “hooks + CI only” for
+that tool — do not invent a second config channel. Details: `docs/quality.md`.
 
 This Devinfra repository has no product `middleware/` packages; the Python gates above apply when working in product
 consumers. Markdown and hadolint gates apply here and in consumers that ship those files.
