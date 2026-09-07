@@ -34,7 +34,8 @@ Node as documented):
 | **GitHub CI** | [`reusable-code-quality.yml`](../.github/workflows/reusable-code-quality.yml) | Same shared configs                          |
 
 **Matching results** means the same pass/fail gate and the same policy findings (rule id + location). Log formatting may
-differ (IDE diagnostics vs CLI).
+differ (IDE diagnostics vs CLI). **Bandit exception:** the fail bar is the same (MEDIUM/HIGH fail; LOW never fails), but
+CI may **log** LOW findings while hooks suppress them with `-ll` — see the Bandit note below.
 
 **Minimal CLI / IDE args:** pass only the config-file path (when the tool does not auto-discover it), target paths, and
 documented product path overlays (`MYPYPATH`, pylint `--source-roots`). Do not restate line length, rule selects, ignore
@@ -49,10 +50,10 @@ lists, or similar policy on the command line when the shared config file already
 | Bandit                  | **hooks + CI only**                              | yes (`.bandit`)   | yes                             | Medium/high fail; see Bandit note below                             |
 | pytest                  | IDE discovers tests where configured             | pre-push          | yes                             | Product `middleware/` vs Devinfra `scripts/ai` paths differ by repo |
 
-**Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks and CI use Bandit’s `-ll` (report
-MEDIUM+) so LOW findings can still be logged in CI without failing the gate, matching
-[principles Code Quality](../openspec/principles.global.md#code-quality). Do not reintroduce a second severity policy
-only on one surface.
+**Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks use Bandit’s `-ll` (report MEDIUM+
+only). CI runs without `-ll`, logs all severities (JSON + wrapper), and still fails only on MEDIUM/HIGH — same fail bar
+as hooks, matching [principles Code Quality](../openspec/principles.global.md#code-quality). Do not reintroduce a second
+fail policy only on one surface.
 
 ## Files
 

@@ -65,7 +65,7 @@ repos:
 
       - id: bandit
         name: bandit security scan
-        # -ll: MEDIUM+ only (`.bandit` has no fail-on-severity; match CI / principles)
+        # -ll: MEDIUM+ only (`.bandit` has no fail-on-severity; same fail bar as CI — see docs/quality.md)
         entry: uv run bandit -r middleware/ -c .bandit -ll
         language: system
         files: ^middleware/
