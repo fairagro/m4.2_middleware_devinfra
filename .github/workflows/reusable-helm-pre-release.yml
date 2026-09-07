@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       chart_name:
-        description: "Chart name (OCI repository name; informational)"
+        description: "Chart name; must match name: in Chart.yaml (validated) and used as OCI repository name"
         required: true
         type: string
       dockerhub_namespace:
@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
     secrets:
       DOCKERHUB_USER:
         required: false
@@ -182,10 +187,17 @@ jobs:
         id: push_ghcr
         continue-on-error: true
         run: |
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
             -u "${{ github.actor }}" --password-stdin ghcr.io
           helm push "${{ steps.package_chart.outputs.chart-package }}" \
-            "oci://ghcr.io/${{ github.repository_owner }}"
+            "oci://ghcr.io/${GHCR_NS}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=Pushed to oci://ghcr.io/${GHCR_NS}" >> "$GITHUB_OUTPUT"
           echo "Pushed Helm chart to GHCR"
 
       - name: Registry status summary
@@ -200,8 +212,8 @@ jobs:
             else
               echo "- **DockerHub:** \`${{ steps.push_dh.outcome }}\`"
             fi
-            if [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
-              echo "- **GHCR:** \`success\`"
+            if [[ -n "${{ steps.push_ghcr.outputs.status }}" ]]; then
+              echo "- **GHCR:** \`${{ steps.push_ghcr.outputs.status }}\` — ${{ steps.push_ghcr.outputs.reason }}"
             elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
               echo "- **GHCR:** \`failure\` — login/push failed (see logs)"
             else

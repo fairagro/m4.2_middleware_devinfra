@@ -118,6 +118,7 @@ jobs:
       chart_dir: helmchart/fairagro-advanced-middleware-api-chart
       chart_name: fairagro-advanced-middleware-api-chart
       dockerhub_namespace: zalf
+      ghcr_namespace: fairagro
       require_main: true
     secrets: inherit
 ```
@@ -132,6 +133,7 @@ jobs:
       chart_dir: helmchart/fairagro-advanced-middleware-api-chart
       chart_name: fairagro-advanced-middleware-api-chart
       dockerhub_namespace: zalf
+      ghcr_namespace: fairagro
     secrets: inherit
 ```
 
@@ -201,15 +203,16 @@ When `create_github_release` is false, no git tag or GitHub Release is created (
 
 ### `reusable-helm-release.yml` / `reusable-helm-pre-release.yml`
 
-| Input                   | Default               | Purpose                                      |
-| ----------------------- | --------------------- | -------------------------------------------- |
-| `chart_dir`             | (required)            | Chart path in caller checkout                |
-| `chart_name`            | (required)            | Must match `name:` in Chart.yaml (validated) |
-| `dockerhub_namespace`   | `zalf`                | Docker Hub OCI namespace                     |
-| `version_bump`          | `patch`               | Final release only                           |
-| `require_main`          | `true`                | Final release only                           |
-| `create_github_release` | `true`                | Final release only                           |
-| `helm_install_name`     | `fairagro-middleware` | Example name in release notes (final only)   |
+| Input                   | Default                   | Purpose                                      |
+| ----------------------- | ------------------------- | -------------------------------------------- |
+| `chart_dir`             | (required)                | Chart path in caller checkout                |
+| `chart_name`            | (required)                | Must match `name:` in Chart.yaml (validated) |
+| `dockerhub_namespace`   | `zalf`                    | Docker Hub OCI namespace                     |
+| `ghcr_namespace`        | `""` → `repository_owner` | GHCR OCI namespace; empty uses owner         |
+| `version_bump`          | `patch`                   | Final release only                           |
+| `require_main`          | `true`                    | Final release only                           |
+| `create_github_release` | `true`                    | Final release only                           |
+| `helm_install_name`     | `fairagro-middleware`     | Example name in release notes (final only)   |
 
 Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Secrets `DOCKERHUB_USER` / `DOCKERHUB_TOKEN`
 are optional; if missing or a push fails, the Helm GitHub Release body (final) or job summary (pre-release) MUST state

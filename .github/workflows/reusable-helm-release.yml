@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
       require_main:
         description: "Fail unless github.ref_name is main"
         required: false
@@ -235,10 +240,16 @@ jobs:
         id: push_ghcr
         continue-on-error: true
         run: |
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
             -u "${{ github.actor }}" --password-stdin ghcr.io
           helm push "${{ steps.package_chart.outputs.chart-package }}" \
-            "oci://ghcr.io/${{ github.repository_owner }}"
+            "oci://ghcr.io/${GHCR_NS}"
+          echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
           echo "Pushed Helm chart to GHCR"
 
       - name: Normalize GHCR push outcome
@@ -246,13 +257,21 @@ jobs:
         run: |
           if [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "reason=Pushed to oci://ghcr.io/${{ github.repository_owner }}" >> "$GITHUB_OUTPUT"
+            echo "reason=Pushed to oci://ghcr.io/${{ steps.push_ghcr.outputs.ghcr_ns }}" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=${{ steps.push_ghcr.outputs.ghcr_ns }}" >> "$GITHUB_OUTPUT"
           elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
+            GHCR_NS="${{ inputs.ghcr_namespace }}"
+            if [[ -z "$GHCR_NS" ]]; then
+              GHCR_NS="${{ github.repository_owner }}"
+            fi
+            GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
             echo "status=failure" >> "$GITHUB_OUTPUT"
             echo "reason=GHCR login/push failed — see job logs" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
           else
             echo "status=${{ steps.push_ghcr.outcome }}" >> "$GITHUB_OUTPUT"
             echo "reason=GHCR push did not complete successfully" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Write release body
@@ -267,7 +286,7 @@ jobs:
           HELM_INSTALL_NAME: ${{ inputs.helm_install_name }}
           DOCKERHUB_NAMESPACE: ${{ inputs.dockerhub_namespace }}
           CHART_NAME: ${{ inputs.chart_name }}
-          GHCR_OWNER: ${{ github.repository_owner }}
+          GHCR_OWNER: ${{ steps.ghcr.outputs.ghcr_ns }}
         run: |
           {
             echo "## Helm Chart Release v${CHART_VERSION}"

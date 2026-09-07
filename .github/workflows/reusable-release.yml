@@ -372,8 +372,20 @@ jobs:
           draft: true
           prerelease: ${{ inputs.release_type == 'feature' }}
           generate_release_notes: true
-          files: |
-            sboms/*
+
+      - name: Upload SBOM assets when present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(sboms/*)
+          if (( ${#files[@]} == 0 )); then
+            echo "No SBOM files to attach; release created without artifacts."
+            exit 0
+          fi
+          TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
+          gh release upload "$TAG" "${files[@]}" --clobber
+          echo "Attached ${#files[@]} SBOM file(s) to $TAG"
 
       - name: Publish Release
         env:
