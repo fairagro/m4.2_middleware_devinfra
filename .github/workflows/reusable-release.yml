@@ -36,6 +36,11 @@ on:
         required: false
         type: string
         default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
       release_type:
         description: "Type of release (feature or final)"
         required: true
@@ -73,8 +78,6 @@ jobs:
     strategy:
       matrix:
         component: ${{ fromJson(inputs.components) }}
-    outputs:
-      digest: ${{ steps.push.outputs.digest }}
 
     steps:
       - name: Skipping release
@@ -107,8 +110,19 @@ jobs:
           docker tag "$LOCAL_TAG" "$DH_TAG"
           docker push "$DH_TAG"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
+          mkdir -p digests
+          # Per-component file — github-release reads these (matrix job outputs are unreliable)
+          echo "$DIGEST" > "digests/dockerhub-${{ matrix.component }}.digest"
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
-          echo "Pushed to DockerHub: $DH_TAG"
+          echo "Pushed to DockerHub: $DH_TAG (@$DIGEST)"
+
+      - name: Upload DockerHub digest artifact
+        if: ${{ !inputs.skip }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: dockerhub-digest-${{ matrix.component }}-${{ inputs.version }}
+          path: digests/dockerhub-${{ matrix.component }}.digest
+          retention-days: 1
 
   push-ghcr:
     name: DockerPush/GHCR
@@ -147,15 +161,19 @@ jobs:
         if: ${{ !inputs.skip }}
         run: |
           LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          GHCR_TAG="ghcr.io/$REPO_LOWER/${{ matrix.component }}:${{ inputs.version }}"
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          GHCR_TAG="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
           docker tag "$LOCAL_TAG" "$GHCR_TAG"
           docker push "$GHCR_TAG"
           echo "Pushed to GHCR: $GHCR_TAG"
 
   create-release-tag:
     name: CreateReleaseTag/Release
-    if: ${{ !inputs.skip }}
+    if: ${{ !inputs.skip && inputs.create_github_release }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -194,14 +212,25 @@ jobs:
           merge-multiple: true
           path: sboms
 
+      - name: Download DockerHub digest artifacts
+        if: ${{ needs.push-dockerhub.result == 'success' }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: dockerhub-digest-*
+          merge-multiple: true
+          path: digests
+
       - name: Generate release body
         run: |
           COMPONENT=$(echo '${{ inputs.components }}' | jq -r '.[0]')
           DH_IMAGE="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
           DH_URL="https://hub.docker.com/r/${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${COMPONENT}"
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          GHCR_IMAGE="ghcr.io/${REPO_LOWER}/${COMPONENT}:${{ inputs.version }}"
-          GHCR_URL="https://ghcr.io/${REPO_LOWER}/${COMPONENT}"
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          GHCR_IMAGE="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${COMPONENT}:${{ inputs.version }}"
           TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
           REPO_BASENAME=$(basename "${{ github.repository }}")
           DOCKER_SUCCESS=$([[ "${{ needs.push-dockerhub.result }}" == "success" || "${{ needs.push-ghcr.result }}" == "success" ]] && echo "true" || echo "false")
@@ -211,9 +240,17 @@ jobs:
             echo ""
             if [[ "$DOCKER_SUCCESS" == "true" ]]; then
               if [[ "${{ needs.push-dockerhub.result }}" == "success" ]]; then
-                echo "| Platform | Image Digest |"
-                echo "| --- | --- |"
-                echo "| linux/amd64 | \`${{ needs.push-dockerhub.outputs.digest }}\` |"
+                echo "| Component | Platform | Image Digest |"
+                echo "| --- | --- | --- |"
+                while IFS= read -r comp; do
+                  digest_file="digests/dockerhub-${comp}.digest"
+                  if [[ -f "$digest_file" ]]; then
+                    digest=$(tr -d '[:space:]' < "$digest_file")
+                    echo "| \`${comp}\` | linux/amd64 | \`${digest}\` |"
+                  else
+                    echo "| \`${comp}\` | linux/amd64 | _digest unavailable_ |"
+                  fi
+                done < <(echo '${{ inputs.components }}' | jq -r '.[]')
                 echo ""
                 echo "**[Pull from DockerHub](${DH_URL})**"
                 echo '```bash'
@@ -222,7 +259,7 @@ jobs:
                 echo ""
               fi
               if [[ "${{ needs.push-ghcr.result }}" == "success" ]]; then
-                echo "**[Pull from GHCR](${GHCR_URL})**"
+                echo "**Pull from GHCR** (\`${GHCR_IMAGE}\`)"
                 echo '```bash'
                 echo "docker pull ${GHCR_IMAGE}"
                 echo '```'

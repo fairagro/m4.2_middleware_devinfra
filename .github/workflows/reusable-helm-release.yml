@@ -137,9 +137,31 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate chart_name matches Chart.yaml
+        run: |
+          actual=$(grep -E '^name:' "${{ inputs.chart_dir }}/Chart.yaml" | head -1 \
+            | sed -E 's/^name:[[:space:]]*//; s/[\"'\'']//g; s/[[:space:]]*$//')
+          expected="${{ inputs.chart_name }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::chart_name input '${expected}' does not match Chart.yaml name '${actual}'"
+            exit 1
+          fi
+
+      - name: Load HELM_VERSION from versions.env
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          HELM_PIN="${HELM_VERSION#v}"
+          if [[ -z "$HELM_PIN" ]]; then
+            echo "::error::HELM_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
+
       - uses: azure/setup-helm@v5
         with:
-          version: "4.2.4"
+          version: ${{ steps.versions.outputs.helm }}
 
       - name: Detect current Docker release version
         id: docker-version

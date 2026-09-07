@@ -89,6 +89,7 @@ jobs:
       components: '["api"]'
       image_base_name: fairagro-advanced-middleware
       dockerhub_namespace: zalf
+      ghcr_namespace: fairagro
       release_type: final # or feature
       tag_prefix: docker-v
       create_github_release: true
@@ -182,6 +183,7 @@ Outputs: `version`, `pep440_version`, `components`. Version scheme is shared acr
 | `components`            | `["api"]`                      | Matrix push                                 |
 | `image_base_name`       | `fairagro-advanced-middleware` | Must match build                            |
 | `dockerhub_namespace`   | `zalf`                         | Docker Hub org/user                         |
+| `ghcr_namespace`        | `""` → `repository_owner`      | GHCR namespace; empty uses owner            |
 | `release_type`          | (required)                     | `feature` or `final` (prerelease flag)      |
 | `create_github_release` | `true`                         | Draft→publish GitHub release + tag          |
 | `tag_prefix`            | `docker-v`                     | Tag shape `{timestamp}-{prefix}{version}`   |
@@ -189,19 +191,25 @@ Outputs: `version`, `pep440_version`, `components`. Version scheme is shared acr
 
 Secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN`. GHCR uses `GITHUB_TOKEN` (`packages: write` on the reusable job).
 
+GHCR image tag shape: `ghcr.io/<ghcr_namespace>/<image_base_name>-<component>:<version>` (aligned with DockerHub
+naming).
+
+When `create_github_release` is false, no git tag or GitHub Release is created (image pushes still run).
+
 ### `reusable-helm-release.yml` / `reusable-helm-pre-release.yml`
 
-| Input                   | Default               | Purpose                                    |
-| ----------------------- | --------------------- | ------------------------------------------ |
-| `chart_dir`             | (required)            | Chart path in caller checkout              |
-| `chart_name`            | (required)            | OCI chart name                             |
-| `dockerhub_namespace`   | `zalf`                | Docker Hub OCI namespace                   |
-| `version_bump`          | `patch`               | Final release only                         |
-| `require_main`          | `true`                | Final release only                         |
-| `create_github_release` | `true`                | Final release only                         |
-| `helm_install_name`     | `fairagro-middleware` | Example name in release notes (final only) |
+| Input                   | Default               | Purpose                                      |
+| ----------------------- | --------------------- | -------------------------------------------- |
+| `chart_dir`             | (required)            | Chart path in caller checkout                |
+| `chart_name`            | (required)            | Must match `name:` in Chart.yaml (validated) |
+| `dockerhub_namespace`   | `zalf`                | Docker Hub OCI namespace                     |
+| `version_bump`          | `patch`               | Final release only                           |
+| `require_main`          | `true`                | Final release only                           |
+| `create_github_release` | `true`                | Final release only                           |
+| `helm_install_name`     | `fairagro-middleware` | Example name in release notes (final only)   |
 
-Optional secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` (GHCR push always attempted with `GITHUB_TOKEN`).
+Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Optional secrets: `DOCKERHUB_USER`,
+`DOCKERHUB_TOKEN` (GHCR push always attempted with `GITHUB_TOKEN`).
 
 ## Check artifact contract
 
