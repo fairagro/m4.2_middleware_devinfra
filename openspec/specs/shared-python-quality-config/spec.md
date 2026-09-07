@@ -31,8 +31,7 @@ usable for type-checking `middleware/` in product checkouts after sync.
 
 - **WHEN** a product adopts the shared Mypy fragment without replacing its root `[project]` / uv workspace
 - **THEN** Mypy can be run against `middleware/` using that fragment
-- **AND** adoption docs state that path overlays use product hook/CI env or args (not `pyproject` under
-  `--config-file`)
+- **AND** adoption docs state that path overlays use product hook/CI env or args (not `pyproject` under `--config-file`)
 
 ### Requirement: Shared Pylint fragment exists
 

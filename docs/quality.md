@@ -45,12 +45,12 @@ Product repos historically kept large `[tool.ruff]` / `[tool.mypy]` / `[tool.pyl
 Canonical copies live here as **fragment files** so sync (#13) can overwrite them without replacing product `[project]`
 / uv workspace sections.
 
-| Sync into products | Keep product-local                                                                     |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `ruff.toml`        | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps                                 |
-| `mypy.ini`         | Import-path overlays via product hook/CI **env** (e.g. `MYPYPATH`), not `pyproject`    |
-| `.pylintrc`        | Import-path overlays via product hook/CI **args** (e.g. `--source-roots=…`), not edit  |
-| `.bandit`          | pytest / coverage tool tables (unless later unified)                                   |
+| Sync into products | Keep product-local                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `ruff.toml`        | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps                                |
+| `mypy.ini`         | Import-path overlays via product hook/CI **env** (e.g. `MYPYPATH`), not `pyproject`   |
+| `.pylintrc`        | Import-path overlays via product hook/CI **args** (e.g. `--source-roots=…`), not edit |
+| `.bandit`          | pytest / coverage tool tables (unless later unified)                                  |
 
 Shared hooks and reusable CI invoke `mypy --config-file mypy.ini` and `pylint --rcfile .pylintrc`. Those flags mean
 product `[tool.mypy]` / `[tool.pylint.*]` in `pyproject.toml` are **ignored**. Do **not** put path overlays into the
