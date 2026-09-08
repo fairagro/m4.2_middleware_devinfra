@@ -13,10 +13,11 @@ The repository MUST provide `docs/synced-paths.global.md` as the canonical allow
 product repos that consumers MUST NOT hand-edit. The document MUST list (or glob) at least: shared AI review policy and
 surface-bar global map, fixer skill/command/prompt entrypoints, first-party and vendor agent skills under
 `.agents/skills/` that sync ships, `scripts/ai/**`, personal-token helpers (`scripts/dev-tokens.sh`,
-`scripts/set-dev-tokens.sh`, `scripts/bin/gh`, `scripts/bin/git`), `openspec/principles.global.md`, and other Wave A /
-sync-manifest paths as they exist. It MUST name documented **product-local overlay** exceptions (e.g.
-`docs/surface-quality-bar.md`, `openspec/principles.md`, `AGENTS.md`) that MAY be edited in consumers. The root
-`README.md` Docs index MUST link to this file. Sync of this allowlist MUST NOT overwrite product-local overlay files.
+`scripts/set-dev-tokens.sh`, `scripts/bin/gh`, `scripts/bin/git`), `openspec/principles.global.md`, **`renovate.json`**,
+**`.github/workflows/renovate.yml`**, and other Wave A / sync-manifest paths as they exist. It MUST name documented
+**product-local overlay** exceptions (e.g. `docs/surface-quality-bar.md`, `openspec/principles.md`, `AGENTS.md`) that
+MAY be edited in consumers. The root `README.md` Docs index MUST link to this file. Sync of this allowlist MUST NOT
+overwrite product-local overlay files.
 
 #### Scenario: Contributor looks up what not to edit after sync
 
@@ -28,3 +29,9 @@ sync-manifest paths as they exist. It MUST name documented **product-local overl
 
 - **WHEN** a contributor reads the root `README.md` Docs section
 - **THEN** they find a link to `docs/synced-paths.global.md`
+
+#### Scenario: Renovate artifacts are on the allowlist
+
+- **WHEN** a contributor checks whether Renovate config or workflow may be hand-edited in a product repo after sync
+- **THEN** `renovate.json` and `.github/workflows/renovate.yml` appear on the synced allowlist
+- **AND** they learn shared Renovate changes land in Devinfra first

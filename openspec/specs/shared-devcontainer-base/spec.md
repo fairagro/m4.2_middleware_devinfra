@@ -23,8 +23,9 @@ without a separate `versions.env` pin. **yq** (mikefarah), **xq** (XML query CLI
 as a global npm CLI (same pattern as OpenSpec / Prettier). Prettier / markdownlint-cli2 and their IDE extensions
 (`esbenp.prettier-vscode`, `davidanson.vscode-markdownlint`) are part of the **shared** toolchain: when synced into
 product repos they MUST **replace or supplement** each product’s prior markdown format/lint feature so consumers
-converge on one stack. Shipping Trivy/Renovate CLIs in the image does **not** by itself require shipping reusable GitHub
-Actions workflows (those remain later CI issues).
+converge on one stack. Shipping the Renovate CLI in the image MUST be documented together with the shared Renovate
+config and per-repo workflow (`shared-renovate` capability). Shipping Trivy in the image does **not** by itself require
+shipping a reusable Trivy GitHub Actions workflow (that remains a separate CI concern).
 
 #### Scenario: Rebuild uses pinned shared toolchain
 
@@ -37,6 +38,12 @@ Actions workflows (those remain later CI issues).
 - **AND** `sops`, `age`, `gpg`, and a JRE/`java` plus `dot` (graphviz) are available on the documented happy path
 - **AND** difftastic is not part of the required shared toolchain
 - **AND** `git-lfs` is not required on the shared image happy path
+
+#### Scenario: Dev Container docs link Renovate CLI to shared automation
+
+- **WHEN** a contributor reads Dev Container docs for Trivy / Renovate local CLIs
+- **THEN** they learn `renovate` on `PATH` is for local dry-runs against the shared Renovate config
+- **AND** they are pointed at the shared Renovate workflow/docs (not only “workflow deferred to open issues”)
 
 ### Requirement: Generic postCreate installs hooks, optional public GPG keys, and IDE extensions
 
