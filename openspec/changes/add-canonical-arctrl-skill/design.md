@@ -23,26 +23,26 @@ See proposal.md — Why. Harvester already publishes the fullest `.agents/skills
 
 ## Decisions
 
-1. **Source of truth for content = harvester tip at import**  
+1. **Source of truth for content = harvester tip at import**
    Copy `fairagro/m4.2_middleware_harvester` `.agents/skills/arctrl/SKILL.md` via `gh api` (raw). Prefer byte-faithful
    import then run `npm run format:md` / `lint:md` so Prettier/markdownlint may normalize wrapping without dropping
-   sections.  
+   sections.
    _Alternative:_ Merge API + harvester manually — rejected; issue asks harvester full set.
 
-2. **New OpenSpec capability `shared-arctrl-skill`**  
-   Mirrors how workflow skills have their own specs; keeps `vendor-agent-skills` focused on `gh skill` pins.  
+2. **New OpenSpec capability `shared-arctrl-skill`**
+   Mirrors how workflow skills have their own specs; keeps `vendor-agent-skills` focused on `gh skill` pins.
    _Alternative:_ Extend `vendor-agent-skills` with a “first-party reference skills” clause — rejected; wrong capability
    name and would blur vendor vs first-party.
 
-3. **No vendor ignore path for arctrl**  
+3. **No vendor ignore path for arctrl**
    Do not add to `.prettierignore` / `.markdownlintignore` / pre-commit excludes. Fix any lint nits in the imported
-   file.  
+   file.
    _Alternative:_ Treat as vendor-like exclude — rejected by issue AC.
 
-4. **README: layout row + short first-party note**  
+4. **README: layout row + short first-party note**
    Add a layout table row next to other `.agents/skills/*` first-party entries. Optionally one sentence under Vendor
    section clarifying shared first-party skills (including arctrl) are hand-maintained here — keep the Vendor section’s
-   install commands unchanged.  
+   install commands unchanged.
    _Alternative:_ Separate “First-party skills” H2 — fine if README stays readable; prefer minimal diff (layout + brief
    note).
 
