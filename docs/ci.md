@@ -2,16 +2,20 @@
 
 Canonical GitHub Actions for the three m4.2 product repos live in this repository:
 
-| Workflow            | Path                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| Code quality        | [`.github/workflows/reusable-code-quality.yml`](../.github/workflows/reusable-code-quality.yml)         |
-| Image / SBOM checks | [`.github/workflows/reusable-check.yml`](../.github/workflows/reusable-check.yml)                       |
-| Docker build        | [`.github/workflows/reusable-build.yml`](../.github/workflows/reusable-build.yml)                       |
-| Docker release      | [`.github/workflows/reusable-release.yml`](../.github/workflows/reusable-release.yml)                   |
-| Helm final release  | [`.github/workflows/reusable-helm-release.yml`](../.github/workflows/reusable-helm-release.yml)         |
-| Helm pre-release    | [`.github/workflows/reusable-helm-pre-release.yml`](../.github/workflows/reusable-helm-pre-release.yml) |
+| Workflow            | Path                                                                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code quality        | [`.github/workflows/reusable-code-quality.yml`](../.github/workflows/reusable-code-quality.yml)                                                   |
+| Image / SBOM checks | [`.github/workflows/reusable-check.yml`](../.github/workflows/reusable-check.yml)                                                                 |
+| Docker build        | [`.github/workflows/reusable-build.yml`](../.github/workflows/reusable-build.yml)                                                                 |
+| Docker release      | [`.github/workflows/reusable-release.yml`](../.github/workflows/reusable-release.yml)                                                             |
+| Helm final release  | [`.github/workflows/reusable-helm-release.yml`](../.github/workflows/reusable-helm-release.yml)                                                   |
+| Helm pre-release    | [`.github/workflows/reusable-helm-pre-release.yml`](../.github/workflows/reusable-helm-pre-release.yml)                                           |
+| Renovate (per-repo) | [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) + [`renovate.json`](../renovate.json) — see [docs/renovate.md](renovate.md) |
 
 **Stay product-local (not shared here):** PyPI / TestPyPI publish jobs and ns-pages workflows (API today).
+
+Renovate is a **thin per-repo workflow** (not `workflow_call`), synced like other shared files. It needs repository
+secret `RENOVATE_TOKEN` — details in [`docs/renovate.md`](renovate.md).
 
 Product-distinguishing names use **`workflow_call` inputs** (e.g. `image_base_name`, `chart_dir`) — do not rely on
 silent repository Variables for correct identity.
