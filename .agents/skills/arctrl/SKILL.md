@@ -235,8 +235,8 @@ json_str: str = arc.ToROCrateJsonString()
 table = ArcTable.init("my-table-name")
 
 # Build headers
-header_input = CompositeHeader.input(IOType.of_string("source_name"))
-header_output = CompositeHeader.output(IOType.of_string("sample_name"))
+header_input = CompositeHeader.input(IOType.of_string("Source Name"))
+header_output = CompositeHeader.output(IOType.of_string("Sample Name"))
 header_char = CompositeHeader.characteristic(OntologyAnnotation("pH", "", ""))
 header_factor = CompositeHeader.factor(OntologyAnnotation("temperature", "", ""))
 header_param = CompositeHeader.parameter(OntologyAnnotation("extraction", "", ""))
@@ -329,6 +329,7 @@ from arctrl.py.Contract.contract import Contract, DTO, DTOType  # type: ignore[i
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
+arc_dir = "/path/to/output/dir"
 manual = Contract.create_create(
     "iso19115.xml",
     DTOType(10),  # PlainText
