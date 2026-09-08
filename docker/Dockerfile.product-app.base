@@ -3,6 +3,10 @@
 # Stages: package-builder → binary-builder → export-binaries
 # Runtime finishing (USER/CMD/HEALTHCHECK/…) belongs in the product-local last stage.
 #
+# Product-only builder/runtime extras (e.g. sql-to-arc Microsoft ODBC driver apk) MUST NOT live
+# here — put them in the product-local last stage (and/or a product-only Bake stage), not in this
+# synced base.
+#
 # Compose with Buildx Bake (A4): build a "*-base" target through export-binaries, then wire
 # contexts so the last stage can `COPY --from=export_bins /dist/…`.
 #
@@ -19,11 +23,9 @@
 #   BINARY_NAME             primary PyInstaller --name / onedir under dist/
 #   PYINSTALLER_ENTRY       entry script path for PyInstaller
 #   EXTRA_PYINSTALLER_ARGS  extra args appended to pyinstaller (word-split)
-#   BUILDER_APK_PACKAGES    extra apk packages for binary-builder (space-separated)
-#   ODBC_APK_URL            if non-empty, download .apk and place under /dist for last stage
-#   BINARY_INSTALL_MODE     "system" (default: uv pip --system) or "sync" (uv sync + venv)
+#   BUILDER_APK_PACKAGES    extra compile/link apk packages for binary-builder (space-separated)
 #
-# Defaults keep FROM valid for empty CI build-args (BuildKit InvalidDefaultArgInFrom).
+# Install path (single): uv pip install --system built wheels + pyinstaller, then pyinstaller --onedir.
 
 ARG PYTHON_VERSION=3.12
 ARG ALPINE_MINOR=3.24
@@ -74,8 +76,6 @@ ARG BINARY_NAME
 ARG PYINSTALLER_ENTRY
 ARG EXTRA_PYINSTALLER_ARGS=""
 ARG BUILDER_APK_PACKAGES=""
-ARG ODBC_APK_URL=""
-ARG BINARY_INSTALL_MODE=system
 
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 
@@ -88,7 +88,6 @@ RUN apk add --no-cache \
     cargo \
     musl-utils \
     libssl3 \
-    curl \
     ${BUILDER_APK_PACKAGES}
 
 WORKDIR /build
@@ -97,54 +96,21 @@ RUN pip install --no-cache-dir --upgrade \
     "pip==${PIP_VERSION}" \
     "uv==${UV_VERSION}"
 
-# Optional Microsoft ODBC driver apk (sql-to-arc); skipped when ODBC_APK_URL is empty
-RUN set -eu; \
-    if [ -n "${ODBC_APK_URL}" ]; then \
-      curl -fsSL -o /tmp/msodbcsql.apk "${ODBC_APK_URL}"; \
-    fi
-
 COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
 
-COPY pyproject.toml uv.lock ./
-COPY middleware ./middleware
-
-RUN set -eu; \
-    case "${BINARY_INSTALL_MODE}" in \
-      system) \
-        uv pip install --system /tmp/wheels/*.whl; \
-        uv pip install --system pyinstaller; \
-        ;; \
-      sync) \
-        uv sync --no-dev --no-install-workspace; \
-        uv pip install /tmp/wheels/*.whl pyinstaller; \
-        ;; \
-      *) \
-        echo "ERROR: BINARY_INSTALL_MODE must be system or sync (got: ${BINARY_INSTALL_MODE})" >&2; \
-        exit 1; \
-        ;; \
-    esac
+RUN uv pip install --system /tmp/wheels/*.whl \
+    && uv pip install --system pyinstaller
 
 RUN set -eu; \
     if [ -z "${BINARY_NAME:-}" ] || [ -z "${PYINSTALLER_ENTRY:-}" ]; then \
       echo "ERROR: BINARY_NAME and PYINSTALLER_ENTRY are required" >&2; \
       exit 1; \
     fi; \
-    if [ "${BINARY_INSTALL_MODE}" = "sync" ]; then \
-      # shellcheck disable=SC2086
-      .venv/bin/python -m PyInstaller --onedir \
-        --name "${BINARY_NAME}" \
-        ${EXTRA_PYINSTALLER_ARGS} \
-        "${PYINSTALLER_ENTRY}"; \
-    else \
-      # shellcheck disable=SC2086
-      pyinstaller --onedir \
-        --name "${BINARY_NAME}" \
-        ${EXTRA_PYINSTALLER_ARGS} \
-        "${PYINSTALLER_ENTRY}"; \
-    fi; \
-    if [ -f /tmp/msodbcsql.apk ]; then \
-      cp /tmp/msodbcsql.apk /build/dist/msodbcsql.apk; \
-    fi
+    # shellcheck disable=SC2086
+    pyinstaller --onedir \
+      --name "${BINARY_NAME}" \
+      ${EXTRA_PYINSTALLER_ARGS} \
+      "${PYINSTALLER_ENTRY}"
 
 # ── export-binaries (Bake context payload) ────────────────────────────────────
 FROM scratch AS export-binaries

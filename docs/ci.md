@@ -32,8 +32,9 @@ Example stubs (not used by Devinfra CST): [`docker/examples/`](../docker/example
 of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base).
 
 **Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
-ARGs (packages, binary name, optional builder extras such as ODBC download) and local last-stage finishing. Builder
-extras belong in the base; runtime personality stays in the last stage.
+ARGs (packages, binary name, optional compile apk extras) and local last-stage finishing. **Product-only** extras (e.g.
+sql-to-arc Microsoft ODBC driver) stay in the **product-local last stage**, not in the synced base. Builder compile
+extras that all products share may use `BUILDER_APK_PACKAGES`; runtime personality stays in the last stage.
 
 Local smoke (in a product repo after adoption):
 

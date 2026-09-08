@@ -280,6 +280,10 @@ jobs:
           DH_NS="${{ inputs.dockerhub_namespace }}"
           IMG_BASE="${{ inputs.image_base_name }}"
           VER="${{ inputs.version }}"
+          PEP440="${{ inputs.pep440_version }}"
+          if [[ -z "$PEP440" || "$PEP440" == "null" ]]; then
+            PEP440="${VER}"
+          fi
           GHCR_NS="${{ inputs.ghcr_namespace }}"
           if [[ -z "$GHCR_NS" ]]; then
             GHCR_NS="${{ github.repository_owner }}"
@@ -364,7 +368,7 @@ jobs:
             echo "source scripts/load-versions-env.sh"
             echo "docker buildx bake ${COMPONENT} --load \\"
             echo "  --set ${COMPONENT}.tags=${COMPONENT}:${VER} \\"
-            echo "  --set *.args.APP_VERSION=\$PEP440_VERSION \\"
+            echo "  --set *.args.APP_VERSION=${PEP440} \\"
             echo "  --set *.args.PYTHON_VERSION=\$PYTHON_VERSION \\"
             echo "  --set *.args.ALPINE_VERSION=\$ALPINE_VERSION \\"
             echo "  --set *.args.ALPINE_MINOR=\$ALPINE_MINOR \\"

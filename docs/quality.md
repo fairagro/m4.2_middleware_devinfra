@@ -169,8 +169,13 @@ On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hook
 | Input       | Default                                              | Override                 |
 | ----------- | ---------------------------------------------------- | ------------------------ |
 | Dockerfile  | `docker/Dockerfile`                                  | `CST_DOCKERFILE` or `$1` |
+| Bake target | (unset — use Dockerfile build)                       | `CST_BAKE_TARGET`        |
+| Bake file   | `docker-bake.hcl`                                    | `CST_BAKE_FILE`          |
 | Image tag   | `app:structure-test`                                 | `CST_IMAGE_TAG` or `$2`  |
 | Test config | `docker/container-structure-tests` (dir of `*.yaml`) | `CST_CONFIG` or `$3`     |
+
+If `CST_BAKE_TARGET` is set, the runner uses `docker buildx bake` (required for Bake base + last-stage images).
+Otherwise it uses `docker build -f` as before.
 
 If the default Dockerfile is missing **and** this checkout has no product CST layout (no `docker/` at all, **or**
 `docker/` without both `docker/Dockerfile` and `docker/container-structure-tests/` — e.g. Devinfra with only

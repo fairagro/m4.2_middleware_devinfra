@@ -14,9 +14,10 @@ The repository MUST provide `docker/Dockerfile.product-app.base` as the canonica
 application images. The base MUST include stages equivalent to **package-builder**, **binary-builder**, and an
 **export** stage that places build artifacts under a stable path (e.g. `/dist`) suitable for use as a Buildx Bake
 additional context. Real differences across products (toolchain versions, packages to build, binary names, optional
-builder extras such as downloading an ODBC driver apk) MUST be expressible via **ARG** (and documented defaults), not
+builder extras such as extra compile `apk` packages) MUST be expressible via **ARG** (and documented defaults), not
 hard-coded product names. The base MUST NOT encode product-specific runtime finishing (CMD/ENTRYPOINT, EXPOSE,
-HEALTHCHECK, git system config, numeric UID policy, or runtime-only apk installs).
+HEALTHCHECK, git system config, numeric UID policy, runtime-only apk installs) and MUST NOT download or install
+product-only drivers (e.g. Microsoft ODBC for sql-to-arc) — those belong in the product-local last stage.
 
 #### Scenario: Fresh clone has shared base
 

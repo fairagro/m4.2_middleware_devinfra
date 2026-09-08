@@ -15,7 +15,8 @@ ARG RUNTIME_WORKDIR=/api
 
 WORKDIR ${RUNTIME_WORKDIR}
 
-# Runtime apk set is product-specific (git/curl, unixodbc, ca-certificates, …).
+# Runtime apk set is product-specific (git/curl, ca-certificates, …).
+# sql-to-arc: install Microsoft ODBC / unixodbc here (not in the synced base).
 # hadolint ignore=DL3018
 RUN apk add --no-cache ca-certificates zlib \
     && addgroup -S "${RUNTIME_USER}" \

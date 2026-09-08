@@ -48,7 +48,6 @@ target "api-base" {
     UV_BUILD_PACKAGES  = "fairagro-middleware-shared api"
     BINARY_NAME        = "middleware-api"
     PYINSTALLER_ENTRY  = "placeholder-set-me.py"
-    BINARY_INSTALL_MODE = "system"
   }
 }
 
