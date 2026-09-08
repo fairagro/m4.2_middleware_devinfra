@@ -67,6 +67,16 @@
       "versioningTemplate": "loose"
     },
     {
+      "description": "Dev Container base image pin in versions.env",
+      "customType": "regex",
+      "fileMatch": ["^versions\\.env$"],
+      "matchStrings": [
+        "DEVCONTAINER_BASE_IMAGE=(?<depName>[^:\\s#]+):(?<currentValue>[^\\s#]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
       "description": "uv pin in versions.env",
       "customType": "regex",
       "fileMatch": ["^versions\\.env$"],
@@ -258,7 +268,7 @@
     },
     {
       "description": "Runtime Sync: Docker + Devcontainer base images",
-      "matchManagers": ["dockerfile", "devcontainer"],
+      "matchManagers": ["dockerfile", "devcontainer", "custom.regex"],
       "matchPackagePatterns": ["^alpine$", "^mcr\\.microsoft\\.com/devcontainers"],
       "groupName": "Runtime base (Docker + Devcontainer)"
     },
