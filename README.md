@@ -104,7 +104,7 @@ steps.
   extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
 - [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
-- [Issue-fixer](docs/issue-fixer.md) — explore → draft PR → local implement for `/issue-fixer`
+- [Issue-fixer](docs/issue-fixer.md) — triage → implement → draft PR for `/issue-fixer` (no OpenSpec)
 - [Shared principles](openspec/principles.global.md) — synced foundation; extend via
   [`openspec/principles.md`](openspec/principles.md)
 
