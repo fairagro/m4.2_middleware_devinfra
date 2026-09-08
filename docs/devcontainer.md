@@ -91,9 +91,9 @@ npm run lint:md
 
 ## Trivy / Renovate (local CLIs)
 
-`trivy` and `renovate` are on `PATH` for local scans and config dry-runs. Reusable GitHub Actions that invoke them stay
-in issues [#11](https://github.com/fairagro/m4.2_middleware_devinfra/issues/11) /
-[#12](https://github.com/fairagro/m4.2_middleware_devinfra/issues/12).
+`trivy` and `renovate` are on `PATH` for local scans and config dry-runs. Shared **Renovate** config and GitHub workflow
+live in this repo — see [`docs/renovate.md`](renovate.md) (token, dry-run, product migration). Reusable **Trivy** GitHub
+Actions remain a separate CI concern.
 
 ## Bash history
 
