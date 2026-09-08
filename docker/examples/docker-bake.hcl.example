@@ -47,7 +47,8 @@ target "api-base" {
     UV_VERSION         = UV_VERSION
     UV_BUILD_PACKAGES  = "fairagro-middleware-shared api"
     BINARY_NAME        = "middleware-api"
-    PYINSTALLER_ENTRY  = "placeholder-set-me.py"
+    # Preferred: import path of the installed package that owns main.py (resolved after wheel install)
+    PYINSTALLER_IMPORT = "middleware.api"
   }
 }
 

@@ -29,7 +29,9 @@ adopted this layout (product Wave C / sync [#13](https://github.com/fairagro/m4.
 | `docker-bake.hcl` (repo root)        | **No** (local)      | Bake targets: `<component>-base` + `<component>` with `contexts`  |
 
 Example stubs (not used by Devinfra CST): [`docker/examples/`](../docker/examples/). ARG list is documented at the top
-of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base).
+of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base). Prefer `PYINSTALLER_IMPORT` (package
+import path whose `main.py` is resolved after wheel install); do not pass a repo-relative entry path — the binary
+builder does not COPY application source.
 
 **Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
 ARGs (packages, binary name, optional compile apk extras) and local last-stage finishing. **Product-only** extras (e.g.

@@ -21,11 +21,15 @@
 #   UV_BUILD_PACKAGES     space-separated uv workspace package names to wheel
 # Binary build:
 #   BINARY_NAME             primary PyInstaller --name / onedir under dist/
-#   PYINSTALLER_ENTRY       entry script path for PyInstaller
+#   PYINSTALLER_IMPORT      preferred: Python import path of the app package that owns main.py
+#                           (e.g. middleware.api → …/site-packages/middleware/api/main.py after wheel install)
+#   PYINSTALLER_ENTRY       optional override: absolute or in-image path to the entry script (must exist
+#                           after `uv pip install --system` of the wheels — typically under site-packages)
 #   EXTRA_PYINSTALLER_ARGS  extra args appended to pyinstaller (word-split)
 #   BUILDER_APK_PACKAGES    extra compile/link apk packages for binary-builder (space-separated)
 #
 # Install path (single): uv pip install --system built wheels + pyinstaller, then pyinstaller --onedir.
+# The binary-builder does not COPY repo source; entry must come from the installed wheel (IMPORT or ENTRY).
 
 ARG PYTHON_VERSION=3.12
 ARG ALPINE_MINOR=3.24
@@ -73,7 +77,8 @@ ARG APP_VERSION=0.0.0
 ARG PIP_VERSION=26.2.1
 ARG UV_VERSION=0.12.9
 ARG BINARY_NAME
-ARG PYINSTALLER_ENTRY
+ARG PYINSTALLER_IMPORT=""
+ARG PYINSTALLER_ENTRY=""
 ARG EXTRA_PYINSTALLER_ARGS=""
 ARG BUILDER_APK_PACKAGES=""
 
@@ -101,16 +106,25 @@ COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
 RUN uv pip install --system /tmp/wheels/*.whl \
     && uv pip install --system pyinstaller
 
+# Resolve entry from installed package (preferred) or an explicit in-image path.
 RUN set -eu; \
-    if [ -z "${BINARY_NAME:-}" ] || [ -z "${PYINSTALLER_ENTRY:-}" ]; then \
-      echo "ERROR: BINARY_NAME and PYINSTALLER_ENTRY are required" >&2; \
+    if [ -z "${BINARY_NAME:-}" ]; then \
+      echo "ERROR: BINARY_NAME is required" >&2; \
+      exit 1; \
+    fi; \
+    if [ -n "${PYINSTALLER_IMPORT}" ]; then \
+      ENTRY="$(python -c "import importlib, pathlib; m = importlib.import_module('${PYINSTALLER_IMPORT}'); print(pathlib.Path(m.__file__).resolve().with_name('main.py'))")"; \
+    elif [ -n "${PYINSTALLER_ENTRY}" ] && [ -f "${PYINSTALLER_ENTRY}" ]; then \
+      ENTRY="${PYINSTALLER_ENTRY}"; \
+    else \
+      echo "ERROR: set PYINSTALLER_IMPORT (preferred) or PYINSTALLER_ENTRY to an existing path after wheel install" >&2; \
       exit 1; \
     fi; \
     # shellcheck disable=SC2086
     pyinstaller --onedir \
       --name "${BINARY_NAME}" \
       ${EXTRA_PYINSTALLER_ARGS} \
-      "${PYINSTALLER_ENTRY}"
+      "${ENTRY}"
 
 # ── export-binaries (Bake context payload) ────────────────────────────────────
 FROM scratch AS export-binaries
