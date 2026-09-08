@@ -160,10 +160,17 @@ Practicality is not “we have seen this in prod”. It is “a realistic path e
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **High**   | Cite entry → function → bad state. Entry is a public HTTP route, a worker / async task, or a config field set by default / the repo's documented default config.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **Medium** | Only with non-default config, an internal caller, or admin.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, or a spec invariant — **quote the invariant**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Low**    | State is excluded by Pydantic, the config wrapper, annotations, a **spec / OpenSpec invariant**, or a **shared-file contract** already enforced for supported callers — **quote the invariant** (e.g. synced `versions.env` already defines the required keys; sync docs require that file). A path that is only reachable by deleting or omitting those contracted keys/files is **not** High.                                                                                                                                                                                                             |
 | **None**   | False positive; the alleged path does not exist in the **Linux Dev Container** (or GitHub Actions Linux CI); **or** the path is only a one-shot local migration / ephemeral personal file format that is not the current write path and not a shipped contract (re-run setup once). Includes macOS/Windows/Homebrew, BSD/non-GNU tool differences, host-only fallbacks when the Dev Container primary path already works, and unofficial bare-Linux-without-container runs — quote [`openspec/principles.global.md`](../openspec/principles.global.md) Supported development environment when that applies. |
 
 If the fixer cannot write a path sentence, practicality is **Low**, not High.
+
+**Mechanical path ≠ realistic path.** Code that _can_ error when a required shared file is incomplete is not High
+practicality if supported callers never ship that incomplete state. Ask: “Under documented sync / default CI / Dev
+Container adoption, does this bad state still occur?” If **no** — quote the contract (`versions.env` section, synced
+path list, workflow inputs that always inject pins) → practicality **Low** or **None** → usually `dismiss`. **Do not**
+add opt-in flags, dual modes, or “REQUIRE_*” shims solely for “caller deleted a contracted pin.” **Cheap does not
+override.**
 
 Risk is high only when severity is Blocker/High **and** practicality is not Low/None.
 
@@ -177,13 +184,16 @@ middleware.
 hand-edit). Product repos MAY add rows in local [`docs/surface-quality-bar.md`](surface-quality-bar.md); sync of the
 `.global.md` file does not overwrite that overlay. Do not edit this policy file solely to add a path→surface row.
 
-For **shared Devinfra scripts**, a realistic path is the **documented default** in the Linux Dev Container or GitHub
-Actions Linux (e.g. `./scripts/quality-check.sh`, `pre-commit` commit stage, postCreate token load) — not host-only
-installs, unofficial bare-metal runs, linked git worktrees (`.git` as file), or speculative edge hardening. Those are
-practicality **Low** (or **None**). **Do not** take step 5 merely because the patch is cheap. **Do not** spend
-**nit-budget** on those exotic edges either — `dismiss` them. Still **fix** when that documented path is wrong
-(including real consumer-sync failures such as hook argv-length on `pre-commit run --all-files`, or check scripts that
-mutate contrary to their contract).
+For **shared Devinfra scripts** (and reusable CI helpers that only orchestrate them), a realistic path is the
+**documented default** in the Linux Dev Container or GitHub Actions Linux (e.g. `./scripts/quality-check.sh`,
+`pre-commit` commit stage, postCreate token load, `source scripts/load-versions-env.sh` against a **complete** synced
+`versions.env`) — not host-only installs, unofficial bare-metal runs, linked git worktrees (`.git` as file), speculative
+edge hardening, or **hypothetical incomplete shared config** (missing pin keys, unsynced contracted files, “what if
+quality runs without the Product app image section”). Those are practicality **Low** (or **None**). **Do not** take step
+5 merely because the patch is cheap. **Do not** spend **nit-budget** on those exotic edges either — `dismiss` them.
+Still **fix** when that documented path is wrong **with the contracted files as this repo ships them** (including real
+consumer-sync failures such as hook argv-length on `pre-commit run --all-files`, or check scripts that mutate contrary
+to their contract).
 
 **Also dismiss** on this surface: pre-commit / shell **style-only** nits (`entry` vs `args`, comment polish) and
 **re-adding** exotic repair paths the PR intentionally removed, when the happy path still works.
