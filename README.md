@@ -7,11 +7,10 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 - [m4.2_middleware_harvester](https://github.com/fairagro/m4.2_middleware_harvester)
 
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
-consumers — land shared changes in this repo first. That includes the AI review policy, Finder entries
-(`.cursor/BUGBOT.md`, `.github/copilot-instructions.md`), `/review-fixer`, `/create-issue`, and `/issue-fixer` (skills,
-Cursor commands, Copilot prompts), the agent GitHub CLI (`scripts/ai/`, `m42-ai`), personal-token helpers
-(`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`, `scripts/bin/git`), and
-`openspec/principles.global.md`. Roadmap: [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
+consumers — land shared changes in this repo first. The allowlist is
+[`docs/synced-paths.global.md`](docs/synced-paths.global.md) (AI review policy, Finder entries, fixer skills/commands,
+`scripts/ai/`, personal-token helpers, `openspec/principles.global.md`, and other Wave A / sync paths). Roadmap:
+[epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 ## Agent skills
 
@@ -100,6 +99,7 @@ steps.
 - [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks install (wired from postCreate)
 - [Reusable CI](docs/ci.md) — `uses:` contract, Bake product-app images, check artifacts
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
+- [Synced paths allowlist](docs/synced-paths.global.md) — Devinfra-canonical paths consumers must not hand-edit
 - [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
   extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
@@ -110,45 +110,46 @@ steps.
 
 ## Layout
 
-| Path                                      | Role                                                                           |
-| ----------------------------------------- | ------------------------------------------------------------------------------ |
-| `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                      |
-| `docs/`                                   | Feature documentation (grows over time)                                        |
-| `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                      |
-| `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)     |
-| `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                 |
-| `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                 |
-| `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                  |
-| `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params, Python config fragments      |
-| `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm) |
-| `docker/Dockerfile.product-app.base`      | Shared product-app image base (Bake export stage; sync to products)            |
-| `docker/examples/`                        | Example last-stage + `docker-bake.hcl` stubs (A4; not Devinfra CST)            |
-| `scripts/quality-check.sh`                | Commit-stage quality check                                                     |
-| `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                     |
-| `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                             |
-| `scripts/setup-git-hooks.sh`              | Install project `pre-push` hook from `scripts/git-hooks/`                      |
-| `scripts/git-hooks/`                      | Version-controlled `pre-push` (pre-commit pre-push stage)                      |
-| `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                          |
-| `.bandit`                                 | Bandit config for `middleware/` consumers                                      |
-| `scripts/ai/`                             | `m42-ai` CLI (uv workspace member; `uv run m42-ai`)                            |
-| `openspec/principles.global.md`           | Shared principles base (synced; do not diverge in consumers)                   |
-| `openspec/principles.md`                  | Repo-local principles extension (points at `.global`)                          |
-| `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                             |
-| `.agents/skills/create-issue/`            | Shared `/create-issue` creator skill                                           |
-| `.agents/skills/issue-fixer/`             | Shared `/issue-fixer` Fixer skill                                              |
-| `.agents/skills/arctrl/`                  | Shared arctrl ≥ 3.2.1 usage reference (first-party; not a vendor pin)          |
-| `.agents/skills/gh/`                      | Vendor `gh` skill (committed; do not hand-edit)                                |
-| `.agents/skills/docker/`                  | Vendor Docker skill (committed; do not hand-edit)                              |
-| `.agents/skills/hadolint/`                | Vendor hadolint skill (committed; do not hand-edit)                            |
-| `.agents/skills/uv/`                      | Vendor `uv` skill (committed; do not hand-edit)                                |
-| `.cursor/commands/review-fixer.md`        | Cursor slash command for review-fixer                                          |
-| `.cursor/commands/create-issue.md`        | Cursor slash command for create-issue                                          |
-| `.cursor/commands/issue-fixer.md`         | Cursor slash command for issue-fixer                                           |
-| `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, issue-fixer)                      |
-| `.cursor/`                                | Shared Cursor config (incl. `BUGBOT.md`)                                       |
-| `.github/`                                | Shared workflows / prompts (incl. `copilot-instructions.md`)                   |
-| `scripts/dev-tokens.sh`                   | Personal token load / prompt                                                   |
-| `scripts/bin/`                            | `gh` / `git` PATH wrappers                                                     |
-| `scripts/`                                | Shared scripts                                                                 |
-| `.devcontainer/`                          | Dev Container definition                                                       |
-| `versions.env`                            | Toolchain version pins                                                         |
+| Path                                      | Role                                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                           |
+| `docs/`                                   | Feature documentation (grows over time)                                             |
+| `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                           |
+| `docs/synced-paths.global.md`             | Allowlist of synced paths (consumers: do not hand-edit)                             |
+| `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)          |
+| `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                      |
+| `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                      |
+| `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                       |
+| `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params, Python config fragments           |
+| `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm)      |
+| `docker/Dockerfile.product-app.base`      | Shared product-app image base (Bake export stage; sync to products)                 |
+| `docker/examples/`                        | Example last-stage + `docker-bake.hcl` stubs (A4; not Devinfra CST)                 |
+| `scripts/quality-check.sh`                | Commit-stage quality check                                                          |
+| `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                          |
+| `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                                  |
+| `scripts/setup-git-hooks.sh`              | Install project `pre-push` hook from `scripts/git-hooks/`                           |
+| `scripts/git-hooks/`                      | Version-controlled `pre-push` (pre-commit pre-push stage)                           |
+| `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                               |
+| `.bandit`                                 | Bandit config for `middleware/` consumers                                           |
+| `scripts/ai/`                             | `m42-ai` CLI (Devinfra: workspace member; consumers: `uv run --project scripts/ai`) |
+| `openspec/principles.global.md`           | Shared principles base (synced; do not diverge in consumers)                        |
+| `openspec/principles.md`                  | Repo-local principles extension (points at `.global`)                               |
+| `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                                  |
+| `.agents/skills/create-issue/`            | Shared `/create-issue` creator skill                                                |
+| `.agents/skills/issue-fixer/`             | Shared `/issue-fixer` Fixer skill                                                   |
+| `.agents/skills/arctrl/`                  | Shared arctrl ≥ 3.2.1 usage reference (first-party; not a vendor pin)               |
+| `.agents/skills/gh/`                      | Vendor `gh` skill (committed; do not hand-edit)                                     |
+| `.agents/skills/docker/`                  | Vendor Docker skill (committed; do not hand-edit)                                   |
+| `.agents/skills/hadolint/`                | Vendor hadolint skill (committed; do not hand-edit)                                 |
+| `.agents/skills/uv/`                      | Vendor `uv` skill (committed; do not hand-edit)                                     |
+| `.cursor/commands/review-fixer.md`        | Cursor slash command for review-fixer                                               |
+| `.cursor/commands/create-issue.md`        | Cursor slash command for create-issue                                               |
+| `.cursor/commands/issue-fixer.md`         | Cursor slash command for issue-fixer                                                |
+| `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, issue-fixer)                           |
+| `.cursor/`                                | Shared Cursor config (incl. `BUGBOT.md`)                                            |
+| `.github/`                                | Shared workflows / prompts (incl. `copilot-instructions.md`)                        |
+| `scripts/dev-tokens.sh`                   | Personal token load / prompt                                                        |
+| `scripts/bin/`                            | `gh` / `git` PATH wrappers                                                          |
+| `scripts/`                                | Shared scripts                                                                      |
+| `.devcontainer/`                          | Dev Container definition                                                            |
+| `versions.env`                            | Toolchain version pins                                                              |
