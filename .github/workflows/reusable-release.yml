@@ -362,14 +362,18 @@ jobs:
             echo "cd ${REPO_BASENAME}"
             echo "git checkout ${TAG}"
             echo "source scripts/load-versions-env.sh"
-            echo "docker build -f docker/Dockerfile.${COMPONENT} \\"
-            echo "  --build-arg PYTHON_VERSION=\$PYTHON_VERSION \\"
-            echo "  --build-arg ALPINE_VERSION=\$ALPINE_VERSION \\"
-            echo "  --build-arg ALPINE_MINOR=\$ALPINE_MINOR \\"
-            echo "  --build-arg PIP_VERSION=\$PIP_VERSION \\"
-            echo "  --build-arg UV_VERSION=\$UV_VERSION \\"
-            echo "  -t ${COMPONENT}:${VER} ."
+            echo "docker buildx bake ${COMPONENT} --load \\"
+            echo "  --set ${COMPONENT}.tags=${COMPONENT}:${VER} \\"
+            echo "  --set *.args.APP_VERSION=\$PEP440_VERSION \\"
+            echo "  --set *.args.PYTHON_VERSION=\$PYTHON_VERSION \\"
+            echo "  --set *.args.ALPINE_VERSION=\$ALPINE_VERSION \\"
+            echo "  --set *.args.ALPINE_MINOR=\$ALPINE_MINOR \\"
+            echo "  --set *.args.PIP_VERSION=\$PIP_VERSION \\"
+            echo "  --set *.args.UV_VERSION=\$UV_VERSION"
             echo '```'
+            echo ""
+            echo "Requires repo-root \`docker-bake.hcl\`, synced \`docker/Dockerfile.product-app.base\`,"
+            echo "and product-local \`docker/Dockerfile.${COMPONENT}\` (Bake base + last stage; see Devinfra docs/ci.md)."
           } > release-body.md
 
       - name: Create GitHub Release (Draft)

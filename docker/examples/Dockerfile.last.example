@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1.4
+# Example product-local last stage (NOT used by Devinfra CST).
+# Copy/adapt to docker/Dockerfile.<component> in a product repo; do not sync this file over
+# product last stages (#13).
+#
+# Bake wires context `export_bins` to the shared base target `export-binaries` (see
+# docker/examples/docker-bake.hcl.example).
+
+ARG ALPINE_VERSION=3.24.1
+FROM alpine:${ALPINE_VERSION}
+
+ARG BINARY_NAME=middleware-api
+ARG RUNTIME_USER=middleware
+ARG RUNTIME_WORKDIR=/api
+
+WORKDIR ${RUNTIME_WORKDIR}
+
+# Runtime apk set is product-specific (git/curl, unixodbc, ca-certificates, …).
+# hadolint ignore=DL3018
+RUN apk add --no-cache ca-certificates zlib \
+    && addgroup -S "${RUNTIME_USER}" \
+    && adduser -S -H -G "${RUNTIME_USER}" "${RUNTIME_USER}" \
+    && chown "${RUNTIME_USER}:${RUNTIME_USER}" "${RUNTIME_WORKDIR}"
+
+# export_bins is the Bake additional context from target:*-base (export-binaries stage)
+# hadolint ignore=DL3022
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} ${RUNTIME_WORKDIR}/${BINARY_NAME}
+
+USER ${RUNTIME_USER}
+
+# Replace with product CMD / ENTRYPOINT / EXPOSE / HEALTHCHECK
+CMD ["./middleware-api/middleware-api"]

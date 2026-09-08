@@ -1,4 +1,4 @@
-# Canonical reusable Docker build for m4.2 product repos (issue #12).
+# Canonical reusable Docker build for m4.2 product repos (issue #12 / #36).
 # Call from the product repo:
 #   uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@<ref>
 #
@@ -7,8 +7,11 @@
 #   - sbom-<component>-<version>          → contains sbom-<component>.spdx.json
 # Local image tag inside the archive:
 #   local/<image_base_name>-<component>:<version>
-# Dockerfile path in the caller checkout:
-#   docker/Dockerfile.<component>
+#
+# Build layout (Bake-only, issue #36 — no monolith fallback):
+#   - docker/Dockerfile.product-app.base   (synced shared base → export-binaries)
+#   - docker/Dockerfile.<component>        (product-local last stage)
+#   - docker-bake.hcl                      (repo root; target name = component)
 name: Reusable Build
 
 permissions:
@@ -158,25 +161,24 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: docker/setup-buildx-action@v4
 
-      - name: Build Docker image
+      - name: Build Docker image (Bake)
         if: ${{ !inputs.skip }}
-        uses: docker/build-push-action@v7
+        uses: docker/bake-action@v6
         with:
-          context: .
-          file: docker/Dockerfile.${{ matrix.component }}
-          platforms: linux/amd64
-          push: false
+          files: docker-bake.hcl
+          targets: ${{ matrix.component }}
           load: true
-          tags: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.version.outputs.version }}
-          build-args: |
-            APP_VERSION=${{ needs.version.outputs.pep440_version }}
-            PYTHON_VERSION=${{ steps.versions.outputs.python }}
-            ALPINE_VERSION=${{ steps.versions.outputs.alpine }}
-            ALPINE_MINOR=${{ steps.versions.outputs.alpine_minor }}
-            PIP_VERSION=${{ steps.versions.outputs.pip }}
-            UV_VERSION=${{ steps.versions.outputs.uv }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          set: |
+            *.platform=linux/amd64
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+            ${{ matrix.component }}.tags=local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.version.outputs.version }}
+            *.args.APP_VERSION=${{ needs.version.outputs.pep440_version }}
+            *.args.PYTHON_VERSION=${{ steps.versions.outputs.python }}
+            *.args.ALPINE_VERSION=${{ steps.versions.outputs.alpine }}
+            *.args.ALPINE_MINOR=${{ steps.versions.outputs.alpine_minor }}
+            *.args.PIP_VERSION=${{ steps.versions.outputs.pip }}
+            *.args.UV_VERSION=${{ steps.versions.outputs.uv }}
 
       - name: Save Docker image as artifact
         if: ${{ !inputs.skip }}

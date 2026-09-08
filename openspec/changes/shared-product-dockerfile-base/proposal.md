@@ -30,6 +30,8 @@ base** here so sync (#13) can converge products without overwriting product-spec
 
 - `reusable-ci-workflows`: Build (and release rebuild) MUST use Bake with base + last-stage contexts instead of a single
   monolith `docker/Dockerfile.<component>` file path
+- `shared-quality-tooling`: CST soft-skip MUST allow Devinfra `docker/` that only contains the shared product-app base /
+  examples (no product `docker/Dockerfile` / CST suite)
 
 ## Impact
 

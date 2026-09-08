@@ -97,8 +97,13 @@ After sync, products should **remove** duplicated `[tool.ruff]` / `[tool.mypy]` 
 ([#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13)), not in the Devinfra MVP PR
 ([#28](https://github.com/fairagro/m4.2_middleware_devinfra/issues/28)).
 
-Shared **app Dockerfile** base + product-local last stage is deferred to
-[#36](https://github.com/fairagro/m4.2_middleware_devinfra/issues/36) (`sub-of` #28).
+Shared **app Dockerfile** base + product-local last stage lives in this repo as
+[`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base) with Bake examples under
+[`docker/examples/`](../docker/examples/). Sync the **base** into products; keep the last stage and `docker-bake.hcl`
+product-local. Reusable build/release are **Bake-only** (no monolith Dockerfile) — see
+[`docs/ci.md`](ci.md#product-app-images-bake-base--last-stage). Adoption:
+[#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13) / product Wave C (issue
+[#36](https://github.com/fairagro/m4.2_middleware_devinfra/issues/36)).
 
 ## IDE (workspace settings)
 
@@ -167,9 +172,10 @@ On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hook
 | Image tag   | `app:structure-test`                                 | `CST_IMAGE_TAG` or `$2`  |
 | Test config | `docker/container-structure-tests` (dir of `*.yaml`) | `CST_CONFIG` or `$3`     |
 
-If the default Dockerfile is missing **and** this checkout has no `docker/` directory (Devinfra), the script **skips**
-with a warning and exits 0 so pre-push can succeed. Product repos that use `docker/` still fail hard when paths are
-wrong.
+If the default Dockerfile is missing **and** this checkout has no product CST layout (no `docker/` at all, **or**
+`docker/` without both `docker/Dockerfile` and `docker/container-structure-tests/` — e.g. Devinfra with only
+`Dockerfile.product-app.base` + examples), the script **skips** with a warning and exits 0 so pre-push can succeed.
+Product repos that ship a product `docker/` layout still fail hard when paths are wrong.
 
 Optional Docker `--build-arg` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`,
 `ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`).

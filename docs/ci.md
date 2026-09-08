@@ -16,14 +16,42 @@ Canonical GitHub Actions for the three m4.2 product repos live in this repositor
 Product-distinguishing names use **`workflow_call` inputs** (e.g. `image_base_name`, `chart_dir`) — do not rely on
 silent repository Variables for correct identity.
 
+## Product app images (Bake base + last stage)
+
+**BREAKING (issue #36):** `reusable-build.yml` builds with **Docker Buildx Bake only**. There is **no** monolith
+fallback to `docker build -f docker/Dockerfile.<component>`. Do **not** bump the workflow ref until the caller has
+adopted this layout (product Wave C / sync [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13)).
+
+| Path (caller checkout)               | Sync from Devinfra? | Role                                                              |
+| ------------------------------------ | ------------------- | ----------------------------------------------------------------- |
+| `docker/Dockerfile.product-app.base` | **Yes**             | Shared stages: package-builder → binary-builder → export-binaries |
+| `docker/Dockerfile.<component>`      | **No** (local)      | Thin last stage: USER / CMD / HEALTHCHECK / runtime apk / labels  |
+| `docker-bake.hcl` (repo root)        | **No** (local)      | Bake targets: `<component>-base` + `<component>` with `contexts`  |
+
+Example stubs (not used by Devinfra CST): [`docker/examples/`](../docker/examples/). ARG list is documented at the top
+of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base).
+
+**Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
+ARGs (packages, binary name, optional builder extras such as ODBC download) and local last-stage finishing. Builder
+extras belong in the base; runtime personality stays in the last stage.
+
+Local smoke (in a product repo after adoption):
+
+```bash
+docker buildx bake api --load
+```
+
+`reusable-build` invokes `docker/bake-action` with `files: docker-bake.hcl` and `targets: <component>`, passing
+toolchain `*.args` from `versions.env` / `load-versions-env.sh`. Artifact tags and the check contract are unchanged.
+
 ## Calling from a product repo
 
 Replace `@main` with a **tag** or **commit SHA** once you want a frozen contract. `@main` is fine for early adoption
 while this repo’s CI surface is still moving.
 
 The reusable workflows check out the **caller** repository (not Devinfra), so `versions.env`, `.python-version`,
-`scripts/load-versions-env.sh`, Dockerfiles under `docker/Dockerfile.<component>`, and Helm charts must exist in the
-product repo. Callers that sync `versions.env` MUST also sync `scripts/load-versions-env.sh`.
+`scripts/load-versions-env.sh`, the **Bake product-app layout** (below), and Helm charts must exist in the product repo.
+Callers that sync `versions.env` MUST also sync `scripts/load-versions-env.sh`.
 
 ### Feature PR (Docker build + check)
 
