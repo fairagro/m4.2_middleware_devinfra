@@ -182,8 +182,9 @@ If the default Dockerfile is missing **and** this checkout has no product CST la
 `Dockerfile.product-app.base` + examples), the script **skips** with a warning and exits 0 so pre-push can succeed.
 Product repos that ship a product `docker/` layout still fail hard when paths are wrong.
 
-Optional Docker `--build-arg` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`,
-`ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`).
+Optional Docker `--build-arg` / Bake `*.args` values are taken from `versions.env` when set (`PYTHON_VERSION`,
+`UV_VERSION`, `ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`, `PYINSTALLER_VERSION`). Those pins must not be restated
+as Dockerfile or Bake defaults.
 
 Example (API-shaped product):
 

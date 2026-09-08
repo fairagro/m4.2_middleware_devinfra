@@ -16,10 +16,10 @@
 #     ./scripts/run-container-structure-test.sh
 #   Optional: CST_BAKE_FILE=docker-bake.hcl (default)
 #
-# Positional (optional, override env; ignored when CST_BAKE_TARGET is set):
-#   $1 Dockerfile path
-#   $2 image tag
-#   $3 config file or directory of *.yaml tests
+# Positional (optional, override env):
+#   $1 Dockerfile path (ignored when CST_BAKE_TARGET is set — Bake uses CST_BAKE_FILE)
+#   $2 image tag (still applied in Bake mode)
+#   $3 config file or directory of *.yaml tests (still applied in Bake mode)
 
 set -euo pipefail
 
@@ -76,7 +76,7 @@ fi
 bake_set_args=()
 build_args=()
 # Pass through common pins when present in versions.env (products may use more).
-for var in PYTHON_VERSION UV_VERSION ALPINE_VERSION ALPINE_MINOR PIP_VERSION; do
+for var in PYTHON_VERSION UV_VERSION ALPINE_VERSION ALPINE_MINOR PIP_VERSION PYINSTALLER_VERSION; do
   if [[ -n "${!var:-}" ]]; then
     build_args+=(--build-arg "${var}=${!var}")
     bake_set_args+=(--set "*.args.${var}=${!var}")

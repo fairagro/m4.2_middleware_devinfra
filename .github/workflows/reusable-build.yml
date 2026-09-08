@@ -155,6 +155,7 @@ jobs:
             echo "alpine_minor=${ALPINE_MINOR}"
             echo "pip=${PIP_VERSION}"
             echo "uv=${UV_VERSION}"
+            echo "pyinstaller=${PYINSTALLER_VERSION}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
@@ -179,6 +180,7 @@ jobs:
             *.args.ALPINE_MINOR=${{ steps.versions.outputs.alpine_minor }}
             *.args.PIP_VERSION=${{ steps.versions.outputs.pip }}
             *.args.UV_VERSION=${{ steps.versions.outputs.uv }}
+            *.args.PYINSTALLER_VERSION=${{ steps.versions.outputs.pyinstaller }}
 
       - name: Save Docker image as artifact
         if: ${{ !inputs.skip }}

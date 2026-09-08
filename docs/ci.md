@@ -33,6 +33,11 @@ of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base)
 import path whose `main.py` is resolved after wheel install); do not pass a repo-relative entry path — the binary
 builder does not COPY application source.
 
+**Version pins (one per component):** concrete numbers live only in repo-root [`versions.env`](../versions.env) (Dev
+Container section + **Product app image** section for `PIP_VERSION`, `ALPINE_*`, `PYINSTALLER_VERSION`; shared
+`PYTHON_VERSION` / `UV_VERSION`). Do **not** duplicate pins as Dockerfile `ARG` defaults or Bake HCL `variable` defaults
+— inject via Bake `--set` / `reusable-build` (after `load-versions-env.sh`).
+
 **Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
 ARGs (packages, binary name, optional compile apk extras) and local last-stage finishing. **Product-only** extras (e.g.
 sql-to-arc Microsoft ODBC driver) stay in the **product-local last stage**, not in the synced base. Builder compile
@@ -41,7 +46,14 @@ extras that all products share may use `BUILDER_APK_PACKAGES`; runtime personali
 Local smoke (in a product repo after adoption):
 
 ```bash
-docker buildx bake api --load
+set -a && source versions.env && set +a
+docker buildx bake api --load \
+  --set "*.args.PYTHON_VERSION=${PYTHON_VERSION}" \
+  --set "*.args.ALPINE_MINOR=${ALPINE_MINOR}" \
+  --set "*.args.ALPINE_VERSION=${ALPINE_VERSION}" \
+  --set "*.args.PIP_VERSION=${PIP_VERSION}" \
+  --set "*.args.UV_VERSION=${UV_VERSION}" \
+  --set "*.args.PYINSTALLER_VERSION=${PYINSTALLER_VERSION}"
 ```
 
 `reusable-build` invokes `docker/bake-action` with `files: docker-bake.hcl` and `targets: <component>`, passing

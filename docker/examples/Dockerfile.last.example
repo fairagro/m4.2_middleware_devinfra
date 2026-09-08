@@ -5,13 +5,17 @@
 #
 # Bake wires context `export_bins` to the shared base target `export-binaries` (see
 # docker/examples/docker-bake.hcl.example).
+#
+# ALPINE_VERSION: pass from versions.env (no literal pin in this example).
 
-ARG ALPINE_VERSION=3.24.1
+ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
 
 ARG BINARY_NAME=middleware-api
 ARG RUNTIME_USER=middleware
 ARG RUNTIME_WORKDIR=/api
+
+ENV BINARY_NAME=${BINARY_NAME}
 
 WORKDIR ${RUNTIME_WORKDIR}
 
@@ -29,5 +33,6 @@ COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_N
 
 USER ${RUNTIME_USER}
 
-# Replace with product CMD / ENTRYPOINT / EXPOSE / HEALTHCHECK
-CMD ["./middleware-api/middleware-api"]
+# Replace with product ENTRYPOINT / EXPOSE / HEALTHCHECK as needed.
+# Shell form so BINARY_NAME stays consistent with the ARG/ENV above.
+CMD ["sh", "-c", "exec \"./${BINARY_NAME}/${BINARY_NAME}\""]

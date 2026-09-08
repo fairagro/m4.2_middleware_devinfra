@@ -1,35 +1,32 @@
 # Example Buildx Bake file for A4 (base + last). Copy to product repo root as docker-bake.hcl
-# and adjust component names / ARGs. reusable-build expects a repo-root docker-bake.hcl whose
-# target name equals the workflow `components` matrix entry (e.g. "api").
+# and adjust component names / product ARGs. reusable-build expects a repo-root docker-bake.hcl
+# whose target name equals the workflow `components` matrix entry (e.g. "api").
 #
-#   docker buildx bake api --load
+# Version pins: do NOT default PYTHON_VERSION / UV_VERSION / PIP_VERSION / ALPINE_* /
+# PYINSTALLER_VERSION here. One pin per component lives in versions.env. Inject them:
 #
-# Contexts: last stage Dockerfile uses `FROM`/`COPY --from=export_bins` where `export_bins`
-# is wired to `target:<component>-base`.
+#   set -a && source versions.env && set +a
+#   docker buildx bake api --load \
+#     --set "*.args.PYTHON_VERSION=${PYTHON_VERSION}" \
+#     --set "*.args.ALPINE_MINOR=${ALPINE_MINOR}" \
+#     --set "*.args.ALPINE_VERSION=${ALPINE_VERSION}" \
+#     --set "*.args.PIP_VERSION=${PIP_VERSION}" \
+#     --set "*.args.UV_VERSION=${UV_VERSION}" \
+#     --set "*.args.PYINSTALLER_VERSION=${PYINSTALLER_VERSION}" \
+#     --set "api.tags=local/example-api:dev"
+#
+# Contexts: last stage uses COPY --from=export_bins; export_bins = target:<component>-base.
 
 variable "APP_VERSION" {
   default = "0.0.0"
 }
 
-variable "PYTHON_VERSION" {
-  default = "3.12.14"
-}
-
-variable "ALPINE_VERSION" {
-  default = "3.24.1"
-}
-
-variable "ALPINE_MINOR" {
-  default = "3.24"
-}
-
-variable "PIP_VERSION" {
-  default = "26.2.1"
-}
-
-variable "UV_VERSION" {
-  default = "0.12.9"
-}
+variable "PYTHON_VERSION" {}
+variable "ALPINE_VERSION" {}
+variable "ALPINE_MINOR" {}
+variable "PIP_VERSION" {}
+variable "UV_VERSION" {}
+variable "PYINSTALLER_VERSION" {}
 
 variable "IMAGE_TAG" {
   default = "local/example-api:dev"
@@ -40,15 +37,16 @@ target "api-base" {
   dockerfile = "docker/Dockerfile.product-app.base"
   target     = "export-binaries"
   args = {
-    APP_VERSION        = APP_VERSION
-    PYTHON_VERSION     = PYTHON_VERSION
-    ALPINE_MINOR       = ALPINE_MINOR
-    PIP_VERSION        = PIP_VERSION
-    UV_VERSION         = UV_VERSION
-    UV_BUILD_PACKAGES  = "fairagro-middleware-shared api"
-    BINARY_NAME        = "middleware-api"
+    APP_VERSION         = APP_VERSION
+    PYTHON_VERSION      = PYTHON_VERSION
+    ALPINE_MINOR        = ALPINE_MINOR
+    PIP_VERSION         = PIP_VERSION
+    UV_VERSION          = UV_VERSION
+    PYINSTALLER_VERSION = PYINSTALLER_VERSION
+    UV_BUILD_PACKAGES   = "fairagro-middleware-shared api"
+    BINARY_NAME         = "middleware-api"
     # Preferred: import path of the installed package that owns main.py (resolved after wheel install)
-    PYINSTALLER_IMPORT = "middleware.api"
+    PYINSTALLER_IMPORT  = "middleware.api"
   }
 }
 
@@ -64,6 +62,6 @@ target "api" {
     RUNTIME_USER    = "middleware"
     RUNTIME_WORKDIR = "/api"
   }
-  tags = [IMAGE_TAG]
+  tags      = [IMAGE_TAG]
   platforms = ["linux/amd64"]
 }

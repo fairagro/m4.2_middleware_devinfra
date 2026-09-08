@@ -10,38 +10,39 @@
 # Compose with Buildx Bake (A4): build a "*-base" target through export-binaries, then wire
 # contexts so the last stage can `COPY --from=export_bins /dist/…`.
 #
-# ── ARGs (Bake / --build-arg; toolchain pins usually from versions.env) ─────────
+# ── Version pins ───────────────────────────────────────────────────────────────
+# Do NOT put concrete version numbers in this file. Pins live only in repo-root versions.env
+# (one pin per component). Pass them as Bake / --build-arg (reusable-build and
+# scripts/run-container-structure-test.sh do this after sourcing versions.env).
+#
+# ── ARGs (required unless noted) ───────────────────────────────────────────────
 # Toolchain (FROM-scoped — declare before first FROM):
-#   PYTHON_VERSION   e.g. 3.12.14
-#   ALPINE_MINOR     e.g. 3.24  (python image alpine tag major.minor)
-#   PIP_VERSION      e.g. 26.2.1
-#   UV_VERSION       e.g. 0.12.9
+#   PYTHON_VERSION, ALPINE_MINOR, PIP_VERSION, UV_VERSION
 # Package build:
-#   APP_VERSION           PEP 440 pretend version for setuptools-scm
-#   UV_BUILD_PACKAGES     space-separated uv workspace package names to wheel
+#   APP_VERSION           PEP 440 pretend version for setuptools-scm (default 0.0.0)
+#   UV_BUILD_PACKAGES     space-separated uv workspace package names to wheel (required)
 # Binary build:
-#   BINARY_NAME             primary PyInstaller --name / onedir under dist/
-#   PYINSTALLER_IMPORT      preferred: Python import path of the app package that owns main.py
-#                           (e.g. middleware.api → …/site-packages/middleware/api/main.py after wheel install)
-#   PYINSTALLER_ENTRY       optional override: absolute or in-image path to the entry script (must exist
-#                           after `uv pip install --system` of the wheels — typically under site-packages)
+#   BINARY_NAME             primary PyInstaller --name / onedir under dist/ (required)
+#   PYINSTALLER_IMPORT      preferred: import path of the app package that owns main.py
+#   PYINSTALLER_ENTRY       optional override path after wheel install
 #   EXTRA_PYINSTALLER_ARGS  extra args appended to pyinstaller (word-split)
-#   BUILDER_APK_PACKAGES    extra compile/link apk packages for binary-builder (space-separated)
+#   PYINSTALLER_VERSION     from versions.env
+#   BUILDER_APK_PACKAGES    extra compile/link apk packages (optional, default empty)
 #
 # Install path (single): uv pip install --system built wheels + pyinstaller, then pyinstaller --onedir.
 # The binary-builder does not COPY repo source; entry must come from the installed wheel (IMPORT or ENTRY).
 
-ARG PYTHON_VERSION=3.12
-ARG ALPINE_MINOR=3.24
-ARG PIP_VERSION=26.2.1
-ARG UV_VERSION=0.12.9
+ARG PYTHON_VERSION
+ARG ALPINE_MINOR
+ARG PIP_VERSION
+ARG UV_VERSION
 
 # ── package-builder ───────────────────────────────────────────────────────────
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_MINOR} AS package-builder
 
 ARG APP_VERSION=0.0.0
-ARG PIP_VERSION=26.2.1
-ARG UV_VERSION=0.12.9
+ARG PIP_VERSION
+ARG UV_VERSION
 ARG UV_BUILD_PACKAGES
 
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
@@ -66,25 +67,25 @@ RUN set -eu; \
     done
 
 # ── binary-builder ────────────────────────────────────────────────────────────
-ARG PYTHON_VERSION=3.12
-ARG ALPINE_MINOR=3.24
-ARG PIP_VERSION=26.2.1
-ARG UV_VERSION=0.12.9
+ARG PYTHON_VERSION
+ARG ALPINE_MINOR
+ARG PIP_VERSION
+ARG UV_VERSION
 
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_MINOR} AS binary-builder
 
 ARG APP_VERSION=0.0.0
-ARG PIP_VERSION=26.2.1
-ARG UV_VERSION=0.12.9
+ARG PIP_VERSION
+ARG UV_VERSION
 ARG BINARY_NAME
 ARG PYINSTALLER_IMPORT=""
 ARG PYINSTALLER_ENTRY=""
 ARG EXTRA_PYINSTALLER_ARGS=""
+ARG PYINSTALLER_VERSION
 ARG BUILDER_APK_PACKAGES=""
 
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 
-# Pin versions in product overlays when adopting; shared base keeps a minimal compile toolchain.
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
     build-base \
@@ -103,8 +104,13 @@ RUN pip install --no-cache-dir --upgrade \
 
 COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
 
-RUN uv pip install --system /tmp/wheels/*.whl \
-    && uv pip install --system pyinstaller
+RUN set -eu; \
+    if [ -z "${PYINSTALLER_VERSION:-}" ]; then \
+      echo "ERROR: PYINSTALLER_VERSION build-arg is required (from versions.env)" >&2; \
+      exit 1; \
+    fi; \
+    uv pip install --system /tmp/wheels/*.whl; \
+    uv pip install --system "pyinstaller==${PYINSTALLER_VERSION}"
 
 # Resolve entry from installed package (preferred) or an explicit in-image path.
 RUN set -eu; \
