@@ -68,15 +68,25 @@ allowlisted labels it will attach are created. Optional `--parent` MUST attach a
 create MUST occur only when no issue URL was produced; MUST NOT create a second issue after a partial success. Success
 JSON MUST always include `partial_failure` (false on full success; true on degraded / partial outcomes such as parent
 fallback or post-create errors with an existing URL). When `gh issue create --parent` exits non-zero, the CLI MUST
-inspect **both** stdout and stderr for an issue URL before any linked fallback create. `ensure_labels` MUST list
-existing labels with a high enough limit (or equivalent) so allowlisted labels past the default page size are not
-treated as missing.
+inspect **both** stdout and stderr for an issue URL before any linked fallback create. When that create returns an issue
+URL but non-zero status (parent attach failed after create), JSON MUST set `relation` to `linked` (not
+`sub-of #<parent>`), keep `partial_failure` true, record `parent_error`, and set `parent_fallback` false when no second
+create ran. `relation` MUST be `sub-of #<parent>` only when parent attach succeeded. `ensure_labels` MUST list existing
+labels with a high enough limit (or equivalent) so allowlisted labels past the default page size are not treated as
+missing.
 
 #### Scenario: Parent failure without URL falls back once
 
 - **WHEN** create with `--parent` fails and no issue URL was returned
 - **THEN** the CLI performs one linked create and reports the parent error
 - **AND** it does not invent a third create path
+- **AND** JSON `relation` is `linked` and `parent_fallback` is true
+
+#### Scenario: Parent failure with URL on stdout reports linked
+
+- **WHEN** create with `--parent` exits non-zero but an issue URL appears on stdout or stderr
+- **THEN** the CLI does not perform a second create
+- **AND** JSON `relation` is `linked`, `partial_failure` is true, `parent_fallback` is false, and `parent_error` is set
 
 ### Requirement: issue-start
 
