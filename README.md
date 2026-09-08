@@ -13,7 +13,12 @@ Cursor commands, Copilot prompts), the agent GitHub CLI (`scripts/ai/`, `m42-ai`
 (`scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`, `scripts/bin/gh`, `scripts/bin/git`), and
 `openspec/principles.global.md`. Roadmap: [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
-## Vendor agent skills
+## Agent skills
+
+First-party shared skills (hand-maintained here; sync to products) include `/review-fixer`, `/create-issue`,
+`/issue-fixer`, and the **arctrl** usage reference under `.agents/skills/arctrl/`. They are **not** `gh skill` pins.
+
+### Vendor agent skills
 
 Committed vendor skills live under `.agents/skills/{gh,docker,hadolint,uv}/`. **Do not hand-edit** those trees —
 reinstall or update via `gh skill`, then commit the result.
@@ -128,6 +133,7 @@ steps.
 | `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                             |
 | `.agents/skills/create-issue/`            | Shared `/create-issue` creator skill                                           |
 | `.agents/skills/issue-fixer/`             | Shared `/issue-fixer` Fixer skill                                              |
+| `.agents/skills/arctrl/`                  | Shared arctrl ≥ 3.2.1 usage reference (first-party; not a vendor pin)          |
 | `.agents/skills/gh/`                      | Vendor `gh` skill (committed; do not hand-edit)                                |
 | `.agents/skills/docker/`                  | Vendor Docker skill (committed; do not hand-edit)                              |
 | `.agents/skills/hadolint/`                | Vendor hadolint skill (committed; do not hand-edit)                            |
