@@ -164,32 +164,27 @@ On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hook
 
 ## Container structure test parameters
 
-`scripts/run-container-structure-test.sh` defaults:
+`scripts/run-container-structure-test.sh` is **Bake-only** (no monolith `docker build -f`). Defaults:
 
 | Input       | Default                                              | Override                 |
 | ----------- | ---------------------------------------------------- | ------------------------ |
-| Dockerfile  | `docker/Dockerfile`                                  | `CST_DOCKERFILE` or `$1` |
-| Bake target | (unset — use Dockerfile build)                       | `CST_BAKE_TARGET`        |
+| Bake target | (required in product repos)                          | `CST_BAKE_TARGET` / `$1` |
 | Bake file   | `docker-bake.hcl`                                    | `CST_BAKE_FILE`          |
 | Image tag   | `app:structure-test`                                 | `CST_IMAGE_TAG` or `$2`  |
 | Test config | `docker/container-structure-tests` (dir of `*.yaml`) | `CST_CONFIG` or `$3`     |
 
-If `CST_BAKE_TARGET` is set, the runner uses `docker buildx bake` (required for Bake base + last-stage images).
-Otherwise it uses `docker build -f` as before.
+If `CST_BAKE_TARGET` is unset **and** this checkout has no product CST layout (no `docker/` at all, **or** `docker/`
+without `docker/container-structure-tests/` — e.g. Devinfra with only `Dockerfile.product-app.base` + examples), the
+script **skips** with a warning and exits 0 so pre-push can succeed. Product repos that ship
+`docker/container-structure-tests/` must set `CST_BAKE_TARGET` (and a Bake file); wrong paths fail hard.
 
-If the default Dockerfile is missing **and** this checkout has no product CST layout (no `docker/` at all, **or**
-`docker/` without both `docker/Dockerfile` and `docker/container-structure-tests/` — e.g. Devinfra with only
-`Dockerfile.product-app.base` + examples), the script **skips** with a warning and exits 0 so pre-push can succeed.
-Product repos that ship a product `docker/` layout still fail hard when paths are wrong.
-
-Optional Docker `--build-arg` / Bake `*.args` values are taken from `versions.env` when set (`PYTHON_VERSION`,
-`UV_VERSION`, `ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`, `PYINSTALLER_VERSION`). Those pins must not be restated
-as Dockerfile or Bake defaults.
+Optional Bake `*.args` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`, `ALPINE_VERSION`,
+`ALPINE_MINOR`, `PIP_VERSION`, `PYINSTALLER_VERSION`). Those pins must not be restated as Dockerfile or Bake defaults.
 
 Example (API-shaped product):
 
 ```bash
-CST_DOCKERFILE=docker/Dockerfile.api \
+CST_BAKE_TARGET=api \
 CST_IMAGE_TAG=fairagro-advanced-middleware-api:test \
 CST_CONFIG=docker/container-structure-tests/api.yaml \
   ./scripts/run-container-structure-test.sh

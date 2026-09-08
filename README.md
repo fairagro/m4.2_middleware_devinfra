@@ -59,7 +59,7 @@ uv run pre-commit install --hook-type pre-commit   # also run from Dev Container
 ```
 
 Pre-push **git** hook (`scripts/git-hooks/pre-push`: pre-commit pre-push stage) is installed by
-`./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_DOCKERFILE`,
+`./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_BAKE_TARGET`,
 `CST_IMAGE_TAG`, `CST_CONFIG`) are documented there. Git LFS is **not** part of the shared toolchain; products that need
 it (e.g. sql-to-arc) install `git-lfs` product-locally.
 
