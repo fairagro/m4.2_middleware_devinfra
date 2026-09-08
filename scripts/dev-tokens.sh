@@ -84,6 +84,8 @@ _dev_tokens_write() {
     touch "${_DEV_TOKENS_FILE}"
     chmod 600 "${_DEV_TOKENS_FILE}"
     tmp="$(mktemp "${_DEV_TOKENS_FILE}.XXXXXX")"
+    # Remove temp (may hold encoded secrets) if we exit before a successful rename.
+    trap 'rm -f "${tmp}"' EXIT
     grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || true
     # GNU coreutils in the Dev Container (no BSD wrap fallback).
     b64="$(printf '%s' "${val}" | base64 -w0)"
@@ -91,6 +93,7 @@ _dev_tokens_write() {
     # Atomic replace: do not truncate the live store via redirect.
     chmod 600 "${tmp}"
     mv -f "${tmp}" "${_DEV_TOKENS_FILE}"
+    trap - EXIT
   )
 }
 

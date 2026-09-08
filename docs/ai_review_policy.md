@@ -114,25 +114,25 @@ Stop at the first matching step.
    simplification** in this PR (marker repair, exotic `bashrc` branches, dual host token stores, etc.) unless the
    documented Dev Container path is actually broken.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
-   `dismiss` or `follow-up` (only if Medium+).
-3. **Synced path in a product consumer?** If the finding’s primary path is on
-   [`docs/synced-paths.global.md`](synced-paths.global.md) (or a matching glob) **and** the checkout is a product
-   consumer (not Devinfra), **sync source of truth overrides** cheap/`fix` in this PR. Do **not** patch the synced tree.
-   Use `follow-up` to Devinfra when the finding is correct for shared content and severity is Medium+, or Risk, or
-   seen-in-the-wild; otherwise `dismiss` (“synced path — edit upstream in Devinfra / wait for sync”); or `fix` only a
-   **documented product-local overlay** from that allowlist. See [Synced paths](#synced-paths-sync-source-of-truth).
-4. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
+   `dismiss` or `follow-up` (only if Medium+). **Synced path (product consumers) — before steps 3–5:** If the finding’s
+   primary path is on [`docs/synced-paths.global.md`](synced-paths.global.md) (or a matching glob) **and** the checkout
+   is a product consumer (not Devinfra), **sync source of truth overrides** cheap/`fix` in this PR. Do **not** patch the
+   synced tree. Use `follow-up` to Devinfra when the finding is correct for shared content and severity is Medium+, or
+   Risk, or seen-in-the-wild; otherwise `dismiss` (“synced path — edit upstream in Devinfra / wait for sync”); or `fix`
+   only a **documented product-local overlay** from that allowlist. See
+   [Synced paths](#synced-paths-sync-source-of-truth).
+3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
    Widening a type is not a fix (see [Types](#types)).
-5. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
+4. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
    a separate feature, split or `follow-up` instead of bloating this PR.
-6. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
+5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
    **no** new abstraction → `fix`. Nit-budget does not defer these (any review round). Apply the
    [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing and
    shared-Devinfra-script exotic / host-only / wording nits are Low, not step 5. **Docs / comment-only** findings are
    **Low** (see [Severity](#severity-pick-the-first-match-do-not-upgrade-on-vibe)) unless the wrong text breaks the
    supported cadence — they never become step 5 via “misleads operators”. Synced paths in consumers are already handled
-   in step 3 — do not take this step against allowlisted synced files.
-7. **Nit.** Otherwise treat as a nit:
+   by the synced-path gate after step 2 — do not take this step against allowlisted synced files.
+6. **Nit.** Otherwise treat as a nit:
    - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only, typically when expensive or practicality is not High)

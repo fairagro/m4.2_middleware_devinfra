@@ -166,9 +166,9 @@ Decision order (stop at first match) — same as the policy:
    contract” (incomplete synced `versions.env`, missing contracted pin section, unsynced required path) — quote the
    contract; do **not** add `REQUIRE_*` opt-in shims or dual modes. **Cheap does not override this** — do not take step
    5 for host-only, one-shot-migration, or contract-violator-only hardening.
-2. Not this PR → `dismiss`, or `follow-up` if Medium+
-3. **Synced path in a product consumer?** Path on [`docs/synced-paths.global.md`](../../../docs/synced-paths.global.md)
-   (or matching glob) **and** this checkout is **not** Devinfra → **do not** `fix` that synced file. Instead:
+2. Not this PR → `dismiss`, or `follow-up` if Medium+ **Synced path (product consumers) — before steps 3–5:** Path on
+   [`docs/synced-paths.global.md`](../../../docs/synced-paths.global.md) (or matching glob) **and** this checkout is
+   **not** Devinfra → **do not** `fix` that synced file. Instead:
    - `follow-up` (create-issue against **Devinfra**, or clear Devinfra-targeted follow-up) when the finding is correct
      for shared content and severity is Medium+, or Risk, or seen-in-the-wild shared bug;
    - else `dismiss` with reason `synced path — edit upstream in Devinfra / wait for sync`;
@@ -176,20 +176,20 @@ Decision order (stop at first match) — same as the policy:
      never by editing `.global` / synced trees. Phase-1 reason MUST name the synced-path rule. Working tree MUST NOT
      gain dirty edits under synced paths from this run. (Actions stay `fix` / `dismiss` / `follow-up` — no separate
      `upstream` action.)
-4. Choose the **cheapest correct** fix. Widening a type is forbidden. `if x is None` is forbidden when the type already
+3. Choose the **cheapest correct** fix. Widening a type is forbidden. `if x is None` is forbidden when the type already
    excludes `None`.
-5. High risk (Blocker/High **and** practicality not Low/None) → `fix` (or split/`follow-up` if the fix is its own
+4. High risk (Blocker/High **and** practicality not Low/None) → `fix` (or split/`follow-up` if the fix is its own
    feature)
-6. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
+5. Cheap + High practicality + severity Medium or higher, and **no** new abstraction → `fix` (not deferred by
    nit-budget). **Except** agent-plumbing / shared Devinfra scripts / docs / vendor surfaces: apply the **surface
    quality bar** ([rules](../../../docs/ai_review_policy.md#surface-quality-bar-fixer-triage),
    [path map](../../../docs/surface-quality-bar.global.md)) first — exotic CLI/host edges, **contract-violator-only**
    incomplete shared config, and wording nits are practicality Low → not step 5. Re-check **mechanical ≠ realistic**
    before High practicality. **Docs / comment-only** inaccuracies that do not break the supported cadence are severity
    **Low** (never Medium via “misleads operators”) → nit or dismiss, not Fixed non-nit. **Synced paths in consumers are
-   already handled in step 3** — sync SoT overrides this step for those paths
+   already handled by the synced-path gate after step 2** — sync SoT overrides this step for those paths
    ([policy](../../../docs/ai_review_policy.md#synced-paths-sync-source-of-truth)).
-7. Else nit:
+6. Else nit:
    - **First:** if the finding is an **exotic edge** on shared Devinfra `scripts/` (except `scripts/ai/`), agent
      plumbing, docs wording, vendor skills, **or** a bad state that only appears when contracted shared files/pins are
      missing contrary to sync docs — `dismiss` (practicality Low). **Nit-budget does not override** the surface quality
