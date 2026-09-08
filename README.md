@@ -59,7 +59,7 @@ uv run pre-commit install --hook-type pre-commit   # also run from Dev Container
 ```
 
 Pre-push **git** hook (`scripts/git-hooks/pre-push`: pre-commit pre-push stage) is installed by
-`./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_DOCKERFILE`,
+`./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_BAKE_TARGET`,
 `CST_IMAGE_TAG`, `CST_CONFIG`) are documented there. Git LFS is **not** part of the shared toolchain; products that need
 it (e.g. sql-to-arc) install `git-lfs` product-locally.
 
@@ -98,6 +98,7 @@ steps.
 - [Dev Container](docs/devcontainer.md) — open, rebuild, tools, auth, postCreate
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
 - [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks install (wired from postCreate)
+- [Reusable CI](docs/ci.md) — `uses:` contract, Bake product-app images, check artifacts
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
 - [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
   extend via local `docs/surface-quality-bar.md`
@@ -120,6 +121,8 @@ steps.
 | `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                  |
 | `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params, Python config fragments      |
 | `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm) |
+| `docker/Dockerfile.product-app.base`      | Shared product-app image base (Bake export stage; sync to products)            |
+| `docker/examples/`                        | Example last-stage + `docker-bake.hcl` stubs (A4; not Devinfra CST)            |
 | `scripts/quality-check.sh`                | Commit-stage quality check                                                     |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                     |
 | `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                             |

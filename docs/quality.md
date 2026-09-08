@@ -97,8 +97,13 @@ After sync, products should **remove** duplicated `[tool.ruff]` / `[tool.mypy]` 
 ([#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13)), not in the Devinfra MVP PR
 ([#28](https://github.com/fairagro/m4.2_middleware_devinfra/issues/28)).
 
-Shared **app Dockerfile** base + product-local last stage is deferred to
-[#36](https://github.com/fairagro/m4.2_middleware_devinfra/issues/36) (`sub-of` #28).
+Shared **app Dockerfile** base + product-local last stage lives in this repo as
+[`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base) with Bake examples under
+[`docker/examples/`](../docker/examples/). Sync the **base** into products; keep the last stage and `docker-bake.hcl`
+product-local. Reusable build/release are **Bake-only** (no monolith Dockerfile) — see
+[`docs/ci.md`](ci.md#product-app-images-bake-base--last-stage). Adoption:
+[#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13) / product Wave C (issue
+[#36](https://github.com/fairagro/m4.2_middleware_devinfra/issues/36)).
 
 ## IDE (workspace settings)
 
@@ -159,25 +164,27 @@ On a **host** checkout, export `GITGUARDIAN_API_KEY` (and any other secrets hook
 
 ## Container structure test parameters
 
-`scripts/run-container-structure-test.sh` defaults:
+`scripts/run-container-structure-test.sh` is **Bake-only** (no monolith `docker build -f`). Defaults:
 
 | Input       | Default                                              | Override                 |
 | ----------- | ---------------------------------------------------- | ------------------------ |
-| Dockerfile  | `docker/Dockerfile`                                  | `CST_DOCKERFILE` or `$1` |
+| Bake target | (required in product repos)                          | `CST_BAKE_TARGET` / `$1` |
+| Bake file   | `docker-bake.hcl`                                    | `CST_BAKE_FILE`          |
 | Image tag   | `app:structure-test`                                 | `CST_IMAGE_TAG` or `$2`  |
 | Test config | `docker/container-structure-tests` (dir of `*.yaml`) | `CST_CONFIG` or `$3`     |
 
-If the default Dockerfile is missing **and** this checkout has no `docker/` directory (Devinfra), the script **skips**
-with a warning and exits 0 so pre-push can succeed. Product repos that use `docker/` still fail hard when paths are
-wrong.
+If `CST_BAKE_TARGET` is unset **and** this checkout has no product CST layout (no `docker/` at all, **or** `docker/`
+without `docker/container-structure-tests/` — e.g. Devinfra with only `Dockerfile.product-app.base` + examples), the
+script **skips** with a warning and exits 0 so pre-push can succeed. Product repos that ship
+`docker/container-structure-tests/` must set `CST_BAKE_TARGET` (and a Bake file); wrong paths fail hard.
 
-Optional Docker `--build-arg` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`,
-`ALPINE_VERSION`, `ALPINE_MINOR`, `PIP_VERSION`).
+Optional Bake `*.args` values are taken from `versions.env` when set (`PYTHON_VERSION`, `UV_VERSION`, `ALPINE_VERSION`,
+`ALPINE_MINOR`, `PIP_VERSION`, `PYINSTALLER_VERSION`). Those pins must not be restated as Dockerfile or Bake defaults.
 
 Example (API-shaped product):
 
 ```bash
-CST_DOCKERFILE=docker/Dockerfile.api \
+CST_BAKE_TARGET=api \
 CST_IMAGE_TAG=fairagro-advanced-middleware-api:test \
 CST_CONFIG=docker/container-structure-tests/api.yaml \
   ./scripts/run-container-structure-test.sh

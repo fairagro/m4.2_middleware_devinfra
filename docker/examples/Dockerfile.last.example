@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1.4
+# Example product-local last stage (NOT used by Devinfra CST).
+# Copy/adapt to docker/Dockerfile.<component> in a product repo; do not sync this file over
+# product last stages (#13).
+#
+# Bake wires context `export_bins` to the shared base target `export-binaries` (see
+# docker/examples/docker-bake.hcl.example).
+#
+# ALPINE_VERSION: pass from versions.env (no literal pin in this example).
+
+ARG ALPINE_VERSION
+FROM alpine:${ALPINE_VERSION}
+
+ARG BINARY_NAME=middleware-api
+ARG RUNTIME_USER=middleware
+ARG RUNTIME_WORKDIR=/api
+
+ENV BINARY_NAME=${BINARY_NAME}
+
+WORKDIR ${RUNTIME_WORKDIR}
+
+# Runtime apk set is product-specific (git/curl, ca-certificates, …).
+# sql-to-arc: install Microsoft ODBC / unixodbc here (not in the synced base).
+# hadolint ignore=DL3018
+RUN apk add --no-cache ca-certificates zlib \
+    && addgroup -S "${RUNTIME_USER}" \
+    && adduser -S -H -G "${RUNTIME_USER}" "${RUNTIME_USER}" \
+    && chown "${RUNTIME_USER}:${RUNTIME_USER}" "${RUNTIME_WORKDIR}"
+
+# export_bins is the Bake additional context from target:*-base (export-binaries stage)
+# hadolint ignore=DL3022
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} ${RUNTIME_WORKDIR}/${BINARY_NAME}
+
+USER ${RUNTIME_USER}
+
+# Replace with product ENTRYPOINT / EXPOSE / HEALTHCHECK as needed.
+# Shell form so BINARY_NAME stays consistent with the ARG/ENV above.
+CMD ["sh", "-c", "exec \"./${BINARY_NAME}/${BINARY_NAME}\""]

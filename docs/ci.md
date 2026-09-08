@@ -16,14 +16,57 @@ Canonical GitHub Actions for the three m4.2 product repos live in this repositor
 Product-distinguishing names use **`workflow_call` inputs** (e.g. `image_base_name`, `chart_dir`) — do not rely on
 silent repository Variables for correct identity.
 
+## Product app images (Bake base + last stage)
+
+**BREAKING (issue #36):** `reusable-build.yml` builds with **Docker Buildx Bake only**. There is **no** monolith
+fallback to `docker build -f docker/Dockerfile.<component>`. Do **not** bump the workflow ref until the caller has
+adopted this layout (product Wave C / sync [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13)).
+
+| Path (caller checkout)               | Sync from Devinfra? | Role                                                              |
+| ------------------------------------ | ------------------- | ----------------------------------------------------------------- |
+| `docker/Dockerfile.product-app.base` | **Yes**             | Shared stages: package-builder → binary-builder → export-binaries |
+| `docker/Dockerfile.<component>`      | **No** (local)      | Thin last stage: USER / CMD / HEALTHCHECK / runtime apk / labels  |
+| `docker-bake.hcl` (repo root)        | **No** (local)      | Bake targets: `<component>-base` + `<component>` with `contexts`  |
+
+Example stubs (not used by Devinfra CST): [`docker/examples/`](../docker/examples/). ARG list is documented at the top
+of [`docker/Dockerfile.product-app.base`](../docker/Dockerfile.product-app.base). Prefer `PYINSTALLER_IMPORT` (package
+import path whose `main.py` is resolved after wheel install); do not pass a repo-relative entry path — the binary
+builder does not COPY application source.
+
+**Version pins (one per component):** concrete numbers live only in repo-root [`versions.env`](../versions.env) (Dev
+Container section + **Product app image** section for `PIP_VERSION`, `ALPINE_*`, `PYINSTALLER_VERSION`; shared
+`PYTHON_VERSION` / `UV_VERSION`). Do **not** duplicate pins as Dockerfile `ARG` defaults or Bake HCL `variable` defaults
+— inject via Bake `--set` / `reusable-build` (after `load-versions-env.sh`).
+
+**Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
+ARGs (packages, binary name, optional compile apk extras) and local last-stage finishing. **Product-only** extras (e.g.
+sql-to-arc Microsoft ODBC driver) stay in the **product-local last stage**, not in the synced base. Builder compile
+extras that all products share may use `BUILDER_APK_PACKAGES`; runtime personality stays in the last stage.
+
+Local smoke (in a product repo after adoption):
+
+```bash
+set -a && source versions.env && set +a
+docker buildx bake api --load \
+  --set "*.args.PYTHON_VERSION=${PYTHON_VERSION}" \
+  --set "*.args.ALPINE_MINOR=${ALPINE_MINOR}" \
+  --set "*.args.ALPINE_VERSION=${ALPINE_VERSION}" \
+  --set "*.args.PIP_VERSION=${PIP_VERSION}" \
+  --set "*.args.UV_VERSION=${UV_VERSION}" \
+  --set "*.args.PYINSTALLER_VERSION=${PYINSTALLER_VERSION}"
+```
+
+`reusable-build` invokes `docker/bake-action` with `files: docker-bake.hcl` and `targets: <component>`, passing
+toolchain `*.args` from `versions.env` / `load-versions-env.sh`. Artifact tags and the check contract are unchanged.
+
 ## Calling from a product repo
 
 Replace `@main` with a **tag** or **commit SHA** once you want a frozen contract. `@main` is fine for early adoption
 while this repo’s CI surface is still moving.
 
 The reusable workflows check out the **caller** repository (not Devinfra), so `versions.env`, `.python-version`,
-`scripts/load-versions-env.sh`, Dockerfiles under `docker/Dockerfile.<component>`, and Helm charts must exist in the
-product repo. Callers that sync `versions.env` MUST also sync `scripts/load-versions-env.sh`.
+`scripts/load-versions-env.sh`, the **Bake product-app layout** (below), and Helm charts must exist in the product repo.
+Callers that sync `versions.env` MUST also sync `scripts/load-versions-env.sh`.
 
 ### Feature PR (Docker build + check)
 

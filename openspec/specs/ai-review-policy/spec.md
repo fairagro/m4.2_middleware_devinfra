@@ -42,14 +42,17 @@ NOT add compatibility parsers or deny-lists for them.
 
 The policy MUST define a **surface quality bar** for fixer triage: product/domain code keeps the full bar; **shared
 Devinfra scripts** (`scripts/` except `scripts/ai/` — quality helpers, CST runner, token/Dev Container scripts) are
-judged on the documented Linux Dev Container and contributor/CI happy path; **agent plumbing** (`scripts/ai/`, skill CLI
-wiring) is judged on the default skill/CLI happy path. Exotic argparse / host-only / option-injection / wording-only
-nits on those non-product surfaces MUST be practicality Low (or None) and MUST NOT take step 5 merely because the patch
-is cheap. Real happy-path breakage on shared scripts or agent plumbing MUST still be fixed (including consumer-sync
-failures such as hook argv-length under `pre-commit run --all-files`, or check scripts that mutate contrary to
-contract). Findings that only ask to **re-harden** an intentional happy-path simplification, add **host-only
-prerequisite docs**, or change shared-hook **style** (`entry` vs `args`) without breaking the happy path MUST be
-dismissed.
+judged on the documented Linux Dev Container and contributor/CI happy path **with contracted shared files as shipped**
+(e.g. complete synced `versions.env`); **agent plumbing** (`scripts/ai/`, skill CLI wiring) is judged on the default
+skill/CLI happy path. Exotic argparse / host-only / option-injection / wording-only nits on those non-product surfaces
+MUST be practicality Low (or None) and MUST NOT take step 5 merely because the patch is cheap. The policy MUST state
+**mechanical path ≠ realistic path**: code that can error when a required shared file is incomplete is not High
+practicality when supported callers never ship that incomplete state; fixers MUST `dismiss` (practicality Low or None)
+and MUST NOT add `REQUIRE_*` opt-in shims or dual modes solely for “caller deleted a contracted pin.” Real happy-path
+breakage on shared scripts or agent plumbing MUST still be fixed (including consumer-sync failures such as hook
+argv-length under `pre-commit run --all-files`, or check scripts that mutate contrary to contract). Findings that only
+ask to **re-harden** an intentional happy-path simplification, add **host-only prerequisite docs**, or change
+shared-hook **style** (`entry` vs `args`) without breaking the happy path MUST be dismissed.
 
 Docs, OpenSpec prose, and code-comment clarifications MUST be severity **Low** (nit or dismiss) when the supported Dev
 Container / CI commands and pass/fail gates already work — including inaccurate explanations of _how_ a gate is
@@ -119,6 +122,15 @@ allowed only when the written instructions would make the supported path fail.
   installs or speculative edge hardening, while the documented Dev Container / quality-check / hook path works
 - **THEN** the fixer treats practicality as Low (or None) and dismisses or budgets as a nit
 - **AND** does not apply step 5 merely because the suggested patch is cheap
+
+#### Scenario: Contract-violator-only incomplete shared config is dismissed
+
+- **WHEN** a finder reports that shared plumbing can fail if a contracted shared file is incomplete (e.g. synced
+  `versions.env` missing required pin keys) while this repo’s shipped contract already defines those keys for supported
+  callers
+- **THEN** the fixer treats practicality as Low or None and dismisses
+- **AND** does not add an opt-in `REQUIRE_*` flag or dual validation mode solely for that hypothetical incomplete state
+- **AND** does not apply step 5 or spend nit-budget on that hardening
 
 #### Scenario: Agent-plumbing exotic CLI finding is dismissed
 
