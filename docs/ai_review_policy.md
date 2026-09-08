@@ -115,22 +115,39 @@ Stop at the first matching step.
    documented Dev Container path is actually broken.
 2. **This PR?** If it is drive-by on unchanged code, another module, or speculative hardening the change does not need →
    `dismiss` or `follow-up` (only if Medium+).
-3. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
+3. **Synced path in a product consumer?** If the finding’s primary path is on
+   [`docs/synced-paths.global.md`](synced-paths.global.md) (or a matching glob) **and** the checkout is a product
+   consumer (not Devinfra), **sync source of truth overrides** cheap/`fix` in this PR. Do **not** patch the synced tree.
+   Use `follow-up` to Devinfra when the finding is correct for shared content and severity is Medium+, or Risk, or
+   seen-in-the-wild; otherwise `dismiss` (“synced path — edit upstream in Devinfra / wait for sync”); or `fix` only a
+   **documented product-local overlay** from that allowlist. See [Synced paths](#synced-paths-sync-source-of-truth).
+4. **Cheapest correct fix?** Prefer a narrower type, a cited invariant, or an existing helper over the finder’s patch.
    Widening a type is not a fix (see [Types](#types)).
-4. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
+5. **Risk.** Severity Blocker/High **and** practicality not Low → `fix`. Nit-budget does not apply. If the fix itself is
    a separate feature, split or `follow-up` instead of bloating this PR.
-5. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
+6. **Cheap + high practicality + Medium+.** Cost **cheap**, practicality **High**, severity **Medium or higher**, and
    **no** new abstraction → `fix`. Nit-budget does not defer these (any review round). Apply the
    [surface quality bar](#surface-quality-bar-fixer-triage) **before** claiming High practicality — agent-plumbing and
    shared-Devinfra-script exotic / host-only / wording nits are Low, not step 5. **Docs / comment-only** findings are
    **Low** (see [Severity](#severity-pick-the-first-match-do-not-upgrade-on-vibe)) unless the wrong text breaks the
-   supported cadence — they never become step 5 via “misleads operators”.
-6. **Nit.** Otherwise treat as a nit:
+   supported cadence — they never become step 5 via “misleads operators”. Synced paths in consumers are already handled
+   in step 3 — do not take this step against allowlisted synced files.
+7. **Nit.** Otherwise treat as a nit:
    - Cheap + **PR nit total** (prior soft spend + this run) still ≤ ~15 and **no** new abstraction → `fix`
    - Or the nit is on code the **previous fixer pass** introduced → `fix` if cheap (still counts toward the PR total)
    - Else → `dismiss` (Low) or `follow-up` (Medium+ only, typically when expensive or practicality is not High)
 
 If the cheaper fix is unclear, default to `dismiss` rather than adding a layer.
+
+---
+
+## Synced paths (sync source of truth)
+
+For paths listed in [`docs/synced-paths.global.md`](synced-paths.global.md), **sync source of truth** overrides the
+usual “cheap + High practicality + Medium+ → `fix` in this PR” rule when `/review-fixer` runs in a **product** checkout.
+Fixers MUST NOT treat a correct cheap patch on a synced path as an in-PR `fix` of that synced file; they MUST
+`follow-up` to Devinfra or `dismiss` (synced — edit upstream), or `fix` only a documented product-local overlay. In the
+Devinfra repository itself, those paths are the local source of truth and MAY be fixed like any other in-repo file.
 
 ---
 
@@ -183,6 +200,8 @@ middleware.
 **Path map:** default rows are in [`docs/surface-quality-bar.global.md`](surface-quality-bar.global.md) (synced — do not
 hand-edit). Product repos MAY add rows in local [`docs/surface-quality-bar.md`](surface-quality-bar.md); sync of the
 `.global.md` file does not overwrite that overlay. Do not edit this policy file solely to add a path→surface row.
+**Synced path ownership** (which trees consumers must not patch) is
+[`docs/synced-paths.global.md`](synced-paths.global.md) — see [Synced paths](#synced-paths-sync-source-of-truth).
 
 For **shared Devinfra scripts** (and reusable CI helpers that only orchestrate them), a realistic path is the
 **documented default** in the Linux Dev Container or GitHub Actions Linux (e.g. `./scripts/quality-check.sh`,

@@ -88,8 +88,9 @@ _dev_tokens_write() {
     # GNU coreutils in the Dev Container (no BSD wrap fallback).
     b64="$(printf '%s' "${val}" | base64 -w0)"
     printf '%s=b64:%s\n' "${var}" "${b64}" >>"${tmp}"
-    cat "${tmp}" >"${_DEV_TOKENS_FILE}"
-    rm -f "${tmp}"
+    # Atomic replace: do not truncate the live store via redirect.
+    chmod 600 "${tmp}"
+    mv -f "${tmp}" "${_DEV_TOKENS_FILE}"
   )
 }
 
