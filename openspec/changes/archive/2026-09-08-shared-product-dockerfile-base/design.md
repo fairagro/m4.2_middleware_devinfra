@@ -27,32 +27,27 @@ monolith `docker build -f`.
 
 ## Decisions
 
-1. **Compose = A4 Bake**  
-   Base target builds through `export-binaries`; last Dockerfile uses `# syntax=docker/dockerfile:1.4` and
-   `FROM <context>` / `COPY --from=…`.  
-   _Alternatives:_ A1 cat, A2 two-step image tags — rejected in explore.
+1. **Compose = A4 Bake** Base target builds through `export-binaries`; last Dockerfile uses
+   `# syntax=docker/dockerfile:1.4` and `FROM <context>` / `COPY --from=…`. _Alternatives:_ A1 cat, A2 two-step image
+   tags — rejected in explore.
 
-2. **B2-strict**  
-   No `dockerfile_mode: monolith`. Callers must adopt before bumping workflow ref.  
-   _Alternative:_ compat default — rejected by user.
+2. **B2-strict** No `dockerfile_mode: monolith`. Callers must adopt before bumping workflow ref. _Alternative:_ compat
+   default — rejected by user.
 
-3. **C2 + M mixed**  
-   Base owns package-builder, binary-builder (ARGs for packages, binary name(s), optional builder apk/ODBC download),
-   export to `/dist`. Last owns USER/UID, CMD/ENTRYPOINT, EXPOSE, HEALTHCHECK, git config, runtime apk.  
-   _Alternative:_ C1/C3 — rejected.
+3. **C2 + M mixed** Base owns package-builder, binary-builder (ARGs for packages, binary name(s), optional builder
+   apk/ODBC download), export to `/dist`. Last owns USER/UID, CMD/ENTRYPOINT, EXPOSE, HEALTHCHECK, git config, runtime
+   apk. _Alternative:_ C1/C3 — rejected.
 
-4. **Example stubs in Devinfra**  
-   e.g. `docker/examples/Dockerfile.last.example` + `docker/examples/docker-bake.hcl.example` (or under `docs/`). Not
-   invoked by Devinfra CST (no product `middleware/`).
+4. **Example stubs in Devinfra** e.g. `docker/examples/Dockerfile.last.example` +
+   `docker/examples/docker-bake.hcl.example` (or under `docs/`). Not invoked by Devinfra CST (no product `middleware/`).
 
-5. **Bake invocation in CI**  
-   Prefer `docker/bake-action` (or `docker buildx bake`) with a **caller-provided** `docker-bake.hcl` path convention
-   documented in `docs/ci.md` (e.g. repo-root `docker-bake.hcl`, target name = component). Shared Devinfra may ship only
-   the example HCL; products own real targets.  
-   _Alternative:_ generate HCL in the workflow from inputs — more magic; defer unless needed.
+5. **Bake invocation in CI** Prefer `docker/bake-action` (or `docker buildx bake`) with a **caller-provided**
+   `docker-bake.hcl` path convention documented in `docs/ci.md` (e.g. repo-root `docker-bake.hcl`, target name =
+   component). Shared Devinfra may ship only the example HCL; products own real targets. _Alternative:_ generate HCL in
+   the workflow from inputs — more magic; defer unless needed.
 
-6. **Release**  
-   Update release-body build-from-source snippet to Bake; if release ever rebuilds images, same Bake contract.
+6. **Release** Update release-body build-from-source snippet to Bake; if release ever rebuilds images, same Bake
+   contract.
 
 ## Risks / Trade-offs
 
