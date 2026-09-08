@@ -259,13 +259,13 @@
     {
       "description": "Runtime Sync: Docker + Devcontainer base images",
       "matchManagers": ["dockerfile", "devcontainer"],
-      "matchPackagePatterns": ["alpine", "mcr.microsoft.com/devcontainers"],
+      "matchPackagePatterns": ["^alpine$", "^mcr\\.microsoft\\.com/devcontainers"],
       "groupName": "Runtime base (Docker + Devcontainer)"
     },
     {
       "description": "Devcontainer features",
       "matchManagers": ["devcontainer"],
-      "matchPackagePatterns": ["features/*"],
+      "matchPackagePatterns": ["ghcr\\.io/.*/features/", "/features/"],
       "groupName": "Devcontainer features",
       "separateMinorPatch": true
     },
