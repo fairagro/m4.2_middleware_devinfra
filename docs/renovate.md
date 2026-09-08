@@ -23,7 +23,10 @@ Until the secret exists, scheduled runs fail; after setting it, use **Actions â†
 
 ## Local CLI dry-run
 
-The Dev Container pins `renovate` via `RENOVATE_VERSION` in [`versions.env`](../versions.env) (`renovate` on `PATH`).
+The Dev Container pins the **Renovate npm CLI** via `RENOVATE_VERSION` in [`versions.env`](../versions.env) (`renovate`
+on `PATH`). That pin is for local dry-runs only. CI runs
+[`renovatebot/github-action`](../.github/workflows/renovate.yml) at its own Action version (currently `v46.2.6`) â€” keep
+the Action major aware of the CLI major when bumping either pin; they are not the same artifact.
 
 From the repo root (no PR creation):
 

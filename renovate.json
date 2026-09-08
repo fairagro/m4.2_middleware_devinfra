@@ -305,14 +305,16 @@
       "groupName": "GitHub Actions (major)"
     },
     {
-      "description": "Alpine OS safe updates only",
-      "matchDatasources": ["repology"],
+      "description": "Alpine Docker tags: patch-only (images + versions.env regex)",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine"],
       "matchUpdateTypes": ["patch"],
-      "groupName": "Alpine OS safe updates"
+      "groupName": "Alpine Docker (patch)"
     },
     {
-      "description": "Disable risky OS upgrades",
-      "matchDatasources": ["repology"],
+      "description": "Disable Alpine Docker minor/major bumps",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine"],
       "matchUpdateTypes": ["minor", "major"],
       "enabled": false
     }
