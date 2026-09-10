@@ -12,7 +12,7 @@ allowlist file, **B2** follow-up vs dismiss gate, **C1** skill+policy+content in
 
 **Goals:**
 
-- One allowlist SoT (`docs/synced-paths.global.md`) that skill + policy + README point at.
+- One allowlist SoT (`docs/synced-paths.yaml`) that skill + policy + README point at.
 - Decision-order hard stop before step 5 for synced paths in consumers.
 - Close the two attached upstream findings in Devinfra (README dual-layout, atomic token write).
 
@@ -27,7 +27,7 @@ allowlist file, **B2** follow-up vs dismiss gate, **C1** skill+policy+content in
 
 ### D1 — Allowlist file vs policy section vs skill-only
 
-**Choice:** `docs/synced-paths.global.md` (A1). Skill and policy link; README Docs index links. Initial list curated
+**Choice:** `docs/synced-paths.yaml` (A1). Skill and policy link; README Docs index links. Initial list curated
 from issue AC + README “do not hand-edit” inventory; keep globs where useful (`scripts/ai/**`).
 
 **Alternatives:** A2 (policy-only section) — harder to sync as a discrete artifact and bloats policy. A3 (skill-only) —

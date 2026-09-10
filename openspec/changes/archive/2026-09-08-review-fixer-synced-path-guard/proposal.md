@@ -9,7 +9,7 @@ not in the consumer tree. Wave A adopts are landing now; the skill and policy mu
 
 ## What Changes
 
-- Add a single synced allowlist doc (`docs/synced-paths.global.md`) listing Devinfra-canonical paths consumers must not
+- Add a single synced allowlist doc (`docs/synced-paths.yaml`) listing Devinfra-canonical paths consumers must not
   hand-edit; skill and policy link to it (explore **A1**).
 - Harden `/review-fixer` + AI review policy: never `fix` synced trees in a consumer checkout; for synced findings use
   existing `follow-up` / `dismiss` (explore **D1**) with B2 gating — follow-up to Devinfra when Medium+ / Risk or
@@ -38,7 +38,7 @@ not in the consumer tree. Wave A adopts are landing now; the skill and policy mu
 ## Impact
 
 - `.agents/skills/review-fixer/SKILL.md`, thin command/prompt if needed
-- `docs/ai_review_policy.md`, new `docs/synced-paths.global.md`, README Docs index, optional surface-bar cross-link
+- `docs/ai_review_policy.md`, new `docs/synced-paths.yaml`, README Docs index, optional surface-bar cross-link
 - `scripts/ai/README.md`, `scripts/dev-tokens.sh`
 - OpenSpec main specs for the capabilities above (after archive)
 - Consumers pick up behavior on next sync (#13); no consumer code in this PR

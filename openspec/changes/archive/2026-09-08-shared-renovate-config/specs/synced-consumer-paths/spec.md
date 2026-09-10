@@ -4,7 +4,7 @@
 
 ### Requirement: Synced paths allowlist document
 
-The repository MUST provide `docs/synced-paths.global.md` as the canonical allowlist of paths synced from Devinfra into
+The repository MUST provide `docs/synced-paths.yaml` as the canonical allowlist of paths synced from Devinfra into
 product repos that consumers MUST NOT hand-edit. The document MUST list (or glob) at least: shared AI review policy and
 surface-bar global map, fixer skill/command/prompt entrypoints, first-party and vendor agent skills under
 `.agents/skills/` that sync ships, `scripts/ai/**`, personal-token helpers (`scripts/dev-tokens.sh`,
@@ -16,14 +16,14 @@ overwrite product-local overlay files.
 
 #### Scenario: Contributor looks up what not to edit after sync
 
-- **WHEN** a contributor opens `docs/synced-paths.global.md` in Devinfra or after sync into a product repo
+- **WHEN** a contributor opens `docs/synced-paths.yaml` in Devinfra or after sync into a product repo
 - **THEN** they find the allowlist of Devinfra-canonical synced paths
 - **AND** they find named product-local overlay paths that remain editable in consumers
 
 #### Scenario: README indexes the allowlist
 
 - **WHEN** a contributor reads the root `README.md` Docs section
-- **THEN** they find a link to `docs/synced-paths.global.md`
+- **THEN** they find a link to `docs/synced-paths.yaml`
 
 #### Scenario: Renovate artifacts are on the allowlist
 

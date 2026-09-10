@@ -108,7 +108,7 @@ so consumers know not to diverge locally.
 
 ### Requirement: Never modify synced paths in consumer checkouts
 
-The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.global.md` (or
+The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.yaml` (or
 matching globs) when running in a **product consumer** checkout. On a finding whose primary path is synced, the skill
 MUST NOT choose action `fix` against that synced tree. Instead it MUST:
 

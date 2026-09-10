@@ -1,11 +1,6 @@
-# synced-consumer-paths Specification
+# synced-consumer-paths Delta
 
-## Purpose
-
-Defines the single allowlist of Devinfra-canonical paths that product consumers must not hand-edit after sync, and that
-`/review-fixer` must treat as read-only in consumer checkouts (except documented product-local overlays).
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Synced paths allowlist document
 

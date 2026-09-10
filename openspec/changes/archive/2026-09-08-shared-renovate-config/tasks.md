@@ -11,7 +11,7 @@
 
 - [x] 2.1 Add `docs/renovate.md` (token secret, local dry-run, Dependabot migration C1, #13 adoption)
 - [x] 2.2 Link from README Docs (+ brief pointers in `docs/devcontainer.md` / `docs/ci.md`)
-- [x] 2.3 Add `renovate.json` and `.github/workflows/renovate.yml` to `docs/synced-paths.global.md`
+- [x] 2.3 Add `renovate.json` and `.github/workflows/renovate.yml` to `docs/synced-paths.yaml`
 
 ## 3. Validate
 

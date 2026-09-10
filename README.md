@@ -7,9 +7,9 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 - [m4.2_middleware_harvester](https://github.com/fairagro/m4.2_middleware_harvester)
 
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
-consumers — land shared changes in this repo first. The allowlist is
-[`docs/synced-paths.global.md`](docs/synced-paths.global.md) (AI review policy, Finder entries, fixer skills/commands,
-`scripts/ai/`, personal-token helpers, `openspec/principles.global.md`, and other Wave A / sync paths). Roadmap:
+consumers — land shared changes in this repo first. The allowlist is [`docs/synced-paths.yaml`](docs/synced-paths.yaml)
+(AI review policy, Finder entries, fixer skills/commands, `scripts/ai/`, personal-token helpers,
+`openspec/principles.global.md`, and other Wave A / sync paths). Roadmap:
 [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 ## Agent skills
@@ -98,9 +98,10 @@ steps.
 - [Path conventions](docs/conventions.md) — tokens, volumes, package root
 - [Quality / pre-commit](docs/quality.md) — commit-stage scripts, CST runner, git-hooks install (wired from postCreate)
 - [Reusable CI](docs/ci.md) — `uses:` contract, Bake product-app images, check artifacts
-- [Renovate](docs/renovate.md) — shared config/workflow, `RENOVATE_TOKEN`, dry-run, Dependabot migration
+- [Renovate](docs/renovate.md) — shared config/workflow, bot token, dry-run, Dependabot migration
+- [Product sync](docs/sync.md) — allowlist push into API / sql-to-arc / harvester (`#13`)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
-- [Synced paths allowlist](docs/synced-paths.global.md) — Devinfra-canonical paths consumers must not hand-edit
+- [Synced paths allowlist](docs/synced-paths.yaml) — sole SoT for synced paths (`allow` / `exclude` / `overlays`)
 - [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
   extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
@@ -116,7 +117,8 @@ steps.
 | `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                           |
 | `docs/`                                   | Feature documentation (grows over time)                                             |
 | `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                           |
-| `docs/synced-paths.global.md`             | Allowlist of synced paths (consumers: do not hand-edit)                             |
+| `docs/synced-paths.yaml`                  | Sole sync path SoT (`allow` / `exclude` / `overlays`)                               |
+| `docs/sync.md`                            | Product-repo sync workflow, dry-run/skip, shared bot token                          |
 | `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)          |
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                      |
 | `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                      |
@@ -125,7 +127,9 @@ steps.
 | `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm)      |
 | `docs/renovate.md`                        | Shared Renovate config/workflow, token, dry-run, Dependabot migration               |
 | `renovate.json`                           | Shared Renovate config (sync to products)                                           |
-| `.github/workflows/renovate.yml`          | Per-repo self-hosted Renovate job (requires `RENOVATE_TOKEN`)                       |
+| `.github/workflows/renovate.yml`          | Per-repo self-hosted Renovate job (`DEVINFRA_BOT_TOKEN`)                            |
+| `.github/workflows/sync-products.yml`     | Devinfra-only: opens sync PRs into products (`DEVINFRA_BOT_TOKEN`; not synced)      |
+| `scripts/sync-products.py`                | Sync driver (Devinfra-only; not on sync allowlist)                                  |
 | `docker/Dockerfile.product-app.base`      | Shared product-app image base (Bake export stage; sync to products)                 |
 | `docker/examples/`                        | Example last-stage + `docker-bake.hcl` stubs (A4; not Devinfra CST)                 |
 | `scripts/quality-check.sh`                | Commit-stage quality check                                                          |
