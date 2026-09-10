@@ -28,7 +28,8 @@ Tracks [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13).
   (via `--list-files`) and skips the sync step when nothing allowlisted changed.
 - **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`.
 
-Dry-run reports resolved files and targets without cloning or opening PRs. Skip flags omit a consumer.
+Dry-run reports resolved files and targets without cloning or opening PRs. Skip flags omit a consumer. Actions dry-run
+(`workflow_dispatch` with `dry_run=true`) does **not** require `DEVINFRA_BOT_TOKEN`; live sync does.
 
 ## Bot token (shared with Renovate)
 
@@ -38,8 +39,8 @@ same secret as Renovate. **Canonical permission table (GUI labels + API keys):**
 
 Do **not** store this token in SOPS or the repo.
 
-CI sets `DEVINFRA_BOT_TOKEN` (and `GH_TOKEN` to the same value for `gh`). Local live sync: export `DEVINFRA_BOT_TOKEN`,
-or `GH_TOKEN` for a one-off personal-PAT test.
+CI sets `DEVINFRA_BOT_TOKEN` (and `GH_TOKEN` to the same value for `gh`) for live sync. Local live sync: export
+`DEVINFRA_BOT_TOKEN`, or `GH_TOKEN` for a one-off personal-PAT test.
 
 ## Hard excludes (never copied)
 
@@ -66,7 +67,7 @@ Live local sync (opens PRs) requires a bot token in the environment and `gh` aut
 
 ## Adoption
 
-1. Set `DEVINFRA_BOT_TOKEN` on Devinfra.
-2. **Actions → Sync products → Run workflow** with `dry_run=true`.
+1. **Actions → Sync products → Run workflow** with `dry_run=true` (no bot secret required).
+2. Set `DEVINFRA_BOT_TOKEN` on Devinfra (see Renovate docs for scopes).
 3. Re-run with `dry_run=false` or merge a `main` commit that touches allowlisted paths.
 4. Merge sync PRs in each product; keep consumer overlays product-owned.

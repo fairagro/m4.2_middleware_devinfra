@@ -85,7 +85,10 @@ jobs:
           fi
 
       - name: Require bot token
-        if: github.event_name != 'push' || steps.gate.outputs.should_sync == 'true'
+        # Dry-run dispatch never opens PRs and does not need the bot secret.
+        if: >-
+          (github.event_name == 'push' && steps.gate.outputs.should_sync == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
         env:
           DEVINFRA_BOT_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
         run: |
