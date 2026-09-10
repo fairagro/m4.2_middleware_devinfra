@@ -88,7 +88,13 @@ _dev_tokens_write() {
     tmp="$(mktemp "${_DEV_TOKENS_FILE}.XXXXXX")" || exit 1
     # Remove temp (may hold encoded secrets) if we exit before a successful rename.
     trap 'rm -f "${tmp}"' EXIT
-    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || true
+    # grep exit 1 = no remaining lines (empty or only this var) — OK; other statuses abort.
+    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || {
+      case $? in
+        1) ;;
+        *) exit $? ;;
+      esac
+    }
     # GNU coreutils in the Dev Container (no BSD wrap fallback).
     b64="$(printf '%s' "${val}" | base64 -w0)" || exit 1
     printf '%s=b64:%s\n' "${var}" "${b64}" >>"${tmp}"
