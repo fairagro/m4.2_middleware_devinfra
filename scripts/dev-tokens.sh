@@ -89,10 +89,12 @@ _dev_tokens_write() {
     # Remove temp (may hold encoded secrets) if we exit before a successful rename.
     trap 'rm -f "${tmp}"' EXIT
     # grep exit 1 = no remaining lines (empty or only this var) — OK; other statuses abort.
+    # Capture status before `case` — bash sets $? to 0 when a case arm matches.
     grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || {
-      case $? in
+      _grep_st=$?
+      case ${_grep_st} in
         1) ;;
-        *) exit $? ;;
+        *) exit "${_grep_st}" ;;
       esac
     }
     # GNU coreutils in the Dev Container (no BSD wrap fallback).
