@@ -24,9 +24,8 @@ Tracks [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13).
 
 ## Triggers
 
-- **Push to `main`**: live sync. The job always starts; the script uses `--skip-if-unchanged` against the push event’s
-  `before` SHA (fallback `HEAD~1` locally) so it exits without cloning when that range did not touch any allowlisted
-  path (decision still based only on the allowlist).
+- **Push to `main`**: live sync. The workflow compares the push `before` SHA to `HEAD` against `docs/synced-paths.yaml`
+  (via `--list-files`) and skips the sync step when nothing allowlisted changed.
 - **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`.
 
 Dry-run reports resolved files and targets without cloning or opening PRs. Skip flags omit a consumer.
