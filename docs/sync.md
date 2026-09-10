@@ -3,6 +3,10 @@
 Automation that opens pull requests in the three m4.2 product repos, copying only paths listed in
 [`docs/synced-paths.yaml`](synced-paths.yaml).
 
+**v1 scope:** sync **adds/updates** allowlisted files only. It does **not** delete paths in product repos (even if a
+file was removed in Devinfra or dropped from the allowlist). Propagating deletions would be a separate follow-up if
+needed.
+
 **Sole path SoT:** [`docs/synced-paths.yaml`](synced-paths.yaml) is the only place that defines _what_ is synced
 (`allow`) and the hard denylist (`exclude`). The workflow does **not** maintain a second path list (no `paths:` filter).
 
