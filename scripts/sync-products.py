@@ -33,16 +33,29 @@ DRY_RUN_PREVIEW_LIMIT = 20
 
 
 def load_allow_exclude(path: Path) -> tuple[list[str], list[str]]:
-    """Load `allow` and `exclude` lists from the YAML SoT."""
+    """Load `allow` and effective denylist from the YAML SoT.
+
+    Product-local `overlays` are never overwritten: they are merged into the
+    denylist even if a maintainer forgets to duplicate them under `exclude`.
+    """
     loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise SystemExit(f"{path}: expected a YAML mapping at the root")
     allow = loaded.get("allow") or []
     exclude = loaded.get("exclude") or []
+    overlays = loaded.get("overlays") or []
     if not isinstance(allow, list) or not isinstance(exclude, list):
         raise SystemExit(f"{path}: `allow` and `exclude` must be YAML lists")
+    if not isinstance(overlays, list):
+        raise SystemExit(f"{path}: `overlays` must be a YAML list when present")
     allow_s = [str(x).strip() for x in allow if str(x).strip()]
     exclude_s = [str(x).strip() for x in exclude if str(x).strip()]
+    seen = set(exclude_s)
+    for raw in overlays:
+        item = str(raw).strip()
+        if item and item not in seen:
+            exclude_s.append(item)
+            seen.add(item)
     if not allow_s:
         raise SystemExit(f"{path}: `allow` list is empty")
     return allow_s, exclude_s
@@ -301,15 +314,16 @@ def main(argv: list[str] | None = None) -> int:
             "allowlist resolved to zero files — check docs/synced-paths.yaml"
         )
 
+    if args.list_files:
+        # Machine-readable only (workflow gate uses exact-line match).
+        for rel in files:
+            print(rel.as_posix())
+        return 0
+
     print(
         f"allowlist patterns: {len(patterns)}; exclude: {len(excludes_t)}; files: {len(files)}",
         flush=True,
     )
-
-    if args.list_files:
-        for rel in files:
-            print(rel.as_posix())
-        return 0
 
     source_sha = git_out(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT)
     token = resolve_token()
