@@ -18,6 +18,20 @@ on:
         required: false
         type: string
         default: "middleware"
+      mypy_path:
+        description: >-
+          Optional MYPYPATH (colon-separated), e.g. stubs + package src roots.
+          Empty keeps default mypy module discovery (fine for flat layouts).
+        required: false
+        type: string
+        default: ""
+      pylint_source_roots:
+        description: >-
+          Optional comma-separated --source-roots for pylint (same-dir test helpers).
+          Empty omits the flag.
+        required: false
+        type: string
+        default: ""
       skip:
         description: "Exit successfully without running checks (PRs with no code changes)"
         required: false
@@ -89,10 +103,19 @@ jobs:
         if: ${{ !inputs.skip }}
         env:
           PKG: ${{ inputs.python_package_root }}
+          MYPY_PATH_INPUT: ${{ inputs.mypy_path }}
+          PYLINT_SOURCE_ROOTS: ${{ inputs.pylint_source_roots }}
         run: |
           uv run ruff format --check --diff --config ruff.toml "${PKG}"
           uv run ruff check --config ruff.toml "${PKG}"
-          uv run pylint --rcfile .pylintrc "${PKG}"
+          pylint_args=(--rcfile .pylintrc)
+          if [[ -n "${PYLINT_SOURCE_ROOTS}" ]]; then
+            pylint_args+=(--source-roots="${PYLINT_SOURCE_ROOTS}")
+          fi
+          uv run pylint "${pylint_args[@]}" "${PKG}"
+          if [[ -n "${MYPY_PATH_INPUT}" ]]; then
+            export MYPYPATH="${MYPY_PATH_INPUT}"
+          fi
           uv run mypy --config-file mypy.ini "${PKG}"
 
       - name: Security check with bandit
