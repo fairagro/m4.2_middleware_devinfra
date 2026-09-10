@@ -85,6 +85,9 @@ def is_excluded(rel: str, excludes: tuple[str, ...]) -> bool:
         if "**" in glob:
             if _match_double_star(rel, glob):
                 return True
+        elif "/" in glob:
+            if fnmatch.fnmatch(rel, glob):
+                return True
         elif fnmatch.fnmatch(rel, glob) or fnmatch.fnmatch(Path(rel).name, glob):
             return True
     return False
