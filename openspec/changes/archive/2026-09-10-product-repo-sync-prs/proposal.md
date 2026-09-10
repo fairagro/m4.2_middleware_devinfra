@@ -11,9 +11,9 @@ product `middleware/`, never OpenSpec specs (product or Devinfra), never reusabl
 
 - Add sync automation (**A1**): workflow + script that pushes allowlisted paths into `m4.2_advanced_middleware_api`,
   `m4.2_sql_to_arc`, and `m4.2_middleware_harvester` as PRs.
-- **Single path list (**B1′**)**: `docs/synced-paths.yaml` remains the only human/machine SoT for what is synced
-  and what `/review-fixer` treats as read-only in consumers. Expand vague rows into concrete paths; sync tooling reads
-  this file (no second hand-maintained manifest).
+- **Single path list (**B1′**)**: `docs/synced-paths.yaml` remains the only human/machine SoT for what is synced and
+  what `/review-fixer` treats as read-only in consumers. Expand vague rows into concrete paths; sync tooling reads this
+  file (no second hand-maintained manifest).
 - **Triggers (**C3**)**: on push to `main` (when relevant), open live sync PRs; `workflow_dispatch` with optional
   dry-run/skip flags for override.
 - **Auth (**D**)**: document one bot token (Actions secret) with rights for Renovate and sync (Contents + PRs on

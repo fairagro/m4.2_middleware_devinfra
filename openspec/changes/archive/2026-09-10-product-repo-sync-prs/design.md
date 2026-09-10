@@ -2,9 +2,9 @@
 
 ## Context
 
-See `proposal.md`. Explore lock-ins: **A1** allowlist push from Devinfra; **B1′** sole SoT
-`docs/synced-paths.yaml`; **C3** live PRs on `main` push; **D** shared bot token for Renovate + sync; **E1**
-workflow + expanded allowlist + docs; **F** never middleware / OpenSpec specs / reusable workflow YAML.
+See `proposal.md`. Explore lock-ins: **A1** allowlist push from Devinfra; **B1′** sole SoT `docs/synced-paths.yaml`;
+**C3** live PRs on `main` push; **D** shared bot token for Renovate + sync; **E1** workflow + expanded allowlist + docs;
+**F** never middleware / OpenSpec specs / reusable workflow YAML.
 
 ## Goals / Non-Goals
 
@@ -35,8 +35,8 @@ stays thin). For each target: clone or API-based branch, copy allowlisted files,
 
 **Choice:** `docs/synced-paths.yaml` is the sole path SoT (`allow`, `exclude`, optional `overlays`). The sync script
 loads it with **PyYAML** from the Devinfra `uv` project environment (`uv run python scripts/sync-products.py`). CI
-installs the same lock via `uv sync --frozen`. Expand globs against the Devinfra tree; apply `exclude` even if a path
-is also under `allow`. No second hardcoded path/exclude list in the script.
+installs the same lock via `uv sync --frozen`. Expand globs against the Devinfra tree; apply `exclude` even if a path is
+also under `allow`. No second hardcoded path/exclude list in the script.
 
 **Alternatives:** Markdown table as SoT — rejected (fragile parse). Optional stdlib YAML subset — rejected (environment
 is always `uv`-managed; declare PyYAML). Script-enforced “required exclude” constants — rejected (second SoT).
