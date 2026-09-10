@@ -74,9 +74,10 @@ pointing at `set-dev-tokens.sh`.
 
 ### Requirement: gh wrapper loads token then execs real gh
 
-`scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN` (or `GITHUB_TOKEN`), and exec the
+`scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN`, and exec the
 real system `gh` binary (not itself). Real-binary discovery MUST prefer `command -v -p gh` (excluding the wrapper) and
-MAY fall back to `/usr/bin/gh`. It MUST NOT read tokens from the git worktree.
+MAY fall back to `/usr/bin/gh`. It MUST NOT read tokens from the git worktree. It MUST NOT treat `GITHUB_TOKEN` as a
+local developer-token fallback.
 
 #### Scenario: gh succeeds with stored token
 

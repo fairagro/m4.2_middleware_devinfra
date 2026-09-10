@@ -1,0 +1,101 @@
+# Sync shared paths into product repos (allowlist push — issue #13).
+# Bot token: repository secret DEVINFRA_BOT_TOKEN (same PAT as Renovate). See docs/sync.md.
+name: Sync products
+
+on:
+  push:
+    branches:
+      - main
+    # No paths: filter — docs/synced-paths.yaml is the sole sync path SoT.
+    # On push, the script skips when no allowlisted files changed (see --skip-if-unchanged).
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would sync; do not open PRs"
+        type: boolean
+        default: true
+      skip_api:
+        description: "Skip fairagro/m4.2_advanced_middleware_api"
+        type: boolean
+        default: false
+      skip_sql_to_arc:
+        description: "Skip fairagro/m4.2_sql_to_arc"
+        type: boolean
+        default: false
+      skip_harvester:
+        description: "Skip fairagro/m4.2_middleware_harvester"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Need HEAD~1 so the script can skip when no allowlisted paths changed.
+          fetch-depth: 2
+
+      - name: Read UV_VERSION from versions.env
+        id: uv-version
+        run: |
+          uv_version="$(awk -F= '/^UV_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          if [[ -z "$uv_version" ]]; then
+            echo "ERROR: UV_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$uv_version" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ${{ steps.uv-version.outputs.version }}
+
+      - name: Install Python from versions.env
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          uv python install "${PYTHON_VERSION}"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Require bot token
+        env:
+          DEVINFRA_BOT_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DEVINFRA_BOT_TOKEN:-}" ]]; then
+            echo "::error::Set repository secret DEVINFRA_BOT_TOKEN"
+            exit 1
+          fi
+
+      - name: Sync products
+        env:
+          DEVINFRA_BOT_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            args+=(--skip-if-unchanged)
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+              args+=(--dry-run)
+            fi
+            if [[ "${{ inputs.skip_api }}" == "true" ]]; then
+              args+=(--skip-api)
+            fi
+            if [[ "${{ inputs.skip_sql_to_arc }}" == "true" ]]; then
+              args+=(--skip-sql-to-arc)
+            fi
+            if [[ "${{ inputs.skip_harvester }}" == "true" ]]; then
+              args+=(--skip-harvester)
+            fi
+          fi
+          uv run python scripts/sync-products.py "${args[@]}"

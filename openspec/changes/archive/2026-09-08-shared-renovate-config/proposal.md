@@ -38,6 +38,6 @@ Renovate.
 
 - New: `renovate.json`, `.github/workflows/renovate.yml`, docs (`docs/renovate.md` and/or `docs/ci.md` /
   `docs/devcontainer.md` / README)
-- `docs/synced-paths.global.md`
+- `docs/synced-paths.yaml`
 - OpenSpec specs above; product cutover remains #13 / product PRs (not this repo)
 - Ops: create `RENOVATE_TOKEN` Actions secret on Devinfra (and later on each product) — outside git

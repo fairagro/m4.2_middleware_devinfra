@@ -6,6 +6,7 @@ description = "Shared Devinfra tooling pins and scripts (not a product middlewar
 requires-python = ">=3.12"
 dependencies = [
   "m42-ai-gh",
+  "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]

@@ -11,11 +11,14 @@ Canonical GitHub Actions for the three m4.2 product repos live in this repositor
 | Helm final release  | [`.github/workflows/reusable-helm-release.yml`](../.github/workflows/reusable-helm-release.yml)                                                   |
 | Helm pre-release    | [`.github/workflows/reusable-helm-pre-release.yml`](../.github/workflows/reusable-helm-pre-release.yml)                                           |
 | Renovate (per-repo) | [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) + [`renovate.json`](../renovate.json) — see [docs/renovate.md](renovate.md) |
+| Sync products       | [`.github/workflows/sync-products.yml`](../.github/workflows/sync-products.yml) — allowlist push; see [docs/sync.md](sync.md)                     |
 
 **Stay product-local (not shared here):** PyPI / TestPyPI publish jobs and ns-pages workflows (API today).
 
-Renovate is a **thin per-repo workflow** (not `workflow_call`), synced like other shared files. It needs repository
-secret `RENOVATE_TOKEN` — details in [`docs/renovate.md`](renovate.md).
+Renovate is a **thin per-repo workflow** (not `workflow_call`), synced like other shared files. Product sync is likewise
+a thin Devinfra-hosted job that opens PRs in the three product repos. Both use one bot PAT via repository secret
+`DEVINFRA_BOT_TOKEN` — see [`docs/renovate.md`](renovate.md) and [`docs/sync.md`](sync.md). Same-repo release/Helm/GHCR
+jobs keep using the automatic `secrets.GITHUB_TOKEN` where that is enough.
 
 Product-distinguishing names use **`workflow_call` inputs** (e.g. `image_base_name`, `chart_dir`) — do not rely on
 silent repository Variables for correct identity.

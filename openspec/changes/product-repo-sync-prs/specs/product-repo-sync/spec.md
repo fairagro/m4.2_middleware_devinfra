@@ -32,16 +32,16 @@ Pull requests access on the target repos (same bot identity MAY be shared with R
 
 ### Requirement: Sync copies only the allowlist SoT paths
 
-The sync implementation MUST resolve the set of paths to copy exclusively from `docs/synced-paths.global.md` (the sole
-path SoT). It MUST NOT maintain a second hand-edited path list. It MUST refuse to copy (or MUST hard-exclude) at least:
-product `middleware/` trees, `openspec/specs/**`, `openspec/changes/**`, documented product-local overlays, and
-`.github/workflows/reusable-*.yml` (products keep `uses:`). Only paths present in the allowlist (including globs
-expanded against this repo) MAY be written into target PRs.
+The sync implementation MUST resolve the set of paths to copy exclusively from `docs/synced-paths.yaml` (the sole
+path SoT). It MUST NOT maintain a second hand-edited path list. It MUST refuse to copy paths matching the YAML
+`exclude` list (and MUST hard-exclude at least: product `middleware/` trees, `openspec/specs/**`, `openspec/changes/**`,
+documented product-local overlays, and `.github/workflows/reusable-*.yml`). Only paths present under `allow` (including
+globs expanded against this repo) MAY be written into target PRs.
 
 #### Scenario: Allowlist is the only path input
 
 - **WHEN** sync runs
-- **THEN** the paths copied are derived from `docs/synced-paths.global.md`
+- **THEN** the paths copied are derived from `docs/synced-paths.yaml`
 - **AND** no separate sync-manifest file is required as a second source of truth
 
 #### Scenario: OpenSpec specs and middleware are never synced

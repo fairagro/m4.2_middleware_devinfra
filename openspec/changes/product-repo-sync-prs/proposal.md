@@ -11,7 +11,7 @@ product `middleware/`, never OpenSpec specs (product or Devinfra), never reusabl
 
 - Add sync automation (**A1**): workflow + script that pushes allowlisted paths into `m4.2_advanced_middleware_api`,
   `m4.2_sql_to_arc`, and `m4.2_middleware_harvester` as PRs.
-- **Single path list (**B1′**)**: `docs/synced-paths.global.md` remains the only human/machine SoT for what is synced
+- **Single path list (**B1′**)**: `docs/synced-paths.yaml` remains the only human/machine SoT for what is synced
   and what `/review-fixer` treats as read-only in consumers. Expand vague rows into concrete paths; sync tooling reads
   this file (no second hand-maintained manifest).
 - **Triggers (**C3**)**: on push to `main` (when relevant), open live sync PRs; `workflow_dispatch` with optional
@@ -40,7 +40,7 @@ product `middleware/`, never OpenSpec specs (product or Devinfra), never reusabl
 ## Impact
 
 - New workflow (e.g. `.github/workflows/sync-products.yml`) + sync script under `scripts/`
-- `docs/synced-paths.global.md` expanded; `docs/sync.md` (or similar); README / ci links
+- `docs/synced-paths.yaml` expanded; `docs/sync.md` (or similar); README / ci links
 - Renovate docs/secret naming alignment
 - OpenSpec specs above; product repos only receive PRs (no product commits in this change)
 - Ops: create/configure bot token secret on Devinfra

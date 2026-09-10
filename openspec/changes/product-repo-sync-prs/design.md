@@ -3,14 +3,14 @@
 ## Context
 
 See `proposal.md`. Explore lock-ins: **A1** allowlist push from Devinfra; **B1′** sole SoT
-`docs/synced-paths.global.md`; **C3** live PRs on `main` push; **D** shared bot token for Renovate + sync; **E1**
+`docs/synced-paths.yaml`; **C3** live PRs on `main` push; **D** shared bot token for Renovate + sync; **E1**
 workflow + expanded allowlist + docs; **F** never middleware / OpenSpec specs / reusable workflow YAML.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Machine path set from one markdown allowlist; open PRs in three fixed targets.
+- Machine path set from one YAML allowlist; open PRs in three fixed targets.
 - Main-push live sync + dispatch dry-run/skip.
 - Expand allowlist to concrete quality/DC/hooks paths.
 
@@ -33,21 +33,25 @@ stays thin). For each target: clone or API-based branch, copy allowlisted files,
 
 ### D2 — Parsing the allowlist (B1′)
 
-**Choice:** Script extracts path/glob column from the allowlist table in `docs/synced-paths.global.md` (stable table
-markers). Expand globs against Devinfra tree; apply hard-exclude denylist in code even if someone mis-lists a path.
-Optional: fail CI if table cannot be parsed.
+**Choice:** `docs/synced-paths.yaml` is the sole path SoT (`allow`, `exclude`, optional `overlays`). The sync script
+loads it with **PyYAML** from the Devinfra `uv` project environment (`uv run python scripts/sync-products.py`). CI
+installs the same lock via `uv sync --frozen`. Expand globs against the Devinfra tree; apply `exclude` even if a path
+is also under `allow`. No second hardcoded path/exclude list in the script.
 
-**Alternatives:** Generate markdown from YAML — rejected (two files). Embed HTML comments with JSON — possible later.
+**Alternatives:** Markdown table as SoT — rejected (fragile parse). Optional stdlib YAML subset — rejected (environment
+is always `uv`-managed; declare PyYAML). Script-enforced “required exclude” constants — rejected (second SoT).
 
 ### D3 — Triggers (C3)
 
-**Choice:** `on.push` to `main` (optionally path-filtered to allowlisted prefixes to reduce noise) opens PRs.
+**Choice:** `on.push` to `main` with **no** YAML `paths:` filter (avoids a second hand-edited path list). Noise
+reduction: script `--skip-if-unchanged` exits when `git diff HEAD~1..HEAD` intersects no allowlisted file.
 `workflow_dispatch`: `dry_run`, `skip_api`, `skip_sql_to_arc`, `skip_harvester`.
 
 ### D4 — Token (D)
 
-**Choice:** Prefer one secret name documented for both (e.g. `DEVINFRA_BOT_TOKEN` or keep `RENOVATE_TOKEN` and document
-reuse). Sync workflow reads the same secret. Scopes: contents R/W + PRs on three products + this repo as needed.
+**Choice:** One repository Actions secret `DEVINFRA_BOT_TOKEN` for Renovate and product sync (combined scopes). No
+`RENOVATE_TOKEN` alias/fallback. Local developer `gh` uses only `GH_TOKEN` (no `GITHUB_TOKEN` fallback). Automatic
+`secrets.GITHUB_TOKEN` remains for same-repo reusable release/Helm/GHCR jobs where it is enough.
 
 ### D5 — PR shape
 
@@ -57,7 +61,7 @@ source commit + allowlist. Update existing open sync PR branch if present (optio
 ## Risks / Trade-offs
 
 - **[Markdown parse fragility]** → Mitigation: golden fixture test; fail closed; keep table format documented.
-- **[Noisy main pushes]** → Mitigation: path filters; skip when no allowlisted files changed.
+- **[Noisy main pushes]** → Mitigation: `--skip-if-unchanged` against allowlist (not a second YAML path list).
 - **[Token blast radius]** → Mitigation: fine-grained PAT limited to four repos; docs for rotation.
 - **[Overlay clobber]** → Mitigation: never list overlays; hard-exclude known overlay names.
 

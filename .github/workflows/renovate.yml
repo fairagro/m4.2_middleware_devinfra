@@ -1,5 +1,6 @@
 # Self-hosted Renovate (shared SoT — sync to product repos via #13).
-# Requires repository Actions secret RENOVATE_TOKEN (fine-grained PAT). See docs/renovate.md.
+# Requires repository Actions secret DEVINFRA_BOT_TOKEN (fine-grained PAT; shared with product sync).
+# See docs/renovate.md / docs/sync.md.
 name: Renovate
 
 on:
@@ -26,9 +27,9 @@ jobs:
         uses: renovatebot/github-action@v46.2.6
         with:
           configurationFile: renovate.json
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ secrets.DEVINFRA_BOT_TOKEN }}
         env:
           # Scope the bot token to this step only (not checkout).
-          GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          GITHUB_COM_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           LOG_LEVEL: info

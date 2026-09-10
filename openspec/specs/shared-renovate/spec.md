@@ -27,29 +27,30 @@ extended for Devinfra toolchain pins.
 
 The repository MUST provide `.github/workflows/renovate.yml` that runs self-hosted Renovate on a schedule, on
 `workflow_dispatch`, and on push to the default branch when the Renovate config file changes. The workflow MUST use the
-official Renovate GitHub Action (pinned) and MUST pass a repository Actions secret named `RENOVATE_TOKEN` (not
-`GITHUB_TOKEN` alone as the sole bot credential). The job MUST target the current repository (not a multi-repo bot list
-in this change). The repository MUST NOT introduce `reusable-renovate.yml` in this change.
+official Renovate GitHub Action (pinned) and MUST pass a repository Actions secret named `DEVINFRA_BOT_TOKEN` (not
+`GITHUB_TOKEN` alone as the sole bot credential; the same secret is used by product-repo sync). The job MUST target the
+current repository (not a multi-repo bot list in this change). The repository MUST NOT introduce `reusable-renovate.yml`
+in this change.
 
 #### Scenario: Maintainer opens the Renovate workflow
 
 - **WHEN** a maintainer opens `.github/workflows/renovate.yml`
 - **THEN** they find schedule, workflow_dispatch, and config-path push triggers
-- **AND** the Renovate Action receives `secrets.RENOVATE_TOKEN`
+- **AND** the Renovate Action receives `secrets.DEVINFRA_BOT_TOKEN`
 - **AND** there is no `reusable-renovate.yml` required to run Renovate in this repo
 
 ### Requirement: Renovate documentation covers token, dry-run, and Dependabot migration
 
-The repository MUST document: (1) creating `RENOVATE_TOKEN` as a GitHub Actions repository secret (fine-grained PAT or
-equivalent scopes for contents/PRs as required by Renovate — not SOPS-in-repo); (2) local CLI dry-run using the Dev
-Container pinned `renovate` against the shared config; (3) product migration — remove Dependabot **version update**
-config (`dependabot.yml`); keep Dependabot **alerts**; prefer Renovate for dependency update PRs (avoid dual general
-updaters); (4) sync/adoption via #13 for API / sql-to-arc / harvester. The root README Docs index (or CI/Dev Container
-docs) MUST link to this documentation.
+The repository MUST document: (1) creating `DEVINFRA_BOT_TOKEN` as a GitHub Actions repository secret (fine-grained PAT
+or equivalent scopes for contents/PRs as required by Renovate and product sync — not SOPS-in-repo); (2) local CLI
+dry-run using the Dev Container pinned `renovate` against the shared config; (3) product migration — remove Dependabot
+**version update** config (`dependabot.yml`); keep Dependabot **alerts**; prefer Renovate for dependency update PRs
+(avoid dual general updaters); (4) sync/adoption via #13 for API / sql-to-arc / harvester. The root README Docs index
+(or CI/Dev Container docs) MUST link to this documentation.
 
 #### Scenario: Operator prepares Renovate on a new repo
 
 - **WHEN** an operator follows the Renovate docs to enable automation
-- **THEN** they learn to set repository secret `RENOVATE_TOKEN` in GitHub Actions settings
+- **THEN** they learn to set repository secret `DEVINFRA_BOT_TOKEN` in GitHub Actions settings
 - **AND** they find a local dry-run command using the pinned CLI
 - **AND** they learn to remove Dependabot version updates while keeping alerts

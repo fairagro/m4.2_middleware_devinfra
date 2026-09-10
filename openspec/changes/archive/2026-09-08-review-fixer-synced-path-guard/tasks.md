@@ -2,7 +2,7 @@
 
 ## 1. Synced-paths allowlist
 
-- [x] 1.1 Add `docs/synced-paths.global.md` with allowlist globs/paths from issue AC + README inventory and documented
+- [x] 1.1 Add `docs/synced-paths.yaml` with allowlist globs/paths from issue AC + README inventory and documented
       overlay exceptions
 - [x] 1.2 Link the allowlist from root `README.md` Docs index (and brief ownership note if missing)
 
@@ -10,7 +10,7 @@
 
 - [x] 2.1 Update `.agents/skills/review-fixer/SKILL.md`: hard stop before step 5 for allowlisted paths in consumers; B2
       follow-up/dismiss; Devinfra-checkout exception; no dirty synced trees
-- [x] 2.2 Update `docs/ai_review_policy.md` with sync-SoT override sentence and link to `docs/synced-paths.global.md`
+- [x] 2.2 Update `docs/ai_review_policy.md` with sync-SoT override sentence and link to `docs/synced-paths.yaml`
 - [x] 2.3 Cross-link surface bar / thin command or prompt only if needed for discoverability (no new action enum)
 
 ## 3. Attached content fixes
