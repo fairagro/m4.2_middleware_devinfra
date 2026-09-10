@@ -29,6 +29,9 @@ DEFAULT_TARGETS: dict[str, str] = {
 }
 
 DRY_RUN_PREVIEW_LIMIT = 20
+# Stable head branch per product so force-push updates one rolling sync PR.
+SYNC_BRANCH = "chore/devinfra-sync"
+NULL_GIT_SHA = "0" * 40
 
 
 def load_synced_paths_yaml(path: Path) -> tuple[list[str], list[str]]:
@@ -96,7 +99,8 @@ def _match_double_star(path: str, pattern: str) -> bool:
             return False
         rest = path[len(left) + 1 :] if path.startswith(left + "/") else ""
         return fnmatch.fnmatch(rest, right) or any(
-            fnmatch.fnmatch("/".join(rest.split("/")[i:]), right) for i in range(len(rest.split("/")))
+            fnmatch.fnmatch("/".join(rest.split("/")[i:]), right)
+            for i in range(len(rest.split("/")))
         )
     return fnmatch.fnmatch(path, pattern.replace("**/", "").replace("/**", "/*"))
 
@@ -125,7 +129,9 @@ def _resolve_one_pattern(found: set[Path], root: Path, pattern: str) -> None:
     _add_files_under(found, root, root / pattern)
 
 
-def resolve_files(patterns: list[str], root: Path, excludes: tuple[str, ...]) -> list[Path]:
+def resolve_files(
+    patterns: list[str], root: Path, excludes: tuple[str, ...]
+) -> list[Path]:
     """Expand allowlist globs against root; return sorted unique relative Paths."""
     found: set[Path] = set()
     for raw in patterns:
@@ -133,7 +139,8 @@ def resolve_files(patterns: list[str], root: Path, excludes: tuple[str, ...]) ->
     return sorted(
         rel
         for rel in found
-        if not is_hard_excluded(rel.as_posix(), excludes) and not is_ignored_artifact(rel.as_posix())
+        if not is_hard_excluded(rel.as_posix(), excludes)
+        and not is_ignored_artifact(rel.as_posix())
     )
 
 
@@ -156,7 +163,9 @@ def copy_files(
     return copied
 
 
-def run(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
+def run(
+    cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> None:
     """Print and run a subprocess command; raise on non-zero exit."""
     print("+", " ".join(cmd), flush=True)
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
@@ -184,7 +193,10 @@ def sync_target(req: SyncTargetRequest) -> None:
     """Clone one product repo, copy allowlisted files, and open or update a sync PR."""
     print(f"\n=== target {req.key}: {req.repo} ===", flush=True)
     if req.dry_run:
-        print(f"dry-run: would copy {len(req.files)} files and open/update sync PR", flush=True)
+        print(
+            f"dry-run: would copy {len(req.files)} files and open/update sync PR",
+            flush=True,
+        )
         for rel in req.files[:DRY_RUN_PREVIEW_LIMIT]:
             print(f"  {rel.as_posix()}")
         if len(req.files) > DRY_RUN_PREVIEW_LIMIT:
@@ -192,13 +204,17 @@ def sync_target(req: SyncTargetRequest) -> None:
         return
 
     if not req.token:
-        raise SystemExit("live sync requires DEVINFRA_BOT_TOKEN (or GH_TOKEN for local testing)")
+        raise SystemExit(
+            "live sync requires DEVINFRA_BOT_TOKEN (or GH_TOKEN for local testing)"
+        )
 
     env = os.environ.copy()
     env["GH_TOKEN"] = req.token
     env["GIT_TERMINAL_PROMPT"] = "0"
+    # Configure git to use gh credentials so `git push` works on fresh runners.
+    run(["gh", "auth", "setup-git"], env=env)
 
-    branch = f"chore/devinfra-sync-{req.source_sha[:7]}"
+    branch = SYNC_BRANCH
     with tempfile.TemporaryDirectory(prefix=f"sync-{req.key}-") as tmp:
         dest = Path(tmp) / "repo"
         run(
@@ -278,7 +294,10 @@ Do **not** hand-edit these paths in this consumer — land fixes in Devinfra, th
 - [ ] CI green on this PR
 """
         if existing:
-            print(f"updated existing PR #{existing} via force-push to {branch}", flush=True)
+            print(
+                f"updated existing PR #{existing} via force-push to {branch}",
+                flush=True,
+            )
             return
 
         run(
@@ -309,7 +328,9 @@ def resolve_token() -> str | None:
     return None
 
 
-def allowlisted_changed_since(files: list[Path], *, base: str = "HEAD~1") -> bool | None:
+def allowlisted_changed_since(
+    files: list[Path], *, base: str = "HEAD~1"
+) -> bool | None:
     """Return True/False if git can diff base..HEAD against allowlist; None if unknown."""
     allow = {rel.as_posix() for rel in files}
     try:
@@ -321,7 +342,9 @@ def allowlisted_changed_since(files: list[Path], *, base: str = "HEAD~1") -> boo
         return None
     if not changed:
         return False
-    return any(normalize_rel(line) in allow for line in changed.splitlines() if line.strip())
+    return any(
+        normalize_rel(line) in allow for line in changed.splitlines() if line.strip()
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -344,8 +367,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--skip-if-unchanged",
         action="store_true",
         help=(
-            "Exit 0 without opening PRs when no allowlisted path changed vs HEAD~1 "
+            "Exit 0 without opening PRs when no allowlisted path changed vs --since-ref "
             "(used on push to main; path set still comes only from the allowlist)"
+        ),
+    )
+    parser.add_argument(
+        "--since-ref",
+        default="HEAD~1",
+        help=(
+            "Git ref/SHA compared to HEAD for --skip-if-unchanged "
+            "(Actions push: github.event.before; default HEAD~1)"
         ),
     )
     return parser
@@ -357,38 +388,42 @@ def _load_resolved_files() -> tuple[list[str], tuple[str, ...], list[Path]]:
     excludes_t = tuple(excludes)
     files = resolve_files(patterns, REPO_ROOT, excludes_t)
     if not files:
-        raise SystemExit("allowlist resolved to zero files — check docs/synced-paths.yaml")
+        raise SystemExit(
+            "allowlist resolved to zero files — check docs/synced-paths.yaml"
+        )
     return patterns, excludes_t, files
 
 
 def _print_list_files(files: list[Path], excludes: tuple[str, ...]) -> None:
-    """Print resolved paths and fail if a hard-excluded tree leaked into the set."""
-    for rel in files:
-        assert not is_hard_excluded(rel.as_posix(), excludes), rel
-        print(rel.as_posix())
+    """Print resolved paths and fail if a YAML exclude leaked into the set."""
     for rel in files:
         posix = rel.as_posix()
-        if (
-            posix.startswith("middleware/")
-            or posix.startswith("openspec/specs/")
-            or posix.startswith("openspec/changes/")
-        ):
+        if is_hard_excluded(posix, excludes):
             raise SystemExit(f"hard exclude leaked: {posix}")
-        if posix.startswith(".github/workflows/") and Path(posix).name.startswith("reusable-"):
-            raise SystemExit(f"hard exclude leaked: {posix}")
+        print(posix)
 
 
-def _should_skip_unchanged(files: list[Path]) -> bool:
+def _normalize_since_ref(raw: str) -> str:
+    """Return a usable diff base; map empty/null push SHAs to HEAD~1."""
+    ref = (raw or "").strip()
+    if not ref or ref == NULL_GIT_SHA:
+        return "HEAD~1"
+    return ref
+
+
+def _should_skip_unchanged(files: list[Path], *, since_ref: str) -> bool:
     """Return True when --skip-if-unchanged should exit early."""
-    changed = allowlisted_changed_since(files)
+    base = _normalize_since_ref(since_ref)
+    changed = allowlisted_changed_since(files, base=base)
     if changed is False:
         print(
-            "no allowlisted paths changed since HEAD~1; skip sync (sole path SoT: docs/synced-paths.yaml)",
+            f"no allowlisted paths changed since {base}; skip sync "
+            "(sole path SoT: docs/synced-paths.yaml)",
             flush=True,
         )
         return True
     if changed is None:
-        print("could not diff HEAD~1..HEAD; proceeding with sync", flush=True)
+        print(f"could not diff {base}..HEAD; proceeding with sync", flush=True)
     return False
 
 
@@ -409,7 +444,9 @@ def main(argv: list[str] | None = None) -> int:
         for rel in files:
             assert not is_hard_excluded(rel.as_posix(), excludes), rel
 
-    if args.skip_if_unchanged and _should_skip_unchanged(files):
+    if args.skip_if_unchanged and _should_skip_unchanged(
+        files, since_ref=args.since_ref
+    ):
         return 0
 
     source_sha = git_output(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT)

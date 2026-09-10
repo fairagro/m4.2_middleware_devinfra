@@ -128,7 +128,7 @@ steps.
 | `docs/renovate.md`                        | Shared Renovate config/workflow, token, dry-run, Dependabot migration               |
 | `renovate.json`                           | Shared Renovate config (sync to products)                                           |
 | `.github/workflows/renovate.yml`          | Per-repo self-hosted Renovate job (`DEVINFRA_BOT_TOKEN`)                            |
-| `.github/workflows/sync-products.yml`     | Allowlist sync into product repos (`DEVINFRA_BOT_TOKEN`; live on `main`)            |
+| `.github/workflows/sync-products.yml`     | Devinfra-only: opens sync PRs into products (`DEVINFRA_BOT_TOKEN`; not synced)      |
 | `scripts/sync-products.py`                | Sync driver (Devinfra-only; not on sync allowlist)                                  |
 | `docker/Dockerfile.product-app.base`      | Shared product-app image base (Bake export stage; sync to products)                 |
 | `docker/examples/`                        | Example last-stage + `docker-bake.hcl` stubs (A4; not Devinfra CST)                 |

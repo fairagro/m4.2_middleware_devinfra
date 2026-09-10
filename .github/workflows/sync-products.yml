@@ -37,8 +37,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          # Need HEAD~1 so the script can skip when no allowlisted paths changed.
-          fetch-depth: 2
+          # Full history so --skip-if-unchanged can diff against github.event.before
+          # (multi-commit pushes to main).
+          fetch-depth: 0
 
       - name: Read UV_VERSION from versions.env
         id: uv-version
@@ -83,6 +84,11 @@ jobs:
           args=()
           if [[ "${{ github.event_name }}" == "push" ]]; then
             args+=(--skip-if-unchanged)
+            before="${{ github.event.before }}"
+            # New-branch / empty before is all zeros — fall back to script default (HEAD~1).
+            if [[ -n "${before}" && "${before}" != 0000000000000000000000000000000000000000 ]]; then
+              args+=(--since-ref "${before}")
+            fi
           fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ inputs.dry_run }}" == "true" ]]; then

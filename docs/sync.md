@@ -8,11 +8,11 @@ Automation that opens pull requests in the three m4.2 product repos, copying onl
 
 Tracks [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13).
 
-| Artifact                                                                        | Role                                                              |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`docs/synced-paths.yaml`](synced-paths.yaml)                                   | **Sole** path SoT (`allow` / `exclude` / `overlays`)              |
-| [`scripts/sync-products.py`](../scripts/sync-products.py)                       | Read YAML, copy, open/update PRs (**Devinfra-only** — not synced) |
-| [`.github/workflows/sync-products.yml`](../.github/workflows/sync-products.yml) | When to run (`main` push / dispatch) — not what to copy           |
+| Artifact                                                                        | Role                                                                 |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [`docs/synced-paths.yaml`](synced-paths.yaml)                                   | **Sole** path SoT (`allow` / `exclude` / `overlays`)                 |
+| [`scripts/sync-products.py`](../scripts/sync-products.py)                       | Read YAML, copy, open/update PRs (**Devinfra-only** — not synced)    |
+| [`.github/workflows/sync-products.yml`](../.github/workflows/sync-products.yml) | When to run (`main` push / dispatch) — **Devinfra-only**, not synced |
 
 ## Targets
 
@@ -24,8 +24,9 @@ Tracks [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13).
 
 ## Triggers
 
-- **Push to `main`**: live sync. The job always starts; the script uses `--skip-if-unchanged` so it exits without
-  cloning when the push did not touch any allowlisted path (decision still based only on the allowlist).
+- **Push to `main`**: live sync. The job always starts; the script uses `--skip-if-unchanged` against the push event’s
+  `before` SHA (fallback `HEAD~1` locally) so it exits without cloning when that range did not touch any allowlisted
+  path (decision still based only on the allowlist).
 - **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`.
 
 Dry-run reports resolved files and targets without cloning or opening PRs. Skip flags omit a consumer.

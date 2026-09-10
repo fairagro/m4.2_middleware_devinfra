@@ -46,7 +46,6 @@ allow:
   - openspec/principles.global.md
   - renovate.json
   - .github/workflows/renovate.yml
-  - .github/workflows/sync-products.yml
   - docker/Dockerfile.product-app.base
   - versions.env
   - .python-version
