@@ -53,6 +53,29 @@ MUST decode it in place (or unset it if corrupt) before treating the variable as
 - **THEN** the helper decodes that value in place (or unsets it if corrupt)
 - **AND** it does not leave the encoded `b64:` form as the live credential
 
+### Requirement: Token store overrides process environment
+
+`scripts/dev-tokens.sh` MUST treat `/commandhistory/tokens.env` (or `DEV_TOKENS_FILE` when set for tests) as the **sole
+source** for `GH_TOKEN` and `GITGUARDIAN_API_KEY`. When the store file exists, each known key present in the store MUST
+be applied: non-empty decoded values MUST be exported; empty skip markers MUST unset the variable. Known keys absent
+from the store MUST be unset. A non-empty process environment value MUST NOT prevent applying the store (no env
+override). Prompt skip (non-forced) MUST key off store presence, not off a pre-existing env value.
+
+#### Scenario: Stale process GH_TOKEN loses to store
+
+- **WHEN** the process environment has a non-empty `GH_TOKEN` that differs from the store
+- **AND** the store has a non-empty `GH_TOKEN`
+- **AND** `scripts/dev-tokens.sh` is sourced (directly or via `scripts/bin/gh`)
+- **THEN** `GH_TOKEN` equals the store value
+- **AND** the previous process value is not kept
+
+#### Scenario: Missing store key clears process env
+
+- **WHEN** the store file exists but has no `GH_TOKEN=` line
+- **AND** the process environment has a non-empty `GH_TOKEN`
+- **AND** `scripts/dev-tokens.sh` is sourced
+- **THEN** `GH_TOKEN` is unset
+
 ### Requirement: Empty prompt skips until re-prompt
 
 When prompting on a TTY for `GH_TOKEN` or `GITGUARDIAN_API_KEY`, an empty answer MUST persist a skip marker so later
@@ -74,16 +97,17 @@ pointing at `set-dev-tokens.sh`.
 
 ### Requirement: gh wrapper loads token then execs real gh
 
-`scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN`, and exec the
-real system `gh` binary (not itself). Real-binary discovery MUST prefer `command -v -p gh` (excluding the wrapper) and
-MAY fall back to `/usr/bin/gh`. It MUST NOT read tokens from the git worktree. It MUST NOT treat `GITHUB_TOKEN` as a
-local developer-token fallback.
+`scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN`, and exec the real system `gh`
+binary (not itself). Real-binary discovery MUST prefer `command -v -p gh` (excluding the wrapper) and MAY fall back to
+`/usr/bin/gh`. It MUST NOT read tokens from the git worktree. It MUST NOT treat `GITHUB_TOKEN` as a local
+developer-token fallback.
 
 #### Scenario: gh succeeds with stored token
 
-- **WHEN** `GH_TOKEN` is available via the token store or environment
+- **WHEN** a non-empty `GH_TOKEN` is present in the token store
 - **AND** the user invokes `gh` via `scripts/bin` on `PATH`
-- **THEN** the wrapper execs the real `gh` with the caller's arguments
+- **THEN** the wrapper applies the store and execs the real `gh` with the caller's arguments
+- **AND** a differing process `GH_TOKEN` does not override the store
 
 #### Scenario: gh fails without token or TTY setup
 
