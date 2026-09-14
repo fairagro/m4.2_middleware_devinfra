@@ -24,17 +24,38 @@ process sees uv tool binaries and `scripts/bin` wrappers without home-profile mu
 
 ### Requirement: kubectl and docker shortcut wrappers on scripts/bin
 
-The repository MUST provide executable wrappers under `scripts/bin/` that invoke `kubectl` and `docker` (short names
-suitable as drop-in replacements for the former product bash aliases `k` and `d`). Those wrappers MUST be listed on the
-product sync allowlist with other `scripts/bin` helpers. The wrappers MUST NOT load personal tokens and MUST NOT patch
-shell profiles.
+The repository MUST provide executable wrappers under `scripts/bin/` that invoke the shared Dev Container’s kubectl and
+docker installs (`/usr/local/bin/kubectl` from the shared Dockerfile pin; `/usr/bin/docker` from the Docker-in-Docker
+feature) under the short names formerly used as product bash aliases (`k`, `d`). Those wrappers MUST be listed on the
+product sync allowlist with other `scripts/bin` helpers. The wrappers MUST NOT search `PATH` for alternate binaries,
+MUST NOT load personal tokens, and MUST NOT patch shell profiles.
 
 #### Scenario: Short names resolve via scripts/bin
 
-- **WHEN** `scripts/bin` is on `PATH` ahead of the real binaries and a contributor runs the documented short wrapper
-  names for kubectl and docker
-- **THEN** each wrapper execs the real `kubectl` or `docker` binary from the container PATH
+- **WHEN** `scripts/bin` is on `PATH` and a contributor runs `k` or `d` in the shared Linux Dev Container
+- **THEN** `k` execs `/usr/local/bin/kubectl` and `d` execs `/usr/bin/docker`
 - **AND** the wrappers do not source `dev-tokens.sh` or modify `~/.bashrc`
+
+### Requirement: Image bash-completion for kubectl and docker short names
+
+The shared Dev Container image MUST install bash-completion entries under `/usr/share/bash-completion/completions/` for
+the short names `k` and `d` that register the same completion functions as `kubectl` and `docker` (respectively),
+without patching `~/.bashrc`. The `k` entry MUST reuse the image’s kubectl completion (already generated at image
+build). The `d` entry MUST bind to docker’s completion function when the docker completion file is available in the
+running container (e.g. after the Docker-in-Docker feature installs the client). Documentation MUST state that
+short-name completion comes from the shared image, not from product `load-env.sh`.
+
+#### Scenario: k completion registered in the image
+
+- **WHEN** a contributor inspects `/usr/share/bash-completion/completions/k` in the shared image
+- **THEN** that file registers programmable completion for `k` using `__start_kubectl`
+- **AND** it does not instruct products to patch `~/.bashrc` for that binding
+
+#### Scenario: d completion registered for docker short name
+
+- **WHEN** bash-completion loads the `d` completion entry and docker’s completion function is available
+- **THEN** `d` is registered with `__start_docker` (or equivalent docker completion entrypoint)
+- **AND** no `~/.bashrc` mutation is required for that registration
 
 ### Requirement: Optional postCreate decrypt of integration env ciphertext
 
@@ -70,9 +91,10 @@ postCreate performs key import when keys are present. Docs MUST state that **Git
 products that need LFS (e.g. sql-to-arc) MUST install it in a product-owned path that sync of the shared Dockerfile does
 not overwrite (e.g. product postCreate or a non-synced local fragment). Docs MUST state the bashrc-free shell contract:
 product overlays MUST set `remoteEnv.PATH` to prepend `.venv/bin` and `scripts/bin`; fleet shell init MUST NOT patch
-`~/.bashrc` for PATH, aliases, tokens, or sourcing `load-env.sh`; optional `.env.integration.enc` decrypt runs in shared
-postCreate and does not auto-export into every shell; product-local `load-env.sh` / bashrc wiring is deprecated in favor
-of this contract (product migration tracked in follow-up issues, not required inside the Devinfra MVP PR).
+`~/.bashrc` for PATH, aliases, tokens, completions, or sourcing `load-env.sh`; kubectl/docker short-name bash completion
+is provided by the shared image; optional `.env.integration.enc` decrypt runs in shared postCreate and does not
+auto-export into every shell; product-local `load-env.sh` / bashrc wiring is deprecated in favor of this contract
+(product migration tracked in follow-up issues, not required inside the Devinfra MVP PR).
 
 #### Scenario: Contributor reads overlay guidance
 
@@ -85,4 +107,5 @@ of this contract (product migration tracked in follow-up issues, not required in
   replaces or supplements prior product-local markdown tooling on sync
 - **AND** they learn Git LFS is product-local when needed, not a shared base requirement
 - **AND** they learn `remoteEnv.PATH` must prepend `.venv/bin` and `scripts/bin` without patching `~/.bashrc`
+- **AND** they learn `k`/`d` bash completion comes from the shared image completion files
 - **AND** they learn product `load-env.sh` / bashrc sourcing is not the shared pattern after sync adopt

@@ -32,10 +32,15 @@ use PATH wrappers without bashrc (`personal-token-helpers`). Issue #58 lock-in: 
    With PATH + wrappers + postCreate decrypt, a sourced script is unnecessary fleet surface.  
    _Alternative rejected:_ shared `load-env.sh` “for optional source” (would invite bashrc rewiring).
 
-3. **Aliases → `scripts/bin/k` and `scripts/bin/d`**  
-   Same discovery model as `gh`/`git` wrappers, but without token loading — thin `exec` of real binary via
-   `command -v -p` / `/usr/bin` fallback pattern (simplified vs token wrappers).  
-   _Alternative rejected:_ bash `alias` in profile.d (still a shell-rc story).
+3. **Aliases → `scripts/bin/k` and `scripts/bin/d` + image completions**  
+   Thin Dev Container wrappers that `exec` the known image paths (`/usr/local/bin/kubectl` from the shared Dockerfile
+   pin; `/usr/bin/docker` from the DinD feature) — not a portable `command -v` hunt. Bash programmable completion does
+   **not** follow wrappers automatically; install `/usr/share/bash-completion/completions/{k,d}` in the shared
+   Dockerfile (source kubectl/docker completion, then `complete -F __start_kubectl k` / `__start_docker d`). Docker
+   completion may arrive with the DinD feature — `d` entry soft-depends on that file at shell load time.  
+   _Alternative rejected:_ bash `alias` + `complete` in `~/.bashrc` / product load-env.  
+   _Alternative rejected:_ generic PATH-search wrappers (host-portable); these scripts are Dev Container–only like
+   `scripts/bin/gh`.
 
 4. **SOPS decrypt in postCreate only**  
    Mirror product behavior for file presence, skip if `.env` non-empty, soft-fail without aborting create. Do not
@@ -60,14 +65,19 @@ use PATH wrappers without bashrc (`personal-token-helpers`). Issue #58 lock-in: 
   follow-up issues; sync still delivers wrappers/postCreate for gradual adopt.
 - **[Risk] Decrypt writes secrets to workspace `.env`** → Mitigation: same as today’s product pattern; ensure `.env`
   stays gitignored (product responsibility; note in docs if missing in Devinfra).
+- **[Risk] `d` completion before DinD installs docker completion** → Mitigation: soft-source; rebuild/reopen container
+  after feature install; document that interactive docker short-name completion needs the DinD client layer.
+- **[Risk] Completion needs image rebuild** → Mitigation: docs say rebuild after Dockerfile change; sync alone does not
+  refresh image completions until products rebuild.
 
 ## Migration Plan
 
-1. Land Devinfra change (remoteEnv, wrappers, postCreate, docs, allowlist, OpenSpec).
-2. Sync allowlisted paths to products.
-3. Per-product follow-up: set `remoteEnv.PATH`, remove bashrc load-env lines / `setup-bashrc-*`, delete or shrink
+1. Land Devinfra change (remoteEnv, wrappers, **image completions**, postCreate, docs, allowlist, OpenSpec).
+2. Rebuild Dev Containers (Dockerfile completion files).
+3. Sync allowlisted paths to products.
+4. Per-product follow-up: set `remoteEnv.PATH`, remove bashrc load-env lines / `setup-bashrc-*`, delete or shrink
    `load-env.sh`, verify `.env` gitignore + postCreate decrypt.
-4. Rollback: revert Devinfra PR; products can temporarily keep old load-env until sync of the revert.
+5. Rollback: revert Devinfra PR; products can temporarily keep old load-env until sync of the revert.
 
 ## Open Questions
 

@@ -37,6 +37,8 @@ allow:
   - scripts/set-dev-tokens.sh
   - scripts/bin/gh
   - scripts/bin/git
+  - scripts/bin/k
+  - scripts/bin/d
   - scripts/quality-check.sh
   - scripts/quality-fix.sh
   - scripts/run-container-structure-test.sh

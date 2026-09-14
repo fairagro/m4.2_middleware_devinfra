@@ -64,6 +64,9 @@ Product `devcontainer.json` should own at least:
 - `name`
 - `workspaceFolder` (must match that product’s compose bind path)
 - distinct Docker volume `source=` names (do not reuse another product’s volume names)
+- **`remoteEnv.PATH`** that prepends `${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin` (same contract
+  as this repo) so every integrated terminal sees uv tool binaries and `scripts/bin` wrappers **without** patching
+  `~/.bashrc`
 
 Shared fragments must **not** hardcode another product’s folder or volume names. On sync, Prettier + markdownlint-cli2
 (and their extensions) **replace or supplement** prior product markdown format/lint setups. Prefer
@@ -72,6 +75,23 @@ Shared fragments must **not** hardcode another product’s folder or volume name
 **Git LFS** is not part of the shared image. Products that need it (e.g. sql-to-arc) install `git-lfs` in a
 **product-owned** path that sync of the shared Dockerfile does not overwrite (e.g. product postCreate snippet or a
 non-synced local fragment).
+
+### Bashrc-free shell init (no `load-env.sh`)
+
+Fleet shell convenience MUST NOT mutate `~/.bashrc`:
+
+| Need                            | Shared mechanism                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` in product-owned `devcontainer.json`                                                  |
+| Short `kubectl` / `docker`      | Synced wrappers [`scripts/bin/k`](../scripts/bin/k) and [`scripts/bin/d`](../scripts/bin/d)            |
+| Bash completion for `k` / `d`   | Shared image files under `/usr/share/bash-completion/completions/` (rebuild after Dockerfile change)   |
+| Personal tokens                 | [`scripts/bin/gh`](../scripts/bin/gh) / [`git`](../scripts/bin/git) + `set-dev-tokens.sh` (not bashrc) |
+| `.env.integration.enc` → `.env` | Shared postCreate decrypt (writes the file; does **not** auto-`source` into every shell)               |
+
+Product-local `scripts/load-env.sh` and `setup-bashrc-load-env.sh` (or inline bashrc `source` lines) are **deprecated**.
+After sync of postCreate + wrappers, drop them in product adopt follow-ups (tracked from
+[#58](https://github.com/fairagro/m4.2_middleware_devinfra/issues/58)). Optional product deltas (MYPYPATH, CST bake
+target, …) belong in product-owned env / thin overlays — not a forked load-env blob.
 
 ## Markdown (format + lint)
 
@@ -148,10 +168,13 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - `pre-commit install --hook-type pre-commit`
 - `./scripts/setup-git-hooks.sh` (project pre-push quality hook; no Git LFS)
 - import `public_gpg_keys/*.asc` when present (skip if absent)
+- optionally decrypt repo-root `.env.integration.enc` → `.env` when present (skip if `.env` already non-empty,
+  ciphertext absent, or `sops`/keys unavailable; never fails create; does **not** patch bashrc to `source` `.env`)
 - soft-fail install of recommended IDE extensions via Cursor/VS Code remote CLI (shared product set: Docker/Helm/
   Python/Ruff/Pylint/Mypy, PlantUML, signageos SOPS, Prettier, markdownlint, … — same list as `devcontainer.json`)
 
-`PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
+`PATH` with `.venv/bin` and `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild
+— not from `~/.bashrc`.
 
 Re-run anytime:
 

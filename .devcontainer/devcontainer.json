@@ -18,7 +18,7 @@
     "UV_LINK_MODE": "copy"
   },
   "remoteEnv": {
-    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"
+    "PATH": "${workspaceFolder}/.venv/bin:${workspaceFolder}/scripts/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
