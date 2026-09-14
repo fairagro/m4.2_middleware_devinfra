@@ -3,3 +3,5 @@ node_modules/
 __pycache__/
 *.pyc
 .python-version.local
+# Decrypted integration secrets from postCreate (ciphertext stays product-local when used)
+/.env

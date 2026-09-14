@@ -81,6 +81,83 @@ available. The list MUST include at least: `charliermarsh.ruff`, `jebbs.plantuml
 - **WHEN** postCreate runs and `public_gpg_keys/*.asc` files exist
 - **THEN** those public keys are imported with `gpg` for SOPS encrypt / recipient checks
 
+### Requirement: Bashrc-free PATH for venv and scripts/bin
+
+This repository’s Dev Container `remoteEnv` MUST prepend `${workspaceFolder}/.venv/bin` and
+`${workspaceFolder}/scripts/bin` on `PATH` (scripts/bin before or after `.venv/bin` is allowed as long as both appear
+before the inherited container `PATH`). Shared postCreate and personal-token helpers MUST NOT patch `~/.bashrc` (or
+other user shell profiles) to inject that PATH or to source a load-env script. Documentation MUST state that the
+**verbatim-synced** `devcontainer.json` carries this `remoteEnv.PATH` contract so every integrated terminal and remote
+process sees uv tool binaries and `scripts/bin` wrappers without home-profile mutation.
+
+#### Scenario: Devinfra remoteEnv includes venv and scripts/bin
+
+- **WHEN** a contributor inspects this repository’s `.devcontainer/devcontainer.json` `remoteEnv.PATH`
+- **THEN** both `${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin` appear on that PATH value
+- **AND** postCreate does not append a `source …/load-env.sh` (or equivalent) line to `~/.bashrc`
+
+#### Scenario: Docs require the same PATH contract for products
+
+- **WHEN** a contributor reads Dev Container adoption docs for product sync
+- **THEN** they learn synced `devcontainer.json` MUST set the same `remoteEnv.PATH` prepend for `.venv/bin` and
+  `scripts/bin`
+- **AND** they learn the fleet MUST NOT rely on patching `~/.bashrc` for that PATH
+
+### Requirement: kubectl and docker shortcut wrappers on scripts/bin
+
+The repository MUST provide executable wrappers under `scripts/bin/` that invoke the shared Dev Container’s kubectl and
+docker installs (`/usr/local/bin/kubectl` from the shared Dockerfile pin; `/usr/bin/docker` from the Docker-in-Docker
+feature) under the short names formerly used as product bash aliases (`k`, `d`). Those wrappers MUST be listed on the
+product sync allowlist with other `scripts/bin` helpers. The wrappers MUST NOT search `PATH` for alternate binaries,
+MUST NOT load personal tokens, and MUST NOT patch shell profiles.
+
+#### Scenario: Short names resolve via scripts/bin
+
+- **WHEN** `scripts/bin` is on `PATH` and a contributor runs `k` or `d` in the shared Linux Dev Container
+- **THEN** `k` execs `/usr/local/bin/kubectl` and `d` execs `/usr/bin/docker`
+- **AND** the wrappers do not source `dev-tokens.sh` or modify `~/.bashrc`
+
+### Requirement: Image bash-completion for kubectl and docker short names
+
+The shared Dev Container image MUST install bash-completion entries under `/usr/share/bash-completion/completions/` for
+the short names `k` and `d` that register the same completion functions as `kubectl` and `docker` (respectively),
+without patching `~/.bashrc`. The `k` entry MUST reuse the image’s kubectl completion (already generated at image
+build). The `d` entry MUST bind to docker’s completion function when the docker completion file is available in the
+running container (e.g. after the Docker-in-Docker feature installs the client). Documentation MUST state that
+short-name completion comes from the shared image, not from product `load-env.sh`.
+
+#### Scenario: k completion registered in the image
+
+- **WHEN** a contributor inspects `/usr/share/bash-completion/completions/k` in the shared image
+- **THEN** that file registers programmable completion for `k` using `__start_kubectl`
+- **AND** it does not instruct products to patch `~/.bashrc` for that binding
+
+#### Scenario: d completion registered for docker short name
+
+- **WHEN** bash-completion loads the `d` completion entry and docker’s completion function is available
+- **THEN** `d` is registered with `__start_docker` (or equivalent docker completion entrypoint)
+- **AND** no `~/.bashrc` mutation is required for that registration
+
+### Requirement: Optional postCreate decrypt of integration env ciphertext
+
+When postCreate runs in a Linux Dev Container and the repository root contains a SOPS-encrypted `.env.integration.enc`,
+postCreate MUST attempt to decrypt it to repo-root `.env` using `sops` when available. If `.env` already exists and is
+non-empty, postCreate MUST skip decryption. If the ciphertext file is absent, or `sops` / keys are unavailable,
+postCreate MUST skip cleanly without failing the whole create. PostCreate MUST NOT patch `~/.bashrc` to auto-`source`
+`.env` into interactive shells; leaving the plaintext `.env` file for `dev_environment` / tests that read it is
+sufficient.
+
+#### Scenario: Ciphertext present and decrypt succeeds
+
+- **WHEN** postCreate runs and `.env.integration.enc` exists as SOPS ciphertext and decrypt succeeds
+- **THEN** repo-root `.env` is written (or left unchanged if already non-empty)
+- **AND** postCreate does not append bashrc lines that `source` `.env`
+
+#### Scenario: Ciphertext absent
+
+- **WHEN** postCreate runs and `.env.integration.enc` is missing
+- **THEN** postCreate completes successfully without requiring SOPS decrypt
+
 ### Requirement: Consumer overlay documentation
 
 Documentation (`docs/devcontainer.md`, `docs/sync.md`, and/or README) MUST state that `.devcontainer/devcontainer.json`
@@ -97,7 +174,12 @@ each product repo, while the shared image provides sops/age/gpg/JRE/graphviz and
 keys are present. Docs MUST state that **Git LFS** is not part of the shared image; products that need LFS (e.g.
 sql-to-arc) MUST install it in a product-owned path that sync of the shared Dockerfile does not overwrite (e.g. product
 postCreate snippet or a non-synced local fragment). Docs MUST NOT describe a standing “thin `devcontainer.json` overlay”
-adopt pattern.
+adopt pattern. Docs MUST state the bashrc-free shell contract: synced `devcontainer.json` MUST set `remoteEnv.PATH` to
+prepend `.venv/bin` and `scripts/bin`; fleet shell init MUST NOT patch `~/.bashrc` for PATH, aliases, tokens,
+completions, or sourcing `load-env.sh`; kubectl/docker short-name bash completion is provided by the shared image;
+optional `.env.integration.enc` decrypt runs in shared postCreate and does not auto-export into every shell;
+product-local `load-env.sh` / bashrc wiring is deprecated in favor of this contract (product migration tracked in
+follow-up issues).
 
 #### Scenario: Contributor reads overlay guidance
 
@@ -111,13 +193,17 @@ adopt pattern.
 - **AND** they learn Prettier + markdownlint-cli2 (and their extensions) are the shared markdown format/lint stack that
   replaces or supplements prior product-local markdown tooling on sync
 - **AND** they learn Git LFS is product-local when needed, not a shared base requirement
+- **AND** they learn synced `remoteEnv.PATH` prepends `.venv/bin` and `scripts/bin` without patching `~/.bashrc`
+- **AND** they learn `k`/`d` bash completion comes from the shared image completion files
+- **AND** they learn product `load-env.sh` / bashrc sourcing is not the shared pattern after sync adopt
 
 ### Requirement: Verbatim shared devcontainer.json and compose
 
 The repository MUST provide a fleet-generic `.devcontainer/devcontainer.json` that products adopt verbatim via sync. It
 MUST set `workspaceFolder` to `/workspace`, MUST set `name` to `${localWorkspaceFolderBasename}` (or equivalent
 substitution that yields a distinct window title per opened folder), and MUST derive additional named volume `source=`
-values from `${localWorkspaceFolderBasename}` (e.g. bashhistory and gh-config volumes). It MUST NOT embed product-only
+values from `${localWorkspaceFolderBasename}` (e.g. bashhistory and gh-config volumes). It MUST prepend
+`${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin` on `remoteEnv.PATH`. It MUST NOT embed product-only
 `remoteEnv` keys such as product `MYPYPATH` or `CST_*`, and MUST NOT require product-specific `postStartCommand` for the
 shared happy path. The repository MUST provide a matching fleet-generic `.devcontainer/docker-compose.yml` that binds
 `..:/workspace` for the devcontainer service and MUST list both files on the product sync allowlist (MUST NOT list them
@@ -130,6 +216,7 @@ under sync `exclude` as standing product-owned overlays). Shared Compose MAY ref
 - **THEN** `workspaceFolder` is `/workspace`
 - **AND** `name` uses `${localWorkspaceFolderBasename}` (or equivalent)
 - **AND** named volume sources use `${localWorkspaceFolderBasename}`-based names
+- **AND** `remoteEnv.PATH` includes `.venv/bin` and `scripts/bin`
 - **AND** the file does not hardcode another product’s workspace path or volume prefix
 
 #### Scenario: Shared Compose matches /workspace

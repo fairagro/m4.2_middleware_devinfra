@@ -31,7 +31,10 @@ containers on the same machine.
 The path string is the same everywhere; isolation comes from each product's own bashhistory volume. There is **no**
 supported host `~/.config/…` token store — personal-token helpers (`dev-tokens.sh`, `set-dev-tokens.sh`,
 `scripts/bin/gh`, `scripts/bin/git`) are **Dev Container only**. Other scripts (quality, CST, `load-versions-env`,
-`m42-ai`) may run on a host checkout; see [Script environments](quality.md#script-environments).
+`m42-ai`) may run on a host checkout; see [Script environments](quality.md#script-environments). Shell PATH for
+`.venv/bin` and `scripts/bin` (including `k`/`d` wrappers) comes from Dev Container `remoteEnv` — see
+[`docs/devcontainer.md`](devcontainer.md#bashrc-free-shell-init-no-load-envsh); do **not** patch `~/.bashrc` for tokens
+or load-env.
 
 **Store is the sole source:** sourcing `dev-tokens.sh` (including via `scripts/bin/gh`) always applies
 `/commandhistory/tokens.env` for `GH_TOKEN` / `GITGUARDIAN_API_KEY`. A non-empty process env value does **not** override

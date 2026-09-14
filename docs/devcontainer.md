@@ -34,6 +34,7 @@ volumes use `${localWorkspaceFolderBasename}` so each opened folder stays distin
 | Window / Dev Container `name` | Shared JSON: `${localWorkspaceFolderBasename}`                                      |
 | History / `gh` volumes        | Shared JSON: `${localWorkspaceFolderBasename}-bashhistory` / `-gh-config`           |
 | Workspace bind                | Shared Compose: `..:/workspace:cached`                                              |
+| `.venv/bin` + `scripts/bin`   | Shared JSON: `remoteEnv.PATH`                                                       |
 | `MYPYPATH`, `CST_*`, …        | Optional `.devcontainer/product.env` and/or CI inputs — **not** synced JSON/Compose |
 
 Starship’s directory segment may show `workspace` (cwd). Repo identity still appears in the window title, Git branch,
@@ -81,6 +82,24 @@ renovate --version
 
 Python quality tools (ruff, mypy, pylint, bandit, ggshield, pre-commit) are **project deps** via `uv`, not separate
 image binaries — same pattern as product repos.
+
+## Bashrc-free shell init (no `load-env.sh`)
+
+Fleet shell convenience MUST NOT mutate `~/.bashrc`. Shared verbatim `devcontainer.json` already prepends `.venv/bin`
+and `scripts/bin` via `remoteEnv.PATH` ([#58](https://github.com/fairagro/m4.2_middleware_devinfra/issues/58),
+[#65](https://github.com/fairagro/m4.2_middleware_devinfra/issues/65)).
+
+| Need                            | Shared mechanism                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` in synced `devcontainer.json`                                                         |
+| Short `kubectl` / `docker`      | Synced wrappers [`scripts/bin/k`](../scripts/bin/k) and [`scripts/bin/d`](../scripts/bin/d)            |
+| Bash completion for `k` / `d`   | Shared image files under `/usr/share/bash-completion/completions/` (rebuild after Dockerfile change)   |
+| Personal tokens                 | [`scripts/bin/gh`](../scripts/bin/gh) / [`git`](../scripts/bin/git) + `set-dev-tokens.sh` (not bashrc) |
+| `.env.integration.enc` → `.env` | Shared postCreate decrypt (writes the file; does **not** auto-`source` into every shell)               |
+
+Product-local `scripts/load-env.sh` and `setup-bashrc-load-env.sh` (or inline bashrc `source` lines) are **deprecated**.
+After sync of postCreate + wrappers + JSON, drop them in product adopt follow-ups (tracked from #58 / #65). Optional
+product deltas (`MYPYPATH`, CST bake target, …) belong in `.devcontainer/product.env` / CI — not a forked load-env blob.
 
 ## Markdown (format + lint)
 
@@ -161,10 +180,13 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - `pre-commit install --hook-type pre-commit`
 - `./scripts/setup-git-hooks.sh` (project pre-push quality hook; no Git LFS)
 - import `public_gpg_keys/*.asc` when present (skip if absent)
+- optionally decrypt repo-root `.env.integration.enc` → `.env` when present (skip if `.env` already non-empty,
+  ciphertext absent, or `sops`/keys unavailable; never fails create; does **not** patch bashrc to `source` `.env`)
 - soft-fail install of recommended IDE extensions via Cursor/VS Code remote CLI (shared product set: Docker/Helm/
   Python/Ruff/Pylint/Mypy, PlantUML, signageos SOPS, Prettier, markdownlint, … — same list as `devcontainer.json`)
 
-`PATH` with `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild.
+`PATH` with `.venv/bin` and `scripts/bin` first comes from `.devcontainer/devcontainer.json` (`remoteEnv`) after rebuild
+— not from `~/.bashrc`.
 
 Re-run anytime:
 
