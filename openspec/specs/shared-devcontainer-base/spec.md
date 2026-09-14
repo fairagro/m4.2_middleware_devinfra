@@ -49,7 +49,8 @@ shipping a reusable Trivy GitHub Actions workflow (that remains a separate CI co
 
 `scripts/devcontainer-post-create.sh` MUST remain free of hardcoded product workspace names. On Dev Container create it
 MUST: fix documented volume permissions when present; sync `.python-version` via `scripts/load-versions-env.sh`; run
-project `uv sync` when a root `pyproject.toml` exists; install the commit-stage hook with
+`uv sync --dev --all-packages` when a root `pyproject.toml` exists (dev dependency group and all uv workspace members —
+aligned with shared reusable code-quality CI); install the commit-stage hook with
 `pre-commit install --hook-type pre-commit` (via the synced environment); run `./scripts/setup-git-hooks.sh`; import
 `public_gpg_keys/*.asc` when that directory contains `.asc` files (MUST skip cleanly when absent or empty); and attempt
 to install recommended IDE extensions via Cursor/VS Code remote CLI when available (at least `charliermarsh.ruff`; MUST
