@@ -119,13 +119,17 @@ elif [ ! -f "${enc_file}" ]; then
 elif ! command -v sops >/dev/null 2>&1; then
   echo "WARNING: sops not on PATH; skipping decrypt" >&2
 else
-  tmp_file="$(mktemp "${repo_root}/.env.sops.XXXXXX")"
-  if sops -d "${enc_file}" > "${tmp_file}"; then
-    mv -f "${tmp_file}" "${dec_file}"
-    echo "Wrote ${dec_file} from ${enc_file}"
-  else
+  # Soft-fail: set -e must not abort postCreate; always clean up temp ciphertext output.
+  if ! tmp_file="$(mktemp "${repo_root}/.env.sops.XXXXXX")"; then
+    echo "WARNING: mktemp failed; skipping decrypt of ${enc_file}" >&2
+  elif ! sops -d "${enc_file}" > "${tmp_file}"; then
     echo "WARNING: sops decrypt failed for ${enc_file}; leaving .env unchanged" >&2
     rm -f "${tmp_file}"
+  elif ! mv -f "${tmp_file}" "${dec_file}"; then
+    echo "WARNING: failed to install ${dec_file}; leaving .env unchanged" >&2
+    rm -f "${tmp_file}"
+  else
+    echo "Wrote ${dec_file} from ${enc_file}"
   fi
 fi
 
