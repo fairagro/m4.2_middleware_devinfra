@@ -171,9 +171,49 @@ def run(
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
 
 
+def try_run(
+    cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> bool:
+    """Print and run a command; return whether it exited 0."""
+    print("+", " ".join(cmd), flush=True)
+    completed = subprocess.run(cmd, cwd=cwd, env=env, check=False)
+    return completed.returncode == 0
+
+
 def git_out(cmd: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> str:
     """Run a command and return stripped stdout; raise on non-zero exit."""
     return subprocess.check_output(cmd, cwd=cwd, env=env, text=True).strip()
+
+
+def open_sync_pr_number(
+    *, repo: str, head: str, cwd: Path, env: dict[str, str]
+) -> int | None:
+    """Return the open PR number for ``head``, if any."""
+    raw = git_out(
+        [
+            "gh",
+            "pr",
+            "list",
+            "--repo",
+            repo,
+            "--head",
+            head,
+            "--state",
+            "open",
+            "--json",
+            "number",
+            "--jq",
+            ".[0].number // empty",
+        ],
+        cwd=cwd,
+        env=env,
+    )
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise SystemExit(f"invalid open PR number for head {head!r}: {raw!r}") from exc
 
 
 def resolve_token() -> str | None:
@@ -217,6 +257,8 @@ def supersede_older_sync_prs(
             "open",
             "--limit",
             "100",
+            "--search",
+            f"head:{SYNC_BRANCH_PREFIX}",
             "--json",
             "number,headRefName",
         ],
@@ -319,8 +361,32 @@ def sync_target(req: SyncTarget) -> None:
             cwd=dest,
             env=env,
         )
+
+        # Same Devinfra SHA already has an open sync PR (workflow retry) — reuse it.
+        existing = open_sync_pr_number(repo=req.repo, head=branch, cwd=dest, env=env)
+        if existing is not None:
+            print(f"reusing open sync PR #{existing} on {branch}", flush=True)
+            supersede_older_sync_prs(
+                repo=req.repo,
+                new_pr=existing,
+                source_sha=req.source_sha,
+                cwd=dest,
+                env=env,
+            )
+            return
+
         # New branch per source SHA — never force-update a rolling sync ref.
-        run(["git", "push", "-u", "origin", "HEAD"], cwd=dest, env=env)
+        push_head = branch
+        if not try_run(["git", "push", "-u", "origin", "HEAD"], cwd=dest, env=env):
+            # Remote SHA branch may exist from a prior run that failed before PR create.
+            retry_branch = f"{branch}-retry"
+            print(
+                f"push of {branch} failed; retrying once as {retry_branch} (no force)",
+                flush=True,
+            )
+            run(["git", "branch", "-M", retry_branch], cwd=dest, env=env)
+            run(["git", "push", "-u", "origin", "HEAD"], cwd=dest, env=env)
+            push_head = retry_branch
 
         body = f"""## Summary
 
@@ -335,7 +401,7 @@ Do **not** hand-edit these paths in this consumer — land fixes in Devinfra, th
 - [ ] Spot-check diff against allowlist / hard excludes
 - [ ] CI green on this PR
 """
-        pr_url = git_out(
+        run(
             [
                 "gh",
                 "pr",
@@ -347,18 +413,17 @@ Do **not** hand-edit these paths in this consumer — land fixes in Devinfra, th
                 "--body",
                 body,
                 "--head",
-                branch,
+                push_head,
             ],
             cwd=dest,
             env=env,
         )
-        try:
-            new_pr = int(pr_url.rstrip("/").rsplit("/", 1)[-1])
-        except ValueError as exc:
+        new_pr = open_sync_pr_number(repo=req.repo, head=push_head, cwd=dest, env=env)
+        if new_pr is None:
             raise SystemExit(
-                f"could not parse new sync PR number from: {pr_url!r}"
-            ) from exc
-        print(f"opened sync PR #{new_pr} on {branch}", flush=True)
+                f"sync PR create reported success but no open PR for head {push_head!r}"
+            )
+        print(f"opened sync PR #{new_pr} on {push_head}", flush=True)
         supersede_older_sync_prs(
             repo=req.repo,
             new_pr=new_pr,
