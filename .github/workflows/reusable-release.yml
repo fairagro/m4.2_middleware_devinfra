@@ -237,6 +237,8 @@ jobs:
         run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
       - name: Run Trivy licence scanner (JSON)
+        # Informational: do not fail the job on Trivy infra/schema errors (issue #74 / review).
+        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
@@ -247,6 +249,8 @@ jobs:
           exit-code: "0"
 
       - name: Format license Markdown
+        # Informational: tolerate missing/malformed JSON so release creation stays green.
+        continue-on-error: true
         env:
           COMPONENT: ${{ matrix.component }}
           MAX_ROWS: "80"
@@ -262,7 +266,7 @@ jobs:
               echo ""
               exit 0
             fi
-            jq -r --argjson max "${MAX_ROWS}" '
+            if ! jq -r --argjson max "${MAX_ROWS}" '
               [
                 .Results[]? | (.Licenses // [])[]
                 | {
@@ -291,15 +295,20 @@ jobs:
                   | join("\n")
                 end
               )
-            ' "$JSON"
+            ' "$JSON"; then
+              echo "_License Markdown formatting failed (see job log); release continues without a table._"
+              echo ""
+            fi
             echo ""
           } > "$OUT"
 
       - name: Upload license Markdown
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: license-md-${{ matrix.component }}-${{ inputs.version }}
           path: license-${{ matrix.component }}.md
+          if-no-files-found: ignore
 
   create-release-tag:
     name: CreateReleaseTag/Release
