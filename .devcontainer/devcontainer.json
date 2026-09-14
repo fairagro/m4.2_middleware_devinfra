@@ -1,8 +1,8 @@
 {
-  "name": "middleware-devinfra",
+  "name": "${localWorkspaceFolderBasename}",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
-  "workspaceFolder": "/workspaces/m4.2_middleware_devinfra",
+  "workspaceFolder": "/workspace",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {
       "moby": false,
@@ -11,8 +11,8 @@
     }
   },
   "mounts": [
-    "source=middleware-devinfra-bashhistory,target=/commandhistory,type=volume",
-    "source=middleware-devinfra-gh-config,target=/home/vscode/.config/gh,type=volume"
+    "source=${localWorkspaceFolderBasename}-bashhistory,target=/commandhistory,type=volume",
+    "source=${localWorkspaceFolderBasename}-gh-config,target=/home/vscode/.config/gh,type=volume"
   ],
   "containerEnv": {
     "UV_LINK_MODE": "copy"

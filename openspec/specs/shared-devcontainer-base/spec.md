@@ -2,8 +2,9 @@
 
 ## Purpose
 
-Canonical shared Dev Container image, version pins, generic postCreate, and overlay docs so product repos keep only thin
-`devcontainer.json` overlays while the base toolchain lives in this Devinfra repo.
+Canonical shared Dev Container image, version pins, generic postCreate, and verbatim-shared `devcontainer.json` plus
+`docker-compose.yml` (`/workspace`, basename window title and volumes) so product repos adopt those entry files without
+post-sync hand-edits; product-only container env uses optional non-synced `product.env` and/or CI inputs.
 
 ## Requirements
 
