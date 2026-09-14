@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import os
 import shutil
 import subprocess
@@ -28,8 +29,25 @@ TARGETS: dict[str, str] = {
     "harvester": "fairagro/m4.2_middleware_harvester",
 }
 
-SYNC_BRANCH = "chore/devinfra-sync"
+# New branches: chore/devinfra-sync-<shortsha>. Legacy rolling name also matches.
+SYNC_BRANCH_PREFIX = "chore/devinfra-sync"
+SHORT_SHA_LEN = 7
 DRY_RUN_PREVIEW_LIMIT = 20
+
+
+def sync_branch_name(source_sha: str) -> str:
+    """Return SHA-scoped sync branch for this Devinfra commit."""
+    short = source_sha.strip()[:SHORT_SHA_LEN]
+    if len(short) < SHORT_SHA_LEN:
+        raise SystemExit(f"source_sha too short for sync branch: {source_sha!r}")
+    return f"{SYNC_BRANCH_PREFIX}-{short}"
+
+
+def is_sync_head(head_ref: str) -> bool:
+    """Return whether head is a legacy or SHA-scoped sync branch."""
+    return head_ref == SYNC_BRANCH_PREFIX or head_ref.startswith(
+        f"{SYNC_BRANCH_PREFIX}-"
+    )
 
 
 def load_allow_exclude(path: Path) -> tuple[list[str], list[str]]:
@@ -179,12 +197,82 @@ class SyncTarget:
     token: str | None
 
 
+def supersede_older_sync_prs(
+    *,
+    repo: str,
+    new_pr: int,
+    source_sha: str,
+    cwd: Path,
+    env: dict[str, str],
+) -> None:
+    """Comment + close other open sync PRs; never closes ``new_pr``."""
+    raw = git_out(
+        [
+            "gh",
+            "pr",
+            "list",
+            "--repo",
+            repo,
+            "--state",
+            "open",
+            "--limit",
+            "100",
+            "--json",
+            "number,headRefName",
+        ],
+        cwd=cwd,
+        env=env,
+    )
+    try:
+        listed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"gh pr list returned invalid JSON: {exc}") from exc
+    if not isinstance(listed, list):
+        raise SystemExit("gh pr list JSON: expected a list")
+
+    short = source_sha[:SHORT_SHA_LEN]
+    body = (
+        f"Superseded by #{new_pr}. Newer full allowlist sync from Devinfra `{short}`."
+    )
+    for item in listed:
+        if not isinstance(item, dict):
+            continue
+        number = item.get("number")
+        head = item.get("headRefName")
+        if not isinstance(number, int) or not isinstance(head, str):
+            continue
+        if number == new_pr or not is_sync_head(head):
+            continue
+        run(
+            [
+                "gh",
+                "pr",
+                "comment",
+                str(number),
+                "--repo",
+                repo,
+                "--body",
+                body,
+            ],
+            cwd=cwd,
+            env=env,
+        )
+        run(
+            ["gh", "pr", "close", str(number), "--repo", repo],
+            cwd=cwd,
+            env=env,
+        )
+        print(f"superseded open sync PR #{number} ({head})", flush=True)
+
+
 def sync_target(req: SyncTarget) -> None:
-    """Clone one product repo, copy files, force-push SYNC_BRANCH, open PR if needed."""
+    """Clone one product repo, copy files, open a new SHA-scoped sync PR if needed."""
     print(f"\n=== target {req.key}: {req.repo} ===", flush=True)
+    branch = sync_branch_name(req.source_sha)
     if req.dry_run:
         print(
-            f"dry-run: would copy {len(req.files)} files and open/update sync PR",
+            f"dry-run: would copy {len(req.files)} files, open new sync PR on {branch}, "
+            "and supersede older open sync PRs",
             flush=True,
         )
         for rel in req.files[:DRY_RUN_PREVIEW_LIMIT]:
@@ -209,7 +297,7 @@ def sync_target(req: SyncTarget) -> None:
             ["gh", "repo", "clone", req.repo, str(dest), "--", "--depth", "1"],
             env=env,
         )
-        run(["git", "checkout", "-B", SYNC_BRANCH], cwd=dest, env=env)
+        run(["git", "checkout", "-B", branch], cwd=dest, env=env)
         copy_files(req.files, REPO_ROOT, dest)
 
         if not git_out(["git", "status", "--porcelain"], cwd=dest, env=env):
@@ -226,35 +314,13 @@ def sync_target(req: SyncTarget) -> None:
                 "user.email=devinfra-bot@users.noreply.github.com",
                 "commit",
                 "-m",
-                f"chore: sync shared Devinfra paths from {req.source_sha[:7]}",
+                f"chore: sync shared Devinfra paths from {req.source_sha[:SHORT_SHA_LEN]}",
             ],
             cwd=dest,
             env=env,
         )
-        run(["git", "push", "-u", "origin", "HEAD", "--force"], cwd=dest, env=env)
-
-        existing = git_out(
-            [
-                "gh",
-                "pr",
-                "list",
-                "--repo",
-                req.repo,
-                "--head",
-                SYNC_BRANCH,
-                "--state",
-                "open",
-                "--json",
-                "number",
-                "--jq",
-                ".[0].number // empty",
-            ],
-            cwd=dest,
-            env=env,
-        )
-        if existing:
-            print(f"updated existing PR #{existing} via force-push", flush=True)
-            return
+        # New branch per source SHA — never force-update a rolling sync ref.
+        run(["git", "push", "-u", "origin", "HEAD"], cwd=dest, env=env)
 
         body = f"""## Summary
 
@@ -269,7 +335,7 @@ Do **not** hand-edit these paths in this consumer — land fixes in Devinfra, th
 - [ ] Spot-check diff against allowlist / hard excludes
 - [ ] CI green on this PR
 """
-        run(
+        pr_url = git_out(
             [
                 "gh",
                 "pr",
@@ -277,12 +343,26 @@ Do **not** hand-edit these paths in this consumer — land fixes in Devinfra, th
                 "--repo",
                 req.repo,
                 "--title",
-                "chore: sync shared Devinfra paths",
+                f"chore: sync shared Devinfra paths ({req.source_sha[:SHORT_SHA_LEN]})",
                 "--body",
                 body,
                 "--head",
-                SYNC_BRANCH,
+                branch,
             ],
+            cwd=dest,
+            env=env,
+        )
+        try:
+            new_pr = int(pr_url.rstrip("/").rsplit("/", 1)[-1])
+        except ValueError as exc:
+            raise SystemExit(
+                f"could not parse new sync PR number from: {pr_url!r}"
+            ) from exc
+        print(f"opened sync PR #{new_pr} on {branch}", flush=True)
+        supersede_older_sync_prs(
+            repo=req.repo,
+            new_pr=new_pr,
+            source_sha=req.source_sha,
             cwd=dest,
             env=env,
         )
