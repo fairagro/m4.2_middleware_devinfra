@@ -26,10 +26,9 @@ on:
         type: string
         default: "patch"
       components:
-        description: "JSON array of components to build"
-        required: false
+        description: "JSON array of components to build (required; no product default)"
+        required: true
         type: string
-        default: '["api"]'
       image_base_name:
         description: "Image name prefix for local/<prefix>-<component>:<version> tags"
         required: false

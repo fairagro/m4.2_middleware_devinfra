@@ -12,7 +12,6 @@ on:
         description: "JSON array of components (accepted for caller compatibility; unused by this workflow)"
         required: false
         type: string
-        default: '["api"]'
       python_package_root:
         description: "Python package path to lint/test (relative to caller checkout)"
         required: false
