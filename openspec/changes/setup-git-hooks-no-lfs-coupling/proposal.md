@@ -26,9 +26,9 @@ JSON; we must not invent shared “call product `install-dev-hooks.sh` if presen
 
 - `shared-git-hooks`: `setup-git-hooks.sh` MUST NOT detect/remove/manage Git LFS hooks; docs MUST NOT imply shared LFS
   hook cleanup.
-- `shared-devcontainer-base`: shared postCreate MUST NOT invoke optional product scripts such as
-  `install-dev-hooks.sh`; consumer docs MUST describe LFS as product-owned (not via synced JSON postCreate) and
-  `MYPYPATH` via `product.env` / CI.
+- `shared-devcontainer-base`: shared postCreate MUST NOT invoke optional product scripts such as `install-dev-hooks.sh`;
+  consumer docs MUST describe LFS as product-owned (not via synced JSON postCreate) and `MYPYPATH` via `product.env` /
+  CI.
 
 ## Impact
 
