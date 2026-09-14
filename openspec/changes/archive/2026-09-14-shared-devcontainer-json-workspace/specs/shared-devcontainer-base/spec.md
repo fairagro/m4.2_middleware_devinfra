@@ -1,12 +1,4 @@
-# shared-devcontainer-base Specification
-
-## Purpose
-
-Canonical shared Dev Container image, version pins, generic postCreate, and verbatim-shared `devcontainer.json` plus
-`docker-compose.yml` (`/workspace`, basename window title and volumes) so product repos adopt those entry files without
-post-sync hand-edits; product-only container env uses optional non-synced `product.env` and/or CI inputs.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Shared Dev Container image and versions.env
 
@@ -43,44 +35,6 @@ Compose workspace path matches the shared `devcontainer.json` `workspaceFolder`.
 - **AND** `git-lfs` is not required on the shared image happy path
 - **AND** the Compose service binds the repository at `/workspace` in the container
 
-#### Scenario: Dev Container docs link Renovate CLI to shared automation
-
-- **WHEN** a contributor reads Dev Container docs for Trivy / Renovate local CLIs
-- **THEN** they learn `renovate` on `PATH` is for local dry-runs against the shared Renovate config
-- **AND** they are pointed at the shared Renovate workflow/docs (not only “workflow deferred to open issues”)
-
-### Requirement: Generic postCreate installs hooks, optional public GPG keys, and IDE extensions
-
-`scripts/devcontainer-post-create.sh` MUST remain free of hardcoded product workspace names. On Dev Container create it
-MUST: fix documented volume permissions when present; sync `.python-version` via `scripts/load-versions-env.sh`; run
-`uv sync --dev --all-packages` when a root `pyproject.toml` exists (dev dependency group and all uv workspace members —
-aligned with shared reusable code-quality CI); install the commit-stage hook with
-`pre-commit install --hook-type pre-commit` (via the synced environment); run `./scripts/setup-git-hooks.sh`; import
-`public_gpg_keys/*.asc` when that directory contains `.asc` files (MUST skip cleanly when absent or empty); and attempt
-to install recommended IDE extensions via Cursor/VS Code remote CLI when available (at least `charliermarsh.ruff`; MUST
-NOT fail the whole postCreate if the CLI or an extension install is missing). The Ruff CLI MUST come from the uv project
-environment after sync. This repository’s `devcontainer.json` MUST list the shared product IDE extension set (Docker /
-Helm / Python / Ruff / Pylint / Mypy / PlantUML / Prettier / markdownlint / signageos SOPS, and related helpers used
-across the three product repos) and postCreate MUST attempt soft-fail install of that same set via remote CLI when
-available. The list MUST include at least: `charliermarsh.ruff`, `jebbs.plantuml`, `signageos.signageos-vscode-sops`
-(Open VSX / Cursor-supported SOPS editor; MUST NOT require `shipitsmarter.sops-edit` in the shared recommendation list),
-`esbenp.prettier-vscode`, and `davidanson.vscode-markdownlint`.
-
-#### Scenario: Fresh Dev Container create
-
-- **WHEN** postCreate runs in this repo’s Linux Dev Container after create
-- **THEN** `.python-version` matches `PYTHON_VERSION` from `versions.env`
-- **AND** the commit-stage pre-commit hook is installed
-- **AND** project hooks from `scripts/git-hooks/` are installed via `setup-git-hooks.sh`
-- **AND** `uv run ruff --version` works after sync when ruff is a project dependency
-- **AND** postCreate does not abort solely because an IDE extension could not be installed
-- **AND** if `public_gpg_keys/*.asc` is absent, postCreate still completes successfully
-
-#### Scenario: Public GPG keys present
-
-- **WHEN** postCreate runs and `public_gpg_keys/*.asc` files exist
-- **THEN** those public keys are imported with `gpg` for SOPS encrypt / recipient checks
-
 ### Requirement: Consumer overlay documentation
 
 Documentation (`docs/devcontainer.md`, `docs/sync.md`, and/or README) MUST state that `.devcontainer/devcontainer.json`
@@ -111,6 +65,8 @@ adopt pattern.
 - **AND** they learn Prettier + markdownlint-cli2 (and their extensions) are the shared markdown format/lint stack that
   replaces or supplements prior product-local markdown tooling on sync
 - **AND** they learn Git LFS is product-local when needed, not a shared base requirement
+
+## ADDED Requirements
 
 ### Requirement: Verbatim shared devcontainer.json and compose
 
