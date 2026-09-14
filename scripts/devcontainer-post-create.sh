@@ -118,13 +118,15 @@ elif [ ! -f "${enc_file}" ]; then
   echo "No .env.integration.enc; skipping decrypt"
 elif ! command -v sops >/dev/null 2>&1; then
   echo "WARNING: sops not on PATH; skipping decrypt" >&2
-elif ! grep -q '"sops"' "${enc_file}" 2>/dev/null; then
-  echo "WARNING: ${enc_file} does not look like SOPS ciphertext; skipping decrypt" >&2
-elif ! sops -d "${enc_file}" > "${dec_file}"; then
-  echo "WARNING: sops decrypt failed for ${enc_file}; leaving .env unchanged" >&2
-  rm -f "${dec_file}"
 else
-  echo "Wrote ${dec_file} from ${enc_file}"
+  tmp_file="$(mktemp "${repo_root}/.env.sops.XXXXXX")"
+  if sops -d "${enc_file}" > "${tmp_file}"; then
+    mv -f "${tmp_file}" "${dec_file}"
+    echo "Wrote ${dec_file} from ${enc_file}"
+  else
+    echo "WARNING: sops decrypt failed for ${enc_file}; leaving .env unchanged" >&2
+    rm -f "${tmp_file}"
+  fi
 fi
 
 # ── IDE extensions (Cursor/VS Code remote only; soft-fail) ───────────────────

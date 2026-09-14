@@ -158,7 +158,7 @@ RUN mkdir -p /usr/share/bash-completion/completions && \
         '    . "${_m42_docker_comp}"' \
         '  else' \
         '    unset _m42_docker_comp' \
-        '    return 124' \
+        '    return 0' \
         '  fi' \
         'fi' \
         'unset _m42_docker_comp' \
