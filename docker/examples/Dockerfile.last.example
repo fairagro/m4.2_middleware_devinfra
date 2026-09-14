@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.27
 # Example product-local last stage (NOT used by Devinfra CST).
 # Copy/adapt to docker/Dockerfile.<component> in a product repo; do not sync this file over
 # product last stages (#13).
