@@ -32,7 +32,8 @@ include only **submitted** reviews (non-null `submittedAt`, state not `PENDING`)
 limited to the single latest AI review (a later Bugbot/Cursor submission MUST NOT hide earlier Copilot suppressed
 comments). Only the latest **unanswered** suppressed AI review contributes to `summary_only_findings` (at most one open
 summary review); a triage reply (`Fixed in` / `Dismissed.` / `Follow-up:`, optionally with `#pullrequestreview-<id>`)
-after a suppressed review MUST mark it answered. An optional `--review-id` MAY force that review’s suppressed items into
+after a suppressed review MUST mark it answered. Only **submitted** non-AI review bodies count as such triage replies
+(PENDING / unsubmitted drafts MUST be ignored). An optional `--review-id` MAY force that review’s suppressed items into
 the open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with a clear error
 naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable.
 
@@ -47,6 +48,14 @@ naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable.
 - **WHEN** GraphQL includes an AI review with null `submittedAt` or state `PENDING`
 - **THEN** that review is omitted from `round_count` and `ai_reviews`
 - **AND** it does not affect suppressed-review selection
+
+#### Scenario: Pending non-AI draft reviews do not answer suppressed findings
+
+- **WHEN** GraphQL includes a non-AI review with state `PENDING` (or null `submittedAt`) whose body looks like a triage
+  reply (`Fixed in` / `Dismissed.` / `Follow-up:`)
+- **THEN** that draft MUST NOT mark any suppressed AI review as answered
+- **AND** submitted non-AI triage review bodies and issue comments continue to mark suppressed reviews answered as
+  before
 
 ### Requirement: review-reply and review-resolve
 
