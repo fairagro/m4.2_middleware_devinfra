@@ -143,7 +143,7 @@ def test_shape_review_open_filters_resolved_and_human() -> None:
     assert thread["thread_id"] == "PRRT_open_ai"
     assert thread["first_comment"]["database_id"] == 200
     latest = shaped["ai_reviews"][-1]
-    assert latest["author"] == "cursor"
+    assert latest.get("author") == "cursor"
     assert shaped["latest_ai_review"] == latest
     assert shaped["summary_only_findings"]  # open Copilot suppressed from fixture
     assert shaped["open_work_empty"] is False
@@ -160,7 +160,7 @@ def test_shape_keeps_suppressed_when_later_cursor_review_has_none() -> None:
             n["body"] = COPILOT_SUPPRESSED_BODY
     shaped = shape_review_open(payload)
     latest = shaped["ai_reviews"][-1]
-    assert latest["author"] == "cursor"
+    assert latest.get("author") == "cursor"
     assert shaped["latest_ai_review"] == latest
     assert shaped["open_summary_review_id"] == 2
     assert len(shaped["summary_only_findings"]) == 2
