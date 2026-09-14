@@ -33,7 +33,10 @@ sync allowlist.
   `go` would not be archive.
 - **`skip_specs`:** Default to a real delta when a capability contract changes; `skip_specs: true` only for docs/tooling
   with no spec delta.
-- **User override:** Explicit “use opsx” on a Bug or “skip openspec” on a Task wins over the type default.
+- **User override / docs-only:** Explicit “use opsx” on a Bug or “skip openspec” on a Task wins over the type default. A
+  clearly docs-only slice (Markdown/MDC and/or code comments, no `SKILL.md` under `.agents/skills/` or
+  `.cursor/skills/`) uses the Bug fast path even for Task/Feature/Refactoring. Unclear → keep OpenSpec. Markdown under
+  `openspec/specs/` or `openspec/changes/` is not docs-only.
 
 ## Risks / Trade-offs
 

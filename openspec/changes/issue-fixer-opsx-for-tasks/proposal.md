@@ -18,6 +18,8 @@ bugs.
   (`issue-start`); no auto-commit of fix commits; no empty bootstrap.
 - Document `skip_specs: true` vs real delta specs (contract change → delta; docs/tooling-only with no capability change
   → skip_specs).
+- Docs-only exception: if the slice is clearly Markdown/MDC and/or code comments only, skip OpenSpec even for Task /
+  Feature / Refactoring — **unless** a skill file (`SKILL.md` under `.agents/skills/` or `.cursor/skills/`) is in scope.
 - `/review-fixer` and `/create-issue` stay off OpenSpec.
 - Update skill, Cursor command, Copilot prompt, `docs/issue-fixer.md`, and the `issue-fixer` spec. Sync allowlist
   already covers the skill — products must not fork it.
