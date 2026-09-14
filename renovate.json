@@ -260,6 +260,33 @@
 
   "packageRules": [
     {
+      "description": "Product repos: do not bump Devinfra-synced SoT files (land in Devinfra, then sync #13)",
+      "matchRepositories": [
+        "fairagro/m4.2_advanced_middleware_api",
+        "fairagro/m4.2_sql_to_arc",
+        "fairagro/m4.2_middleware_harvester"
+      ],
+      "matchFileNames": [
+        "versions.env",
+        ".python-version",
+        "docker/Dockerfile.product-app.base",
+        ".devcontainer/Dockerfile",
+        "renovate.json",
+        ".github/workflows/renovate.yml"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Product repos: BuildKit frontend pin is documented/bumped in Devinfra examples",
+      "matchRepositories": [
+        "fairagro/m4.2_advanced_middleware_api",
+        "fairagro/m4.2_sql_to_arc",
+        "fairagro/m4.2_middleware_harvester"
+      ],
+      "matchPackageNames": ["docker/dockerfile"],
+      "enabled": false
+    },
+    {
       "description": "Python 3.12 global lock (versions.env + .python-version)",
       "matchManagers": ["dockerfile", "devcontainer", "github-actions", "custom.regex"],
       "matchPackagePatterns": ["python"],
