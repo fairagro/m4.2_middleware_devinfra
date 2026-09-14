@@ -119,18 +119,27 @@ elif [ ! -f "${enc_file}" ]; then
 elif ! command -v sops >/dev/null 2>&1; then
   echo "WARNING: sops not on PATH; skipping decrypt" >&2
 else
-  # Soft-fail: set -e must not abort postCreate; always clean up temp ciphertext output.
+  # Soft-fail: set -e must not abort postCreate. Temp holds decrypted plaintext — EXIT trap
+  # cleans up on interrupt; successful mv clears tmp_file so the trap does not remove .env.
+  tmp_file=""
+  cleanup_sops_tmp() {
+    if [ -n "${tmp_file}" ] && [ -e "${tmp_file}" ]; then
+      rm -f "${tmp_file}"
+    fi
+  }
+  trap cleanup_sops_tmp EXIT
   if ! tmp_file="$(mktemp "${repo_root}/.env.sops.XXXXXX")"; then
     echo "WARNING: mktemp failed; skipping decrypt of ${enc_file}" >&2
   elif ! sops -d "${enc_file}" > "${tmp_file}"; then
     echo "WARNING: sops decrypt failed for ${enc_file}; leaving .env unchanged" >&2
-    rm -f "${tmp_file}"
   elif ! mv -f "${tmp_file}" "${dec_file}"; then
     echo "WARNING: failed to install ${dec_file}; leaving .env unchanged" >&2
-    rm -f "${tmp_file}"
   else
+    tmp_file=""
     echo "Wrote ${dec_file} from ${enc_file}"
   fi
+  trap - EXIT
+  cleanup_sops_tmp
 fi
 
 # ── IDE extensions (Cursor/VS Code remote only; soft-fail) ───────────────────
