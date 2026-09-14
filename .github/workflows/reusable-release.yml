@@ -216,6 +216,100 @@ jobs:
           docker push "$GHCR_TAG"
           echo "Pushed to GHCR: $GHCR_TAG"
 
+  license-report:
+    name: License Report
+    # Informational Trivy license inventory for the GitHub Release body (issue #74). Must not fail on findings.
+    if: ${{ !inputs.skip && inputs.create_github_release }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: docker-image-${{ matrix.component }}-${{ inputs.version }}
+
+      - name: Load Docker image
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Run Trivy licence scanner (JSON)
+        # Informational: do not fail the job on Trivy infra/schema errors (issue #74 / review).
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
+          format: "json"
+          output: "trivy-license-${{ matrix.component }}.json"
+          scan-type: "image"
+          scanners: "license"
+          exit-code: "0"
+
+      - name: Format license Markdown
+        # Informational: tolerate missing/malformed JSON so release creation stays green.
+        continue-on-error: true
+        env:
+          COMPONENT: ${{ matrix.component }}
+          MAX_ROWS: "80"
+        run: |
+          set -euo pipefail
+          JSON="trivy-license-${COMPONENT}.json"
+          OUT="license-${COMPONENT}.md"
+          {
+            echo "### \`${COMPONENT}\`"
+            echo ""
+            if [[ ! -f "$JSON" ]]; then
+              echo "_No Trivy license JSON produced._"
+              echo ""
+              exit 0
+            fi
+            if ! jq -r --argjson max "${MAX_ROWS}" '
+              [
+                .Results[]? | (.Licenses // [])[]
+                | {
+                    pkg: (.PkgName // .FilePath // "?"),
+                    lic: (.Name // "?"),
+                    cat: (.Category // .Severity // "?")
+                  }
+              ] as $all
+              | ($all | unique_by(.pkg + "|" + .lic + "|" + .cat)) as $rows
+              | ($rows | group_by(.cat) | map({cat: .[0].cat, n: length}) | sort_by(.cat)) as $counts
+              | (
+                  if ($counts | length) == 0 then
+                    "_No license findings._\n"
+                  else
+                    (["**Counts by classification**", ""] + ($counts | map("- **\(.cat):** \(.n)")) + [""]) | join("\n")
+                  end
+                ),
+              (
+                if ($rows | length) == 0 then empty
+                else
+                  ["| Package | License | Classification |", "| --- | --- | --- |"]
+                  + ($rows[0:$max] | map("| `\(.pkg)` | `\(.lic)` | \(.cat) |")),
+                  (if ($rows | length) > $max
+                   then ["", "_Truncated to \($max) rows; see the License Report job log / JSON for the full list._", ""]
+                   else [""] end)
+                  | join("\n")
+                end
+              )
+            ' "$JSON"; then
+              echo "_License Markdown formatting failed (see job log); release continues without a table._"
+              echo ""
+            fi
+            echo ""
+          } > "$OUT"
+
+      - name: Upload license Markdown
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: license-md-${{ matrix.component }}-${{ inputs.version }}
+          path: license-${{ matrix.component }}.md
+          if-no-files-found: ignore
+
   create-release-tag:
     name: CreateReleaseTag/Release
     # Intentional: GitHub-internal identity (tag) first; registry push may fail afterward.
@@ -246,7 +340,7 @@ jobs:
   github-release:
     name: GitHubRelease/Release
     if: ${{ always() && !inputs.skip && inputs.create_github_release == true && needs.create-release-tag.result == 'success' }}
-    needs: [push-dockerhub, push-ghcr, create-release-tag]
+    needs: [push-dockerhub, push-ghcr, create-release-tag, license-report]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -267,6 +361,14 @@ jobs:
           pattern: dockerhub-*
           merge-multiple: true
           path: dockerhub-meta
+
+      - name: Download license Markdown artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: license-md-*
+          merge-multiple: true
+          path: license-md
 
       - name: Generate release body
         run: |
@@ -378,6 +480,26 @@ jobs:
             echo ""
             echo "Requires repo-root \`docker-bake.hcl\`, synced \`docker/Dockerfile.product-app.base\`,"
             echo "and product-local \`docker/Dockerfile.${COMPONENT}\` (Bake base + last stage; see Devinfra docs/ci.md)."
+            echo ""
+
+            echo "## Image licenses (Trivy)"
+            echo ""
+            echo "Informational only — license findings do **not** fail release or PR check. Vulnerability gates remain in"
+            echo "\`reusable-check\` Security Check. See Devinfra \`docs/ci.md\`."
+            echo ""
+            any_lic=false
+            while IFS= read -r comp; do
+              md=$(find license-md -type f -name "license-${comp}.md" 2>/dev/null | head -1)
+              if [[ -n "$md" && -f "$md" ]]; then
+                any_lic=true
+                cat "$md"
+                echo ""
+              fi
+            done < <(echo "$COMPONENTS_JSON" | jq -r '.[]')
+            if [[ "$any_lic" != "true" ]]; then
+              echo "_No license Markdown artifacts (License Report job may have failed or been skipped — see workflow logs)._"
+              echo ""
+            fi
           } > release-body.md
 
       - name: Create GitHub Release (Draft)
