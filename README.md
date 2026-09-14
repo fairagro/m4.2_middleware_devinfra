@@ -77,8 +77,10 @@ caller snippets, and the build→check artifact contract. PyPI and ns-pages stay
 Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
 
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
+- **Sole source:** the store wins over any process `GH_TOKEN` / `GITGUARDIAN_API_KEY` (no env override). Stale agent env
+  cannot shadow a token written via `set-dev-tokens.sh`.
 - **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv`) and source
-  `scripts/dev-tokens.sh` (loads stored values; prompts only on a TTY). No `~/.bashrc` patch.
+  `scripts/dev-tokens.sh` (applies store; prompts only on a TTY when the store has no entry). No `~/.bashrc` patch.
 - **Empty prompt** = skip until you re-prompt: `source ./scripts/set-dev-tokens.sh`
 - Do **not** put tokens in the git worktree.
 
