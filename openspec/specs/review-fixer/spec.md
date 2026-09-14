@@ -55,14 +55,16 @@ When dismissing unsupported-host findings (macOS, Windows, Homebrew, unofficial 
 
 ### Requirement: Fetch open work via review-open CLI
 
-When a PR is known, `/review-fixer` MUST start from `uv run m42-ai review-open --pr <n>` (or equivalent) and triage the
-shaped JSON. It MUST NOT dump the raw GraphQL payload into the model as the primary fetch path. Replies and resolves
-SHOULD use `m42-ai review-reply` / `review-resolve` when the CLI is present.
+When a PR is known, `/review-fixer` MUST start from `uv run --project scripts/ai m42-ai review-open --pr <n>` (or
+equivalent) and triage the shaped JSON. It MUST NOT dump the raw GraphQL payload into the model as the primary fetch
+path. Replies and resolves SHOULD use `m42-ai review-reply` / `review-resolve` when the CLI is present (documented with
+the same portable `--project scripts/ai` form). Bare `uv run m42-ai …` MAY be noted as valid only when `scripts/ai` is a
+root workspace member.
 
 #### Scenario: review-fixer starts from review-open JSON
 
 - **WHEN** the user runs `/review-fixer` with a PR number
-- **THEN** the skill instructs invoking `m42-ai review-open` first
+- **THEN** the skill instructs invoking `uv run --project scripts/ai m42-ai review-open` first
 - **AND** triage uses `unresolved_ai_threads` and summary-only / suppressed fields from that JSON
 
 ### Requirement: Follow-up issues use create-issue
@@ -108,9 +110,9 @@ so consumers know not to diverge locally.
 
 ### Requirement: Never modify synced paths in consumer checkouts
 
-The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.yaml` (or
-matching globs) when running in a **product consumer** checkout. On a finding whose primary path is synced, the skill
-MUST NOT choose action `fix` against that synced tree. Instead it MUST:
+The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.yaml` (or matching
+globs) when running in a **product consumer** checkout. On a finding whose primary path is synced, the skill MUST NOT
+choose action `fix` against that synced tree. Instead it MUST:
 
 - use action `follow-up` (via create-issue against **Devinfra**, or a clear Devinfra-targeted follow-up) when the
   finding is correct for shared content and severity is Medium or higher, or the finding is Risk, or it is a known
