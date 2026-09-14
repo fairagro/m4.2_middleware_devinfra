@@ -36,7 +36,9 @@ The repository MUST provide a root `.pre-commit-config.yaml` that defines:
 
 Python-oriented hooks MUST target the `middleware/` package root (per path conventions). Config MUST exclude vendor
 agent skill trees that are pinned under `.agents/skills/` (at least `gh`, `docker`, `hadolint`, `uv`, and `scan-secrets`
-when present) from hooks that walk the tree (or equivalent exclude lists).
+when present) from hooks that walk the tree (or equivalent exclude lists). The shared `check-yaml` hook MUST also
+exclude Go-templated Helm chart templates under `helm/**/templates/` and `helmchart/**/templates/` (harmless when those
+paths are absent) so product repos can adopt `.pre-commit-config.yaml` verbatim without post-sync hand-edits for Helm.
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -49,6 +51,12 @@ when present) from hooks that walk the tree (or equivalent exclude lists).
 - **WHEN** commit-stage hooks that scan files run
 - **THEN** paths under pinned vendor skill directories (e.g. `.agents/skills/gh/`, `docker/`, `hadolint/`, `uv/`) are
   excluded
+
+#### Scenario: Helm templates are excluded from check-yaml
+
+- **WHEN** `check-yaml` runs in a product repo that has `helm/` or `helmchart/*/templates/*.yaml`
+- **THEN** those template paths are excluded by the shared config
+- **AND** products do not need to patch synced `.pre-commit-config.yaml` solely for that exclude
 
 ### Requirement: Templated container-structure-test runner
 
@@ -134,9 +142,11 @@ exists (none by default).
 Shared **config files** (e.g. `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, markdownlint/Prettier configs) MUST be
 the single source of truth for tool policy. Invocations (CLI, hook `entry`/`args`, CI steps, IDE settings) MUST pass at
 most: the path to the shared config file when the tool does not auto-discover it, the analysis target path(s), and
-product-local path overlays that cannot live in synced fragments (e.g. `MYPYPATH`, pylint `--source-roots`). They MUST
-NOT pass additional command-line (or IDE-equivalent) flags that restate or override policy already expressible in the
-shared config file (line length, rule selects, ignore lists, severity thresholds, Python version pins, and similar).
+product-local path overlays that cannot live in synced fragments (e.g. `MYPYPATH`, pylint `--source-roots` via CI inputs
+/ process env). They MUST NOT pass additional command-line (or IDE-equivalent) flags that restate or override policy
+already expressible in the shared config file (line length, rule selects, ignore lists, severity thresholds, Python
+version pins, and similar). They MUST NOT require post-sync hand-edits of synced `.pre-commit-config.yaml` for those
+overlays.
 
 Documentation (`docs/quality.md` and/or Code Quality in `openspec/principles.global.md`) MUST state this three-
 environment parity rule and the minimal-CLI rule.
