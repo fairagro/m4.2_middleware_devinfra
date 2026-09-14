@@ -22,10 +22,9 @@ on:
         type: string
         default: ""
       components:
-        description: "JSON array of components to release"
-        required: false
+        description: "JSON array of components to release (required; no product default)"
+        required: true
         type: string
-        default: '["api"]'
       image_base_name:
         description: "Image name prefix matching build tags (local/<prefix>-<component>:<version>)"
         required: false
