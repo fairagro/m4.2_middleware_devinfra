@@ -23,37 +23,31 @@ use PATH wrappers without bashrc (`personal-token-helpers`). Issue #58 lock-in: 
 
 ## Decisions
 
-1. **PATH via `remoteEnv`, not bashrc**
-   VS Code/Cursor applies `remoteEnv` to integrated terminals and remote processes. Prefer extending existing
-   `PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"` to include `.venv/bin`.
+1. **PATH via `remoteEnv`, not bashrc** VS Code/Cursor applies `remoteEnv` to integrated terminals and remote processes.
+   Prefer extending existing `PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"` to include `.venv/bin`.
    _Alternative rejected:_ `setup-bashrc-load-env.sh` (user goal: no `~/.bashrc` mutation).
 
-2. **No `load-env.sh`**
-   With PATH + wrappers + postCreate decrypt, a sourced script is unnecessary fleet surface.
+2. **No `load-env.sh`** With PATH + wrappers + postCreate decrypt, a sourced script is unnecessary fleet surface.
    _Alternative rejected:_ shared `load-env.sh` “for optional source” (would invite bashrc rewiring).
 
-3. **Aliases → `scripts/bin/k` and `scripts/bin/d` + image completions**
-   Thin Dev Container wrappers that `exec` the known image paths (`/usr/local/bin/kubectl` from the shared Dockerfile
-   pin; `/usr/bin/docker` from the DinD feature) — not a portable `command -v` hunt. Bash programmable completion does
-   **not** follow wrappers automatically; install `/usr/share/bash-completion/completions/{k,d}` in the shared
-   Dockerfile (source kubectl/docker completion, then `complete -F __start_kubectl k` / `__start_docker d`). Docker
-   completion may arrive with the DinD feature — `d` entry soft-depends on that file at shell load time.
-   _Alternative rejected:_ bash `alias` + `complete` in `~/.bashrc` / product load-env.
-   _Alternative rejected:_ generic PATH-search wrappers (host-portable); these scripts are Dev Container–only like
-   `scripts/bin/gh`.
+3. **Aliases → `scripts/bin/k` and `scripts/bin/d` + image completions** Thin Dev Container wrappers that `exec` the
+   known image paths (`/usr/local/bin/kubectl` from the shared Dockerfile pin; `/usr/bin/docker` from the DinD feature)
+   — not a portable `command -v` hunt. Bash programmable completion does **not** follow wrappers automatically; install
+   `/usr/share/bash-completion/completions/{k,d}` in the shared Dockerfile (source kubectl/docker completion, then
+   `complete -F __start_kubectl k` / `__start_docker d`). Docker completion may arrive with the DinD feature — `d` entry
+   soft-depends on that file at shell load time. _Alternative rejected:_ bash `alias` + `complete` in `~/.bashrc` /
+   product load-env. _Alternative rejected:_ generic PATH-search wrappers (host-portable); these scripts are Dev
+   Container–only like `scripts/bin/gh`.
 
-4. **SOPS decrypt in postCreate only**
-   Mirror product behavior for file presence, skip if `.env` non-empty, soft-fail without aborting create. Do not
-   `set -a; source .env` into bashrc. `dev_environment` / tests read the file.
+4. **SOPS decrypt in postCreate only** Mirror product behavior for file presence, skip if `.env` non-empty, soft-fail
+   without aborting create. Do not `set -a; source .env` into bashrc. `dev_environment` / tests read the file.
    _Alternative deferred:_ image-level hook or direnv for shell export.
 
-5. **Devinfra `devcontainer.json` updated in-repo; products via follow-ups**
-   `devcontainer.json` is product-owned (sync exclude). Docs MUST require the PATH line; Devinfra’s own overlay is the
-   reference implementation.
+5. **Devinfra `devcontainer.json` updated in-repo; products via follow-ups** `devcontainer.json` is product-owned (sync
+   exclude). Docs MUST require the PATH line; Devinfra’s own overlay is the reference implementation.
 
-6. **Follow-up issues**
-   After implement (or with draft PR), open linked issues per product repo to drop bashrc/`load-env.sh` and align
-   `remoteEnv` + consume synced wrappers.
+6. **Follow-up issues** After implement (or with draft PR), open linked issues per product repo to drop
+   bashrc/`load-env.sh` and align `remoteEnv` + consume synced wrappers.
 
 ## Risks / Trade-offs
 

@@ -4,9 +4,9 @@
 
 ### Requirement: Never modify synced paths in consumer checkouts
 
-The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.yaml` (or
-matching globs) when running in a **product consumer** checkout. On a finding whose primary path is synced, the skill
-MUST NOT choose action `fix` against that synced tree. Instead it MUST:
+The `/review-fixer` skill MUST instruct agents never to modify paths listed in `docs/synced-paths.yaml` (or matching
+globs) when running in a **product consumer** checkout. On a finding whose primary path is synced, the skill MUST NOT
+choose action `fix` against that synced tree. Instead it MUST:
 
 - use action `follow-up` (via create-issue against **Devinfra**, or a clear Devinfra-targeted follow-up) when the
   finding is correct for shared content and severity is Medium or higher, or the finding is Risk, or it is a known

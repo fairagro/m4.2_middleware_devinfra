@@ -1,11 +1,4 @@
-# shared-git-hooks Specification
-
-## Purpose
-
-Version-controlled git hooks and installer so product repos install the same pre-push quality gate (pre-commit pre-push
-stage) after clone or Dev Container create, without requiring Git LFS.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Setup script installs project git hooks
 
@@ -26,19 +19,6 @@ MUST NOT ship `scripts/setup-git-lfs.sh`.
 - **WHEN** a contributor runs `./scripts/setup-git-hooks.sh` in a worktree that already has other `.git/hooks` entries
   (including product Git LFS hooks)
 - **THEN** those non-`pre-push` hooks are not deleted by LFS content detection in the shared script
-
-### Requirement: pre-push runs pre-commit pre-push stage only
-
-`scripts/git-hooks/pre-push` MUST run the shared pre-commit configuration’s **pre-push** stage (via `uv run pre-commit`,
-project `.venv` `python -m pre_commit`, or `pre-commit` on `PATH`) using `.pre-commit-config.yaml` and
-`--hook-type=pre-push` (or equivalent `hook-impl`). It MUST NOT invoke `git lfs pre-push`. If the hook buffers stdin for
-the quality stage, that buffering MUST preserve the git pre-push ref list for pre-commit.
-
-#### Scenario: git push triggers quality pre-push
-
-- **WHEN** the installed `pre-push` hook runs on `git push`
-- **THEN** the pre-commit pre-push stage runs (pytest / container-structure-test when configured)
-- **AND** the hook does not fail solely because `git-lfs` is missing
 
 ### Requirement: Documentation of commit vs pre-push install
 

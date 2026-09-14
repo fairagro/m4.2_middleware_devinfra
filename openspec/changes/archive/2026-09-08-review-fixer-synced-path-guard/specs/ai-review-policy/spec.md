@@ -4,11 +4,11 @@
 
 ### Requirement: Sync source of truth overrides cheap fix for synced paths
 
-The AI review policy MUST state that for paths listed in `docs/synced-paths.yaml`, **sync source of truth**
-overrides the usual “cheap + High practicality + Medium+ → `fix` in this PR” step. In a product consumer checkout,
-fixers MUST NOT treat a correct cheap patch on a synced path as an in-PR `fix`; they MUST `follow-up` to Devinfra or
-`dismiss` (synced — edit upstream) per the review-fixer synced-path rule, or `fix` only a documented product-local
-overlay. The policy MUST link to `docs/synced-paths.yaml` (and MAY cross-link the surface quality bar path map).
+The AI review policy MUST state that for paths listed in `docs/synced-paths.yaml`, **sync source of truth** overrides
+the usual “cheap + High practicality + Medium+ → `fix` in this PR” step. In a product consumer checkout, fixers MUST NOT
+treat a correct cheap patch on a synced path as an in-PR `fix`; they MUST `follow-up` to Devinfra or `dismiss` (synced —
+edit upstream) per the review-fixer synced-path rule, or `fix` only a documented product-local overlay. The policy MUST
+link to `docs/synced-paths.yaml` (and MAY cross-link the surface quality bar path map).
 
 #### Scenario: Cheap synced-path finding is not step-5 in a consumer
 
