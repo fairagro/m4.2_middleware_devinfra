@@ -206,8 +206,8 @@ Manual equivalent if the CLI is unavailable:
 - Do **not** commit or push fix commits.
 - If too large: split (below) and implement only the MVP slice here.
 - When the consumer has product `middleware/` packages: run focused `uv run pytest` on affected packages and
-  `uv run ruff format --config pyproject.toml` / `ruff check` on touched files (same bar as `/review-fixer`). This
-  Devinfra repo has no product `middleware/` tree — skip those commands here.
+  `uv run ruff format --config ruff.toml` / `uv run ruff check --config ruff.toml` on touched files (same bar as
+  `/review-fixer`). This Devinfra repo has no product `middleware/` tree — skip those commands here.
 
 ## Split / deferred work (via create-issue)
 
