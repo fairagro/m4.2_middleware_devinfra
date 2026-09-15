@@ -4,22 +4,35 @@
 
 ### Requirement: issue-fixer does not run OpenSpec
 
-`/issue-fixer` MUST route OpenSpec by org issue type. For **Task**, **Feature**, and **Refactoring**, after explore
-(when required) the skill MUST follow `.cursor/skills/openspec-propose/SKILL.md`, then
-`.cursor/skills/openspec-apply-change/SKILL.md`, then after the draft-PR step
-`.cursor/skills/openspec-archive-change/SKILL.md` as the last `go` — **except** when it is clear the slice is
-**docs-only** (Markdown/MDC and/or code comments only). Docs-only work MUST use the Bug-style implement path (no
-OpenSpec) **unless** a skill file is in scope (`SKILL.md` under `.agents/skills/` or `.cursor/skills/`), in which case
-OpenSpec remains required. Markdown under `openspec/specs/` or `openspec/changes/` is **not** docs-only. If docs-only is
-unclear, the skill MUST keep OpenSpec for Task/Feature/Refactoring. For **Bug** and cheap **Security**, the skill MUST
-NOT invoke OpenSpec slash skills or create an OpenSpec change unless the user explicitly asks. **Discussion** MUST NOT
-implement by default. `/review-fixer` and `/create-issue` MUST NOT invoke OpenSpec commands as part of their procedures.
-Standalone `/opsx-*` remain available when the user invokes them explicitly outside these skills. A user override MAY
-force OpenSpec on a Bug or skip OpenSpec on a Task.
+`/issue-fixer` MUST route OpenSpec by org issue type:
 
-#### Scenario: Task uses OpenSpec propose then apply then archive
+- **Feature** and **Refactoring**: after explore (when required), follow `.cursor/skills/openspec-propose/SKILL.md`,
+  then `.cursor/skills/openspec-apply-change/SKILL.md`, then after the draft-PR step
+  `.cursor/skills/openspec-archive-change/SKILL.md` as the last `go` — **except** when it is clear the slice is
+  **docs-only** (Markdown/MDC and/or code comments only) **and** no skill file is in scope.
+- **Task**, **Bug**, and cheap **Security**: MUST NOT invoke OpenSpec slash skills or create an OpenSpec change unless
+  the user explicitly asks (`use opsx`), **except** when a skill file is in scope (`SKILL.md` under `.agents/skills/` or
+  `.cursor/skills/`), in which case OpenSpec is required even for Task.
+- If a **Task** clearly changes a capability under `openspec/specs/`, the skill MUST pause once and ask to retype as
+  Feature or confirm `use opsx` — it MUST NOT silently create an OpenSpec change.
+- Docs-only Markdown under `openspec/specs/` or `openspec/changes/` is **not** docs-only. If docs-only is unclear for
+  Feature/Refactoring, keep OpenSpec.
+- **Discussion** MUST NOT implement by default.
+- `/review-fixer` and `/create-issue` MUST NOT invoke OpenSpec commands as part of their procedures. Standalone
+  `/opsx-*` remain available when the user invokes them explicitly outside these skills. A user override MAY force
+  OpenSpec on a Bug/Task or skip OpenSpec on a Feature.
 
-- **WHEN** an agent runs `/issue-fixer` on a `Task` with actionable scope
+#### Scenario: Clear Task stays off OpenSpec
+
+- **WHEN** the issue type is `Task` with actionable known-how scope
+- **AND** no skill file is in scope
+- **AND** the user did not ask to use OpenSpec
+- **THEN** the skill does not run `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`
+- **AND** it proceeds to the issue branch and implement like the Bug fast path
+
+#### Scenario: Feature uses OpenSpec propose then apply then archive
+
+- **WHEN** an agent runs `/issue-fixer` on a `Feature` with actionable scope that is not docs-only
 - **THEN** after the issue branch exists it creates an OpenSpec change via the propose skill
 - **AND** it does not implement product code until the user confirms after reviewing proposal artifacts
 - **AND** after apply and the draft PR, a later `go` runs the archive skill
@@ -31,9 +44,9 @@ force OpenSpec on a Bug or skip OpenSpec on a Task.
 - **THEN** the skill does not run `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`
 - **AND** it proceeds to the issue branch and implement as today
 
-#### Scenario: Docs-only Task skips OpenSpec
+#### Scenario: Docs-only Feature skips OpenSpec
 
-- **WHEN** the issue type is `Task`, `Feature`, or `Refactoring`
+- **WHEN** the issue type is `Feature` or `Refactoring`
 - **AND** it is clear the slice only changes Markdown/MDC and/or code comments
 - **AND** no skill file (`SKILL.md` under `.agents/skills/` or `.cursor/skills/`) is in scope
 - **THEN** the skill does not create an OpenSpec change
@@ -43,7 +56,16 @@ force OpenSpec on a Bug or skip OpenSpec on a Task.
 
 - **WHEN** the issue type is `Task`, `Feature`, or `Refactoring`
 - **AND** a skill file is in scope
-- **THEN** the skill follows propose → apply → draft PR → archive even if the rest of the slice is Markdown
+- **THEN** the skill follows propose → apply → draft PR → archive even if typed Task or the rest of the slice is
+  Markdown
+
+#### Scenario: Misfiled Task pauses for retype or opsx
+
+- **WHEN** the issue type is `Task`
+- **AND** acceptance criteria clearly change a capability under `openspec/specs/`
+- **AND** the user has not already said `use opsx`
+- **THEN** the skill pauses and asks to retype as Feature or confirm `use opsx`
+- **AND** it does not silently create an OpenSpec change folder
 
 #### Scenario: Sibling skills stay off OpenSpec
 
@@ -57,7 +79,7 @@ and `Refactoring`. For `Bug`, `Security`, and `Task`, explore is required only w
 plausible fixes exist, or the user asks. `Discussion` MUST NOT implement by default. When explore runs, the skill MUST
 explore in-skill (clarify scope, compare options, wait for lock-in / `go` / `skip explore`) and MUST NOT invoke
 `/opsx-explore`. When explore is not required, the skill MUST skip explore and continue to the type-routed next step
-(OpenSpec propose for Task/Feature/Refactoring; implement for Bug/Security).
+(OpenSpec propose for Feature/Refactoring when applicable; implement for Task/Bug/Security).
 
 #### Scenario: Feature issue uses in-skill explore
 
@@ -77,8 +99,8 @@ explore in-skill (clarify scope, compare options, wait for lock-in / `go` / `ski
 On every run that will implement, the skill MUST create local branch `issue-<issue_number>-<slug>` from `main` before
 writing OpenSpec artifacts or product code. The skill MUST NOT auto-commit; MUST NOT use empty bootstrap commits.
 
-For **Task**, **Feature**, and **Refactoring** that are **not** docs-only (or that touch a skill file) the skill MUST
-then:
+For **Feature** and **Refactoring** that are **not** docs-only (or any type that touches a skill file, including Task)
+the skill MUST then:
 
 1. Follow the propose skill → **pause** until the user confirms after reviewing proposal / specs / design / tasks
 2. On `go`: follow the apply skill → **pause** until the user confirms after reviewing the working tree (they
@@ -86,8 +108,8 @@ then:
 3. On `go`: ensure a **draft** PR when the branch tip has real commits ahead of `main`
 4. On `go` (last): follow the archive skill → **pause** so the user can commit archive results
 
-For **Bug** and cheap **Security** (no OpenSpec), and for **docs-only** Task/Feature/Refactoring that do not touch a
-skill file, the skill MUST implement in the working tree, pause, then on continue ensure the draft PR as today.
+For **Task**, **Bug**, and cheap **Security** (no OpenSpec), and for **docs-only** Feature/Refactoring that do not touch
+a skill file, the skill MUST implement in the working tree, pause, then on continue ensure the draft PR as today.
 
 Early exits that never implement MAY skip this cadence.
 
@@ -100,20 +122,22 @@ Early exits that never implement MAY skip this cadence.
 
 #### Scenario: Propose pause before apply
 
-- **WHEN** the issue type is `Task`, `Feature`, or `Refactoring` and propose has finished writing artifacts
+- **WHEN** the issue type is `Feature` or `Refactoring` (or Task with skill file / `use opsx`) and propose has finished
+  writing artifacts
 - **THEN** the skill stops and asks the user to review the change
 - **AND** it does not run apply or open a draft PR until the user confirms
 
 #### Scenario: Implement pause before draft PR
 
-- **WHEN** implementation for the current slice is done (apply for OpenSpec types; direct implement for Bug/Security)
+- **WHEN** implementation for the current slice is done (apply for OpenSpec types; direct implement for
+  Task/Bug/Security)
 - **THEN** the skill stops for the user to review/commit/push
 - **AND** it does not open a draft PR until the user confirms
 
 #### Scenario: Archive is the last go after draft PR
 
-- **WHEN** the issue type is `Task`, `Feature`, or `Refactoring` and a draft PR exists (or was skipped only because the
-  tip still equals `main`)
+- **WHEN** the issue type is `Feature` or `Refactoring` (or Task with skill file / `use opsx`) and a draft PR exists (or
+  was skipped only because the tip still equals `main`)
 - **AND** the user confirms with `go` after that step
 - **THEN** the skill follows the archive skill for the change
 - **AND** it does not auto-commit the archive result
@@ -122,16 +146,16 @@ Early exits that never implement MAY skip this cadence.
 
 The repository MUST provide thin Cursor command and Copilot prompt entrypoints and `docs/issue-fixer.md` that state
 in-skill explore when required, type-routed OpenSpec (propose → pause → apply → pause → draft PR → archive as last `go`
-for Task/Feature/Refactoring except clear docs-only slices; Bug/Security fast path without OpenSpec), the skill-file
-exception, `skip_specs` vs real delta specs, and that `/review-fixer` and `/create-issue` do not run OpenSpec.
+for Feature/Refactoring except clear docs-only slices; Task/Bug/Security fast path without OpenSpec unless skill file or
+user override), the skill-file exception, misfile pause for Task, `skip_specs` vs real delta specs, and that
+`/review-fixer` and `/create-issue` do not run OpenSpec.
 
 #### Scenario: Contributor reads issue-fixer docs
 
 - **WHEN** a contributor opens `docs/issue-fixer.md`
 - **THEN** they learn explore is in-skill when required
-- **AND** they learn Task/Feature/Refactoring use propose → apply → draft PR → archive except clear docs-only slices
-  (Markdown/comments, no skill files)
-- **AND** they learn Bug/Security stay off OpenSpec unless asked
+- **AND** they learn Feature/Refactoring use propose → apply → draft PR → archive except clear docs-only slices
+- **AND** they learn Task/Bug/Security stay off OpenSpec unless asked or a skill file is in scope
 - **AND** they learn `/review-fixer` and `/create-issue` do not run OpenSpec
 
 ## ADDED Requirements
@@ -139,17 +163,17 @@ exception, `skip_specs` vs real delta specs, and that `/review-fixer` and `/crea
 ### Requirement: skip_specs versus delta specs
 
 When `/issue-fixer` creates an OpenSpec change, it MUST write real delta specs when a capability contract changes. It
-MUST set `skip_specs: true` only when the Task (or Feature/Refactoring) is docs/tooling with **no** spec-level behavior
-change. The skill MUST NOT invent a requirement solely to satisfy validation.
+MUST set `skip_specs: true` only when the Feature/Refactoring (or Task with `use opsx` / skill file) is docs/tooling
+with **no** spec-level behavior change. The skill MUST NOT invent a requirement solely to satisfy validation.
 
 #### Scenario: Contract change uses a delta spec
 
-- **WHEN** `/issue-fixer` proposes a Task that changes an existing capability (for example `issue-fixer` itself)
+- **WHEN** `/issue-fixer` proposes a Feature that changes an existing capability (for example `issue-fixer` itself)
 - **THEN** the change includes a delta spec for that capability
 - **AND** it does not set `skip_specs: true`
 
-#### Scenario: Docs-only Task may skip specs
+#### Scenario: Docs tooling Feature may skip specs
 
-- **WHEN** `/issue-fixer` proposes a Task that does not change spec-level behavior
+- **WHEN** `/issue-fixer` proposes a Feature that does not change spec-level behavior
 - **THEN** the change MAY set `skip_specs: true`
 - **AND** it does not invent a capability requirement only to pass validation
