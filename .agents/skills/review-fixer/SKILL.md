@@ -92,7 +92,10 @@ do not invent them. Never ask the user to paste a PAT into chat.
 
 ## Fetch open work (when a PR is known)
 
-**Start from the CLI** (do not dump raw GraphQL into context):
+**Start from the CLI** (do not dump raw GraphQL into context). Successful `review-open` also **checks out the PR head
+branch** (fails closed with JSON error if the tree is dirty on a different branch). Do **not** apply any local `fix`
+edits until this command succeeds and `current_branch` / `head_ref` match. Paste-only triage without a PR does not
+require checkout.
 
 ```bash
 uv run --project scripts/ai m42-ai review-open --pr PR
