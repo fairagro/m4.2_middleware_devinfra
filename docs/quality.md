@@ -146,10 +146,15 @@ build/release are **Bake-only** (no monolith Dockerfile) — see
 
 [`.vscode/settings.json`](../.vscode/settings.json) is part of the shared Devinfra surface (host + Dev Container) and is
 on the sync allowlist. Adopt it **verbatim** — workspace `settings.json` has **no** `extends` / merge, so product keys
-cannot layer onto the synced blob without post-sync hand-edits ([`docs/sync.md`](sync.md)).
+cannot layer onto the synced blob without post-sync hand-edits ([`docs/sync.md`](sync.md)). Synced
+[`.vscode/extensions.json`](../.vscode/extensions.json) recommendations MUST match the Dev Container extension list
+(including `ms-kubernetes-tools.vscode-kubernetes-tools`).
 
 It points the Python extension at the root `.venv` from `uv sync`, configures Ruff via `ruff.toml` like pre-commit/CI,
-and sets Prettier as default formatter for Markdown/JSON/YAML.
+and sets Prettier as default formatter for Markdown/JSON/YAML. Helm chart templates under `helmchart/**/templates/` and
+`helm/**/templates/` use language mode `helm` via Kubernetes Tools (`files.associations`); missing-kubeconfig toasts are
+suppressed (`vs-kubernetes.suppress-kubeconfig-not-found-alerts`) because Dev Containers often have no cluster config —
+kubectl-not-found alerts stay enabled.
 
 **pytest discovery:** keep `"python.testing.pytestArgs": []` (or omit the key). Non-empty args become CLI paths and
 **override** each checkout’s `[tool.pytest.ini_options] testpaths` (see
@@ -166,9 +171,7 @@ under `stubs/` without being synced from Devinfra.
 `.venv`, `stubPath: stubs` (shared arctrl/fable stubs + any product-local stub dirs), and `extraPaths` only for
 `scripts/ai/src`. Do **not** add product `middleware/` (or other package) paths to that file — editable `uv` installs
 resolve them. Do **not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
-`.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)). Helm/SOPS file associations that
-cannot live outside `settings.json` need a Devinfra generalization or an explicit non-synced product surface — not
-re-patching.
+`.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)).
 
 Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
 [Environment parity](#environment-parity-ide-hooks-ci)) — do not add product-local IDE settings that invent a second

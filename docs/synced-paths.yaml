@@ -69,6 +69,7 @@ allow:
   - .prettierrc.json
   - .prettierignore
   - .vscode/settings.json
+  - .vscode/extensions.json
   - .devcontainer/Dockerfile
   - .devcontainer/devcontainer.json
   - .devcontainer/docker-compose.yml
