@@ -161,6 +161,9 @@ MUST be runnable in all three environments:
 2. **Git hooks** — pre-commit (commit stage) and, where the tool is a pre-push gate, the pre-push stage
 3. **GitHub pipelines** — reusable or caller workflows that run the shared quality bar
 
+For markdownlint/Prettier, GitHub pipelines MUST invoke the shared check scripts (e.g. `npm run format:md:check` /
+`npm run lint:md`) in reusable code-quality (or an explicitly documented equivalent), not only commit-stage hooks.
+
 For the same repository tree, the same toolchain pins (`versions.env` / `uv sync` / documented Node toolchain), and the
 same target paths, the **pass/fail outcome and substantive findings** MUST match across those three environments.
 Divergent severity, rule sets, or config files between IDE, hooks, and CI are forbidden unless a documented exception
@@ -184,6 +187,7 @@ environment parity rule and the minimal-CLI rule.
   and via the reusable code-quality GitHub workflow against the same tree and pins
 - **THEN** each environment uses the same shared config file(s) for that tool
 - **AND** the gate outcome (pass vs fail on policy findings) is the same across the three
+- **AND** Prettier/markdownlint participate in the reusable workflow gate, not only commit-stage
 
 #### Scenario: Invocations do not restate config policy on the CLI
 
@@ -192,3 +196,15 @@ environment parity rule and the minimal-CLI rule.
 - **THEN** those invocations reference the shared config file path (when required) and target paths / allowed path
   overlays only
 - **AND** they do not add CLI or IDE flags that duplicate policy already defined in that config file
+
+### Requirement: Markdown quality is gated in GitHub CI
+
+Documentation of three-environment parity (`docs/quality.md` and related) MUST treat Prettier and markdownlint as gated
+in **GitHub CI** via the reusable code-quality workflow (same shared configs and pass/fail outcome as IDE and hooks). It
+MUST NOT present “commit-stage / docs scripts only” as a substitute for CI for those tools.
+
+#### Scenario: Quality parity table shows CI for markdown
+
+- **WHEN** a contributor reads the environment parity table in `docs/quality.md`
+- **THEN** Prettier / markdownlint list GitHub CI as a real gate (not only commit-stage)
+- **AND** the same shared config files are cited for IDE, hooks, and CI
