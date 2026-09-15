@@ -35,10 +35,14 @@ volumes use `${localWorkspaceFolderBasename}` so each opened folder stays distin
 | History / `gh` volumes        | Shared JSON: `${localWorkspaceFolderBasename}-bashhistory` / `-gh-config`                                                        |
 | Workspace bind                | Shared Compose: `..:/workspace:cached`                                                                                           |
 | `.venv/bin` + `scripts/bin`   | Shared JSON: `remoteEnv.PATH` = `/workspace/.venv/bin:/workspace/scripts/bin:…` (literal `/workspace`; not `${workspaceFolder}`) |
+| Activated `.venv`             | Shared JSON: `remoteEnv.VIRTUAL_ENV=/workspace/.venv` (+ `VIRTUAL_ENV_PROMPT` = host folder basename)                            |
+| Prompt repo name              | Shared JSON: `DEVCONTAINER_REPO_NAME` + synced `.devcontainer/starship.toml` (`STARSHIP_CONFIG`)                                 |
 | `MYPYPATH`, `CST_*`, …        | Optional `.devcontainer/product.env` and/or CI inputs — **not** synced JSON/Compose                                              |
 
-Starship’s directory segment may show `workspace` (cwd). Repo identity still appears in the window title, Git branch,
-and Python venv / package segments.
+Starship’s leading segment is **`DEVCONTAINER_REPO_NAME`** (`${localWorkspaceFolderBasename}` via `remoteEnv`), not the
+cwd basename (`workspace`). The synced [`.devcontainer/starship.toml`](../.devcontainer/starship.toml) is selected with
+`STARSHIP_CONFIG`. The `.venv` is **activated** for IDE/agent shells by setting `VIRTUAL_ENV=/workspace/.venv` in
+`remoteEnv` (PATH alone is not enough for tools/prompts that check that variable).
 
 On sync, Prettier + markdownlint-cli2 (and their extensions) **replace or supplement** prior product markdown
 format/lint setups. Prefer `signageos.signageos-vscode-sops` (Open VSX / Cursor) over `shipitsmarter.sops-edit`.
@@ -88,15 +92,19 @@ image binaries — same pattern as product repos.
 ## Bashrc-free shell init (no `load-env.sh`)
 
 Fleet shell convenience MUST NOT mutate `~/.bashrc`. Shared verbatim `devcontainer.json` already prepends
-`/workspace/.venv/bin` and `/workspace/scripts/bin` via `remoteEnv.PATH` using the literal fleet workspace path
+`/workspace/.venv/bin` and `/workspace/scripts/bin` via `remoteEnv.PATH` using the literal fleet workspace path, and
+sets `VIRTUAL_ENV=/workspace/.venv` so the project venv is active without `source .venv/bin/activate`
 ([#58](https://github.com/fairagro/m4.2_middleware_devinfra/issues/58),
 [#65](https://github.com/fairagro/m4.2_middleware_devinfra/issues/65),
 [#143](https://github.com/fairagro/m4.2_middleware_devinfra/issues/143)). Do **not** use `${workspaceFolder}` in that
-PATH string — Cursor agent shells leave it unexpanded, so `scripts/bin` wrappers never win over `/usr/bin/gh`.
+PATH string — Cursor agent shells leave it unexpanded, so `scripts/bin` wrappers never win over `/usr/bin/gh`. Repo name
+in the prompt comes from `DEVCONTAINER_REPO_NAME` + synced `.devcontainer/starship.toml` (not from the `.venv` parent
+path, which is always `workspace`).
 
 | Need                            | Shared mechanism                                                                                                                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` in synced `devcontainer.json`                                                                                                                                        |
+| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` + `VIRTUAL_ENV=/workspace/.venv` in synced `devcontainer.json`                                                                                                       |
+| Prompt repo identity            | `DEVCONTAINER_REPO_NAME` + synced [`.devcontainer/starship.toml`](../.devcontainer/starship.toml) (`STARSHIP_CONFIG`)                                                                 |
 | Short `kubectl` / `docker`      | Synced wrappers [`scripts/bin/k`](../scripts/bin/k) and [`scripts/bin/d`](../scripts/bin/d)                                                                                           |
 | Bash completion for `k` / `d`   | Shared image files under `/usr/share/bash-completion/completions/` (rebuild after Dockerfile change)                                                                                  |
 | Personal tokens                 | [`scripts/bin/gh`](../scripts/bin/gh) / [`git`](../scripts/bin/git) load `/commandhistory/tokens.env` on each invoke; `set-dev-tokens.sh` only **writes** the store (not process env) |
@@ -193,8 +201,8 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
   Python/Ruff/Pylint/Mypy, PlantUML, Kubernetes Tools, signageos SOPS, Prettier, markdownlint, … — same list as
   `devcontainer.json` and synced `.vscode/extensions.json`)
 
-`PATH` with `/workspace/.venv/bin` and `/workspace/scripts/bin` first comes from `.devcontainer/devcontainer.json`
-(`remoteEnv`, literal `/workspace`) after rebuild — not from `~/.bashrc`.
+`PATH` with `/workspace/.venv/bin` and `/workspace/scripts/bin` first, plus `VIRTUAL_ENV=/workspace/.venv`, comes from
+`.devcontainer/devcontainer.json` (`remoteEnv`, literal `/workspace`) after rebuild — not from `~/.bashrc`.
 
 Re-run anytime:
 
