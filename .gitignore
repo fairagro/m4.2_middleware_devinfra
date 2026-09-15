@@ -1,7 +1,67 @@
-node_modules/
-.venv/
+# Fleet baseline (synced). Product-only paths → nested .gitignore (see docs/sync.md).
+
+# --- Python / packaging ---
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+share/python-wheels/
+.installed.cfg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Tests / coverage / type / lint caches ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+cover/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pyre/
+.pytype/
+
+# --- Virtualenvs / local Python pin ---
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
 .python-version.local
-# Decrypted integration secrets from postCreate (ciphertext stays product-local when used)
-/.env
+
+# --- Node ---
+node_modules/
+
+# --- Env secrets (Compose symlink + ciphertext stay tracked) ---
+.env
+.env.*
+.envrc
+!.env.integration.enc
+!.env*.example
+# Dev Container Compose: .devcontainer/.env → ../versions.env
+!.devcontainer/.env
+
+# --- Editor / OS (light) ---
+.DS_Store
+Thumbs.db
+*~
+.cache_ggshield
