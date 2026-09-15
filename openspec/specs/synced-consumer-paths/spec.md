@@ -15,11 +15,11 @@ document `overlays` (product-local exceptions). The same file MUST be the source
 NOT hand-edit after sync, (2) `/review-fixer` read-only synced trees in product checkouts, and (3) product-repo sync
 automation path selection. There MUST NOT be a second hand-maintained sync path list. The `allow` list MUST cover
 concrete paths or globs for all shipped shared surfaces (including AI stack, Renovate artifacts, personal-token helpers,
-quality scripts/hooks, Dev Container shared fragments, `docker/Dockerfile.product-app.base`, and related docs).
-`exclude` / `overlays` MUST cover at least: product `middleware/`, `openspec/specs/**`, `openspec/changes/**`, reusable
-CI workflow YAML (`reusable-*.yml`), and documented overlays (e.g. `docs/surface-quality-bar.md`,
-`openspec/principles.md`, `AGENTS.md`). The root `README.md` Docs index MUST link to this YAML. Sync of this allowlist
-MUST NOT overwrite product-local overlay files.
+quality scripts/hooks, Dev Container shared fragments, `docker/Dockerfile.product-app.base`,
+`.github/workflows/codeql.yml`, and related docs). `exclude` / `overlays` MUST cover at least: product `middleware/`,
+`openspec/specs/**`, `openspec/changes/**`, reusable CI workflow YAML (`reusable-*.yml`), and documented overlays (e.g.
+`docs/surface-quality-bar.md`, `openspec/principles.md`, `AGENTS.md`). The root `README.md` Docs index MUST link to this
+YAML. Sync of this allowlist MUST NOT overwrite product-local overlay files.
 
 #### Scenario: Contributor looks up what not to edit after sync
 
@@ -37,6 +37,12 @@ MUST NOT overwrite product-local overlay files.
 - **WHEN** a contributor checks whether Renovate config or workflow may be hand-edited in a product repo after sync
 - **THEN** `renovate.json` and `.github/workflows/renovate.yml` appear on the synced allowlist
 - **AND** they learn shared Renovate changes land in Devinfra first
+
+#### Scenario: CodeQL workflow is on the allowlist
+
+- **WHEN** a contributor checks whether `.github/workflows/codeql.yml` may be hand-edited in a product repo after sync
+- **THEN** that path appears on the synced allowlist
+- **AND** they learn shared CodeQL changes land in Devinfra first
 
 #### Scenario: Allowlist is the only sync path SoT
 

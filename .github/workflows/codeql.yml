@@ -1,0 +1,90 @@
+# Shared CodeQL analysis (Devinfra SoT — sync to products via #13).
+# Toolchain pins: versions.env (PYTHON_VERSION / UV_VERSION). Action refs follow fleet workflows.
+# See docs/ci.md / docs/renovate.md. Issue #124.
+name: CodeQL
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  schedule:
+    - cron: "33 5 * * 4"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Read UV_VERSION from versions.env
+        if: matrix.language == 'python'
+        id: uv-version
+        run: |
+          uv_version="$(awk -F= '/^UV_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          if [[ -z "$uv_version" ]]; then
+            echo "ERROR: UV_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$uv_version" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        if: matrix.language == 'python'
+        uses: astral-sh/setup-uv@v10.1.0
+        with:
+          version: ${{ steps.uv-version.outputs.version }}
+
+      - name: Assert .python-version matches versions.env
+        if: matrix.language == 'python'
+        run: |
+          expected="$(awk -F= '/^PYTHON_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          actual="$(tr -d '[:space:]' < .python-version)"
+          if [[ -z "$expected" || "$expected" != "$actual" ]]; then
+            echo "ERROR: .python-version ('${actual}') != PYTHON_VERSION in versions.env ('${expected}')" >&2
+            exit 1
+          fi
+
+      - name: Install Python from versions.env
+        if: matrix.language == 'python'
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          uv python install "${PYTHON_VERSION}"
+
+      - name: Install dependencies
+        if: matrix.language == 'python'
+        run: uv sync --dev --all-packages
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"
