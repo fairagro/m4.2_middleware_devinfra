@@ -69,6 +69,8 @@ allow:
   - .markdownlintignore
   - .prettierrc.json
   - .prettierignore
+  - package.json
+  - package-lock.json
   - .vscode/settings.json
   - .vscode/extensions.json
   - .devcontainer/Dockerfile

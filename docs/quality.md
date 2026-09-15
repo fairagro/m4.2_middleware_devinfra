@@ -43,15 +43,15 @@ restate line length, rule selects, ignore lists, or similar policy on the comman
 already defines them. Do not patch synced `.pre-commit-config.yaml` to carry those overlays. After syncing `.pylintrc`,
 products may drop a duplicate `--extension-pkg-allow-list=lxml` CLI flag — that allow-list lives in the rcfile.
 
-| Tool                    | IDE                                              | Hooks             | CI                              | Notes                                                             |
-| ----------------------- | ------------------------------------------------ | ----------------- | ------------------------------- | ----------------------------------------------------------------- |
-| Ruff format/lint        | yes (`ruff.toml`)                                | yes               | yes                             | Primary IDE Python lint/format                                    |
-| basedpyright / Pylance  | yes (`pyrightconfig.json`)                       | —                 | —                               | Synced analysis fragment; product stubs via `stubPath`            |
-| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension) | yes               | via commit-stage / docs scripts | Shared `.markdownlint*` + Prettier                                |
-| Mypy                    | **hooks + CI only**                              | yes (`mypy.ini`)  | yes                             | No shared IDE mypy settings — do not add a second config          |
-| Pylint                  | **hooks + CI only**                              | yes (`.pylintrc`) | yes                             | Same as Mypy                                                      |
-| Bandit                  | **hooks + CI only**                              | yes (`.bandit`)   | yes                             | Medium/high fail; see Bandit note below                           |
-| pytest                  | IDE via `pyproject.toml` `testpaths`             | pre-push          | yes                             | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings |
+| Tool                    | IDE                                              | Hooks             | CI  | Notes                                                                            |
+| ----------------------- | ------------------------------------------------ | ----------------- | --- | -------------------------------------------------------------------------------- |
+| Ruff format/lint        | yes (`ruff.toml`)                                | yes               | yes | Primary IDE Python lint/format                                                   |
+| basedpyright / Pylance  | yes (`pyrightconfig.json`)                       | —                 | —   | Synced analysis fragment; product stubs via `stubPath`                           |
+| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension) | yes               | yes | Shared `.markdownlint*` + Prettier; CI via `npm run format:md:check` / `lint:md` |
+| Mypy                    | **hooks + CI only**                              | yes (`mypy.ini`)  | yes | No shared IDE mypy settings — do not add a second config                         |
+| Pylint                  | **hooks + CI only**                              | yes (`.pylintrc`) | yes | Same as Mypy                                                                     |
+| Bandit                  | **hooks + CI only**                              | yes (`.bandit`)   | yes | Medium/high fail; see Bandit note below                                          |
+| pytest                  | IDE via `pyproject.toml` `testpaths`             | pre-push          | yes | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings                |
 
 **Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks use Bandit’s `-ll` (report MEDIUM+
 only). CI runs without `-ll`, logs all severities (JSON + wrapper), and still fails only on MEDIUM/HIGH — same fail bar
@@ -76,6 +76,7 @@ fail policy only on one surface.
 | `scripts/git-hooks/`                                | Version-controlled `pre-push` (pre-commit pre-push stage)                                                                                    |
 | `.bandit`                                           | Bandit config (`bandit -c .bandit`)                                                                                                          |
 | `.markdownlint.json` (+ ignore / cli2)              | Markdownlint (also used by the markdownlint hook)                                                                                            |
+| `package.json` / `package-lock.json`                | Shared npm scripts + pins for Prettier/markdownlint (hooks + reusable CI) — **verbatim** sync                                                |
 | [`.vscode/settings.json`](../.vscode/settings.json) | Shared IDE baseline (interpreter, Ruff, empty `pytestArgs`, Prettier) — adopt **verbatim**                                                   |
 
 ## Shared pre-commit config (verbatim sync)
