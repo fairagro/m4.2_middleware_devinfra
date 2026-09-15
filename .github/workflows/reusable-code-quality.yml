@@ -58,6 +58,44 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: actions/checkout@v7
 
+      - name: Assert Node markdown manifests present
+        if: ${{ !inputs.skip }}
+        run: |
+          if [[ ! -f package.json || ! -f package-lock.json ]]; then
+            echo "ERROR: package.json and package-lock.json are required for Prettier/markdownlint CI." >&2
+            echo "Sync them from Devinfra (docs/synced-paths.yaml) or adopt the shared Node markdown toolchain." >&2
+            exit 1
+          fi
+
+      - name: Read NODE_VERSION from versions.env
+        if: ${{ !inputs.skip }}
+        id: node-version
+        run: |
+          node_version="$(awk -F= '/^NODE_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          node_version="${node_version#v}"
+          if [[ -z "$node_version" ]]; then
+            echo "ERROR: NODE_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$node_version" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: ${{ !inputs.skip }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ steps.node-version.outputs.version }}
+          cache: npm
+
+      - name: Install npm dependencies
+        if: ${{ !inputs.skip }}
+        run: npm ci
+
+      - name: Markdown format and lint
+        if: ${{ !inputs.skip }}
+        run: |
+          npm run format:md:check
+          npm run lint:md
+
       - name: Read UV_VERSION from versions.env
         if: ${{ !inputs.skip }}
         id: uv-version

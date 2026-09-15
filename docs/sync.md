@@ -59,7 +59,7 @@ the YAML, the YAML wins.
 | `m42-ai` package                  | `scripts/ai/**`, `scripts/bin/{gh,git,k,d}`, `scripts/{dev-tokens,set-dev-tokens}.sh`                                                      |
 | Quality scripts / hooks           | `scripts/quality-{check,fix}.sh`, `scripts/setup-git-hooks.sh`, `scripts/git-hooks/**`, `scripts/devcontainer-post-create.sh`              |
 | Python quality fragments          | `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, `pyrightconfig.json`, `stubs/{arctrl,fable_library}/**`, `.pre-commit-config.yaml`        |
-| Markdown / IDE baseline           | `.markdownlint*`, `.prettier*`, `.vscode/settings.json`, `.vscode/extensions.json`                                                         |
+| Markdown / IDE baseline           | `.markdownlint*`, `.prettier*`, `package.json`, `package-lock.json`, `.vscode/settings.json`, `.vscode/extensions.json`                    |
 | Dev Container / image pins        | `.devcontainer/{Dockerfile,devcontainer.json,docker-compose.yml}`, `versions.env`, `.python-version`, `docker/Dockerfile.product-app.base` |
 | Renovate                          | `renovate.json`, `.github/workflows/renovate.yml`                                                                                          |
 | Global prose SoT                  | `docs/surface-quality-bar.global.md`, `openspec/principles.global.md`                                                                      |
