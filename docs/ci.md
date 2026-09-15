@@ -242,6 +242,10 @@ custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm 
 | `components`          | (optional)   | Accepted for caller compatibility; unused by this workflow               |
 | `skip`                | `false`      | Successful no-op (keeps required check names green)                      |
 
+**pytest vs pre-push:** this workflow runs `uv run pytest "${PKG}" …` **without** the synced pre-push marker filter
+(`-m "not system_external and not system_local"`). CI stays the broader gate; local push excludes `system_*` by default
+— see [Pre-push pytest scope](quality.md#pre-push-pytest-scope) in `docs/quality.md`.
+
 Python version comes from the caller’s `versions.env` (`PYTHON_VERSION`) plus matching `.python-version` — there is no
 version override input.
 
