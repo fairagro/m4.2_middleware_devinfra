@@ -1,11 +1,6 @@
-# synced-consumer-paths Specification
+# synced-consumer-paths Delta
 
-## Purpose
-
-Defines the single allowlist of Devinfra-canonical paths that product consumers must not hand-edit after sync, and that
-`/review-fixer` must treat as read-only in consumer checkouts (except documented product-local overlays).
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Synced paths allowlist document
 
@@ -49,15 +44,3 @@ YAML. Sync of this allowlist MUST NOT overwrite product-local overlay files.
 - **WHEN** sync automation or a contributor looks for “what files are copied to products”
 - **THEN** `docs/synced-paths.yaml` is the only hand-maintained path list
 - **AND** hard excludes for OpenSpec specs trees and `middleware/` are documented there
-
-### Requirement: Workspace extensions recommendations are allowlisted
-
-`docs/synced-paths.yaml` MUST list `.vscode/extensions.json` under `allow` so products receive the same VS Code / Cursor
-extension recommendations as Devinfra after sync. The recommendations set MUST stay aligned with the shared Dev
-Container extension list (see `shared-devcontainer-base`).
-
-#### Scenario: extensions.json on allowlist
-
-- **WHEN** a contributor inspects the product sync path allowlist
-- **THEN** `.vscode/extensions.json` appears under `allow`
-- **AND** it is not listed as a standing sync exclude
