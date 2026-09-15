@@ -79,10 +79,14 @@ Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/convent
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
 - **Sole source:** the store wins over any process `GH_TOKEN` / `GITGUARDIAN_API_KEY` (no env override). Stale agent env
   cannot shadow a token written via `set-dev-tokens.sh`.
-- **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv`) and source
-  `scripts/dev-tokens.sh` (applies store; prompts only on a TTY when the store has no entry). No `~/.bashrc` patch.
+- **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv` uses literal
+  `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh` (applies store; prompts only
+  on a TTY when the store has no entry). No `~/.bashrc` patch. Tokens are **not** injected into agent process env —
+  wrappers load them per invoke. `set-dev-tokens.sh` only writes the store.
 - **Empty prompt** = skip until you re-prompt: `source ./scripts/set-dev-tokens.sh`
 - Do **not** put tokens in the git worktree.
+- If agents report `GH_TOKEN` missing while the store is set, check `command -v gh` — `/usr/bin/gh` means PATH wrappers
+  are missing (rebuild after sync of `remoteEnv.PATH`), not a bad store.
 
 Quality / CST / `load-versions-env` / `m42-ai` also run on a **host** checkout; token helpers and `scripts/bin` wrappers
 do not — on the host, keep using your own env (e.g. `~/.bashrc`) or `gh auth`. See

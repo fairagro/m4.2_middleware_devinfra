@@ -122,24 +122,27 @@ and that missing-kubeconfig alerts are suppressed for chart editing without a cl
 
 ### Requirement: Bashrc-free PATH for venv and scripts/bin
 
-This repository’s Dev Container `remoteEnv` MUST prepend `${workspaceFolder}/.venv/bin` and
-`${workspaceFolder}/scripts/bin` on `PATH` (scripts/bin before or after `.venv/bin` is allowed as long as both appear
-before the inherited container `PATH`). Shared postCreate and personal-token helpers MUST NOT patch `~/.bashrc` (or
-other user shell profiles) to inject that PATH or to source a load-env script. Documentation MUST state that the
-**verbatim-synced** `devcontainer.json` carries this `remoteEnv.PATH` contract so every integrated terminal and remote
-process sees uv tool binaries and `scripts/bin` wrappers without home-profile mutation.
+This repository’s Dev Container `remoteEnv` MUST prepend `/workspace/.venv/bin` and `/workspace/scripts/bin` on `PATH`
+(scripts/bin before or after `.venv/bin` is allowed as long as both appear before the inherited container `PATH`). The
+PATH value MUST use the fleet in-container workspace path `/workspace` literally — not `${workspaceFolder}` — so Cursor
+agent shells (which do not expand that variable) still resolve `scripts/bin` wrappers. Shared postCreate and
+personal-token helpers MUST NOT patch `~/.bashrc` (or other user shell profiles) to inject that PATH or to source a
+load-env script. Documentation MUST state that the **verbatim-synced** `devcontainer.json` carries this `remoteEnv.PATH`
+contract so every integrated terminal and remote process sees uv tool binaries and `scripts/bin` wrappers without
+home-profile mutation.
 
 #### Scenario: Devinfra remoteEnv includes venv and scripts/bin
 
 - **WHEN** a contributor inspects this repository’s `.devcontainer/devcontainer.json` `remoteEnv.PATH`
-- **THEN** both `${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin` appear on that PATH value
+- **THEN** both `/workspace/.venv/bin` and `/workspace/scripts/bin` appear on that PATH value
+- **AND** the PATH value does not rely on `${workspaceFolder}` expansion
 - **AND** postCreate does not append a `source …/load-env.sh` (or equivalent) line to `~/.bashrc`
 
 #### Scenario: Docs require the same PATH contract for products
 
 - **WHEN** a contributor reads Dev Container adoption docs for product sync
 - **THEN** they learn synced `devcontainer.json` MUST set the same `remoteEnv.PATH` prepend for `.venv/bin` and
-  `scripts/bin`
+  `scripts/bin` under `/workspace`
 - **AND** they learn the fleet MUST NOT rely on patching `~/.bashrc` for that PATH
 
 ### Requirement: kubectl and docker shortcut wrappers on scripts/bin
@@ -244,12 +247,13 @@ The repository MUST provide a fleet-generic `.devcontainer/devcontainer.json` th
 MUST set `workspaceFolder` to `/workspace`, MUST set `name` to `${localWorkspaceFolderBasename}` (or equivalent
 substitution that yields a distinct window title per opened folder), and MUST derive additional named volume `source=`
 values from `${localWorkspaceFolderBasename}` (e.g. bashhistory and gh-config volumes). It MUST prepend
-`${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin` on `remoteEnv.PATH`. It MUST NOT embed product-only
-`remoteEnv` keys such as product `MYPYPATH` or `CST_*`, and MUST NOT require product-specific `postStartCommand` for the
-shared happy path. The repository MUST provide a matching fleet-generic `.devcontainer/docker-compose.yml` that binds
-`..:/workspace` for the devcontainer service and MUST list both files on the product sync allowlist (MUST NOT list them
-under sync `exclude` as standing product-owned overlays). Shared Compose MAY reference an optional
-`.devcontainer/product.env` with soft-fail / `required: false` semantics so absence does not break Dev Container start.
+`/workspace/.venv/bin` and `/workspace/scripts/bin` on `remoteEnv.PATH` (literal `/workspace`, not
+`${workspaceFolder}`). It MUST NOT embed product-only `remoteEnv` keys such as product `MYPYPATH` or `CST_*`, and MUST
+NOT require product-specific `postStartCommand` for the shared happy path. The repository MUST provide a matching
+fleet-generic `.devcontainer/docker-compose.yml` that binds `..:/workspace` for the devcontainer service and MUST list
+both files on the product sync allowlist (MUST NOT list them under sync `exclude` as standing product-owned overlays).
+Shared Compose MAY reference an optional `.devcontainer/product.env` with soft-fail / `required: false` semantics so
+absence does not break Dev Container start.
 
 #### Scenario: Shared JSON is path-generic
 
