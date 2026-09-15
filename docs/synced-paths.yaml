@@ -45,6 +45,7 @@ allow:
   - scripts/quality-fix.sh
   - scripts/run-container-structure-test.sh
   - scripts/setup-git-hooks.sh
+  - scripts/update-dockerfile-pins.sh
   - scripts/git-hooks/**
   - scripts/load-versions-env.sh
   - scripts/devcontainer-post-create.sh
