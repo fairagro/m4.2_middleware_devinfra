@@ -60,6 +60,12 @@ node_modules/
 # Dev Container Compose: .devcontainer/.env → ../versions.env
 !.devcontainer/.env
 
+# --- Docker CLI config dir (repo-local DOCKER_CONFIG=.docker) ---
+# Keep tracked config.json; ignore Buildx / token-seed runtime only.
+.docker/buildx/
+.docker/.token_seed
+.docker/.token_seed.lock
+
 # --- Editor / OS (light) ---
 .DS_Store
 Thumbs.db
