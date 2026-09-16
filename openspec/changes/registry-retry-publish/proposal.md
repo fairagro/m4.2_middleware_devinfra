@@ -6,13 +6,14 @@ semver or creating a second tag. Docs already call this a follow-up; the reusabl
 
 ## What Changes
 
-- Add a reusable GitHub Actions workflow for **registry retry** against an existing release git tag (Docker
-  `feature`/`final` and Helm **final** only).
-- Docker: rebuild images from that tag (Bake), then push only selected registries; no new tag/Release create.
-- Helm final: push the existing Release `.tgz` asset to selected OCI registries; no new chart version/tag.
-- Replace the GitHub Release body’s `## Registry status` section with the retry outcome.
-- Document caller contract in `docs/ci.md` (string tag input; how to list newest tags; flags; secrets).
-- Product thin `workflow_dispatch` callers stay out of this PR (tracked in product issues).
+- Add `reusable-registry-retry.yml` for an existing release git tag (Docker `feature`/`final` and Helm **final** only).
+- Extract shared nested reusables: `reusable-docker-bake.yml`, `reusable-docker-registry-push.yml`,
+  `reusable-helm-oci-push.yml` (no composite actions); wire build / Docker release / Helm / retry through `$/` nested
+  calls.
+- Docker retry: Bake rebuild from tag → selective registry push; no new tag/Release.
+- Helm final retry: Release `.tgz` → OCI push; no new chart version/tag.
+- Replace Release `## Registry status` with the retry outcome.
+- Document in `docs/ci.md`. Product thin callers stay out of this PR.
 
 ## Capabilities
 
@@ -22,10 +23,12 @@ semver or creating a second tag. Docs already call this a follow-up; the reusabl
 
 ### Modified Capabilities
 
-- `reusable-ci-workflows`: add registry-retry reusable contract; extend consumer docs for retry callers
+- `reusable-ci-workflows`: registry-retry + nested bake/push reusables; consumer docs
 
 ## Impact
 
-- New: `.github/workflows/reusable-registry-retry.yml` (name may vary slightly in design)
-- Update: `docs/ci.md`, `openspec/specs/reusable-ci-workflows/spec.md` (via archive sync)
+- New: `reusable-registry-retry.yml`, `reusable-docker-bake.yml`, `reusable-docker-registry-push.yml`,
+  `reusable-helm-oci-push.yml`
+- Update: `reusable-build.yml`, `reusable-release.yml`, `reusable-helm-release.yml`, `reusable-helm-pre-release.yml`,
+  `docs/ci.md`
 - Products later: API #443, sql_to_arc #168, harvester #251

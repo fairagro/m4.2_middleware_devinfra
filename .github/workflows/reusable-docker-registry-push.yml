@@ -1,0 +1,245 @@
+# Nested Docker registry push (DockerHub and/or GHCR). Issue #34.
+# Called from reusable-release / reusable-registry-retry via:
+#   uses: $/.github/workflows/reusable-docker-registry-push.yml
+name: Reusable Docker Registry Push
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      components:
+        required: true
+        type: string
+      image_base_name:
+        required: false
+        type: string
+        default: "fairagro-advanced-middleware"
+      dockerhub_namespace:
+        required: false
+        type: string
+        default: "zalf"
+      ghcr_namespace:
+        required: false
+        type: string
+        default: ""
+      push_dockerhub:
+        required: false
+        type: boolean
+        default: true
+      push_ghcr:
+        required: false
+        type: boolean
+        default: true
+      image_artifact_prefix:
+        description: "Must match bake upload prefix (docker-image or retry-docker-image)"
+        required: false
+        type: string
+        default: "docker-image"
+      status_artifact_prefix:
+        description: "Prefix for status/digest artifacts (dockerhub / retry-dockerhub)"
+        required: false
+        type: string
+        default: "dockerhub"
+      soft_skip_missing_dockerhub:
+        description: "If true, missing DH secrets → skipped status (release). If false, fail."
+        required: false
+        type: boolean
+        default: true
+      write_ghcr_status:
+        description: "Upload per-component GHCR status artifacts (retry body)"
+        required: false
+        type: boolean
+        default: false
+      success_reason_prefix:
+        required: false
+        type: string
+        default: "Pushed"
+      skip:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DOCKERHUB_USER:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  push-dockerhub:
+    name: DockerPush/DockerHub
+    if: ${{ inputs.push_dockerhub }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+    steps:
+      - name: Skipping push
+        if: ${{ inputs.skip }}
+        run: echo "Skip requested. Exiting with success."
+
+      - name: Check DockerHub secrets
+        if: ${{ !inputs.skip }}
+        id: dh_secrets
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          mkdir -p status digests
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            if [[ "${{ inputs.soft_skip_missing_dockerhub }}" != "true" ]]; then
+              echo "::error::DOCKERHUB_USER and/or DOCKERHUB_TOKEN missing (soft_skip_missing_dockerhub=false)."
+              exit 1
+            fi
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            reason="DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+            echo "skipped" > "status/dockerhub-${{ matrix.component }}.status"
+            echo "${reason}" > "status/dockerhub-${{ matrix.component }}.reason"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload DockerHub skip status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'false' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.status_artifact_prefix }}-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+
+      - name: Download Docker image artifact
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.image_artifact_prefix }}-${{ matrix.component }}-${{ inputs.version }}
+
+      - name: Load Docker image
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Login to DockerHub
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag and Push to DockerHub
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' }}
+        id: push
+        run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          DH_TAG="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          docker tag "$LOCAL_TAG" "$DH_TAG"
+          docker push "$DH_TAG"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
+          mkdir -p digests status
+          echo "$DIGEST" > "digests/dockerhub-${{ matrix.component }}.digest"
+          echo "success" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "${{ inputs.success_reason_prefix }} ${DH_TAG}" > "status/dockerhub-${{ matrix.component }}.reason"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Pushed to DockerHub: $DH_TAG (@$DIGEST)"
+
+      - name: Upload DockerHub digest and status artifacts
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.status_artifact_prefix }}-digest-${{ matrix.component }}-${{ inputs.version }}
+          path: |
+            digests/
+            status/
+          retention-days: 1
+
+      - name: Record DockerHub push failure
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        run: |
+          mkdir -p status
+          echo "failure" > "status/dockerhub-${{ matrix.component }}.status"
+          echo "DockerHub login/push failed for component ${{ matrix.component }} (see job logs)" > "status/dockerhub-${{ matrix.component }}.reason"
+
+      - name: Upload DockerHub failure status
+        if: ${{ !inputs.skip && steps.dh_secrets.outputs.available == 'true' && failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.status_artifact_prefix }}-status-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+
+  push-ghcr:
+    name: DockerPush/GHCR
+    if: ${{ inputs.push_ghcr }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+    steps:
+      - name: Skipping push
+        if: ${{ inputs.skip }}
+        run: echo "Skip requested. Exiting with success."
+
+      - name: Download Docker image artifact
+        if: ${{ !inputs.skip }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.image_artifact_prefix }}-${{ matrix.component }}-${{ inputs.version }}
+
+      - name: Load Docker image
+        if: ${{ !inputs.skip }}
+        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Login to GitHub Container Registry
+        if: ${{ !inputs.skip }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push to GHCR
+        if: ${{ !inputs.skip }}
+        id: push
+        run: |
+          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          GHCR_TAG="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          docker tag "$LOCAL_TAG" "$GHCR_TAG"
+          docker push "$GHCR_TAG"
+          if [[ "${{ inputs.write_ghcr_status }}" == "true" ]]; then
+            mkdir -p status
+            echo "success" > "status/ghcr-${{ matrix.component }}.status"
+            echo "${{ inputs.success_reason_prefix }} ${GHCR_TAG}" > "status/ghcr-${{ matrix.component }}.reason"
+          fi
+          echo "Pushed to GHCR: $GHCR_TAG"
+
+      - name: Record GHCR failure
+        if: ${{ !inputs.skip && inputs.write_ghcr_status && failure() }}
+        run: |
+          mkdir -p status
+          echo "failure" > "status/ghcr-${{ matrix.component }}.status"
+          echo "GHCR push failed for ${{ matrix.component }} (see job logs)" > "status/ghcr-${{ matrix.component }}.reason"
+
+      - name: Upload GHCR status
+        if: ${{ !inputs.skip && inputs.write_ghcr_status && always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.status_artifact_prefix }}-ghcr-${{ matrix.component }}-${{ inputs.version }}
+          path: status/
+          retention-days: 1
+          if-no-files-found: ignore

@@ -1,0 +1,195 @@
+# Nested Helm OCI push to DockerHub and/or GHCR. Issue #34.
+# Chart .tgz must be available as a workflow artifact from the caller.
+#   uses: $/.github/workflows/reusable-helm-oci-push.yml
+name: Reusable Helm OCI Push
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  workflow_call:
+    inputs:
+      chart_artifact_name:
+        description: "Artifact name that contains the chart .tgz"
+        required: true
+        type: string
+      chart_package:
+        description: "Filename of the .tgz inside the artifact"
+        required: true
+        type: string
+      push_dockerhub:
+        required: false
+        type: boolean
+        default: true
+      push_ghcr:
+        required: false
+        type: boolean
+        default: true
+      dockerhub_namespace:
+        required: false
+        type: string
+        default: "zalf"
+      ghcr_namespace:
+        required: false
+        type: string
+        default: ""
+      soft_skip_missing_dockerhub:
+        required: false
+        type: boolean
+        default: true
+      soft_fail:
+        description: "If true, push step failures are continue-on-error (release). If false, fail the job (retry)."
+        required: false
+        type: boolean
+        default: true
+      helm_version:
+        description: "Helm CLI version without leading v (from versions.env)"
+        required: true
+        type: string
+      success_reason_prefix:
+        required: false
+        type: string
+        default: "Pushed"
+    secrets:
+      DOCKERHUB_USER:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+    outputs:
+      dh_status:
+        description: "DockerHub push status"
+        value: ${{ jobs.push.outputs.dh_status }}
+      dh_reason:
+        description: "DockerHub push detail"
+        value: ${{ jobs.push.outputs.dh_reason }}
+      ghcr_status:
+        description: "GHCR push status"
+        value: ${{ jobs.push.outputs.ghcr_status }}
+      ghcr_reason:
+        description: "GHCR push detail"
+        value: ${{ jobs.push.outputs.ghcr_reason }}
+      ghcr_ns:
+        description: "Resolved GHCR namespace"
+        value: ${{ jobs.push.outputs.ghcr_ns }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  push:
+    name: Helm OCI push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      dh_status: ${{ steps.dh.outputs.status }}
+      dh_reason: ${{ steps.dh.outputs.reason }}
+      ghcr_status: ${{ steps.ghcr.outputs.status }}
+      ghcr_reason: ${{ steps.ghcr.outputs.reason }}
+      ghcr_ns: ${{ steps.ghcr.outputs.ghcr_ns }}
+    steps:
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ inputs.helm_version }}
+
+      - name: Download chart package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.chart_artifact_name }}
+
+      - name: Push Helm chart to Docker Hub
+        id: push_dh
+        if: ${{ inputs.push_dockerhub }}
+        continue-on-error: ${{ inputs.soft_fail }}
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            if [[ "${{ inputs.soft_skip_missing_dockerhub }}" == "true" ]]; then
+              echo "status=skipped" >> "$GITHUB_OUTPUT"
+              echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN missing" >> "$GITHUB_OUTPUT"
+            echo "::error::DockerHub secrets missing for helm OCI push"
+            exit 1
+          fi
+          echo "${DOCKERHUB_TOKEN}" | helm registry login -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
+          helm push "${{ inputs.chart_package }}" "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=${{ inputs.success_reason_prefix }} to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
+
+      - name: Normalize DockerHub outcome
+        id: dh
+        run: |
+          if [[ "${{ inputs.push_dockerhub }}" != "true" ]]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "reason=push_dockerhub=false" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ steps.push_dh.outputs.status }}" ]]; then
+            echo "status=${{ steps.push_dh.outputs.status }}" >> "$GITHUB_OUTPUT"
+            echo "reason=${{ steps.push_dh.outputs.reason }}" >> "$GITHUB_OUTPUT"
+            if [[ "${{ steps.push_dh.outputs.status }}" == "failure" && "${{ inputs.soft_fail }}" != "true" ]]; then
+              exit 1
+            fi
+          elif [[ "${{ steps.push_dh.outcome }}" == "failure" ]]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "reason=DockerHub login/push failed — see job logs" >> "$GITHUB_OUTPUT"
+            if [[ "${{ inputs.soft_fail }}" != "true" ]]; then
+              exit 1
+            fi
+          else
+            echo "status=${{ steps.push_dh.outcome }}" >> "$GITHUB_OUTPUT"
+            echo "reason=DockerHub push did not complete successfully" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push Helm chart to GHCR
+        id: push_ghcr
+        if: ${{ inputs.push_ghcr }}
+        continue-on-error: ${{ inputs.soft_fail }}
+        run: |
+          set -euo pipefail
+          GHCR_NS="${{ inputs.ghcr_namespace }}"
+          if [[ -z "$GHCR_NS" ]]; then
+            GHCR_NS="${{ github.repository_owner }}"
+          fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
+            -u "${{ github.actor }}" --password-stdin ghcr.io
+          helm push "${{ inputs.chart_package }}" "oci://ghcr.io/${GHCR_NS}"
+          echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "reason=${{ inputs.success_reason_prefix }} to oci://ghcr.io/${GHCR_NS}" >> "$GITHUB_OUTPUT"
+
+      - name: Normalize GHCR outcome
+        id: ghcr
+        run: |
+          if [[ "${{ inputs.push_ghcr }}" != "true" ]]; then
+            echo "status=skipped" >> "$GITHUB_OUTPUT"
+            echo "reason=push_ghcr=false" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
+            echo "status=${{ steps.push_ghcr.outputs.status }}" >> "$GITHUB_OUTPUT"
+            echo "reason=${{ steps.push_ghcr.outputs.reason }}" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=${{ steps.push_ghcr.outputs.ghcr_ns }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
+            GHCR_NS="${{ inputs.ghcr_namespace }}"
+            if [[ -z "$GHCR_NS" ]]; then
+              GHCR_NS="${{ github.repository_owner }}"
+            fi
+            GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "reason=GHCR login/push failed — see job logs" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
+            if [[ "${{ inputs.soft_fail }}" != "true" ]]; then
+              exit 1
+            fi
+          else
+            echo "status=${{ steps.push_ghcr.outcome }}" >> "$GITHUB_OUTPUT"
+            echo "reason=GHCR push did not complete successfully" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=" >> "$GITHUB_OUTPUT"
+          fi

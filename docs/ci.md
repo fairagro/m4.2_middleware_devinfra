@@ -2,18 +2,21 @@
 
 Canonical GitHub Actions for the three m4.2 product repos live in this repository:
 
-| Workflow            | Path                                                                                                                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Code quality        | [`.github/workflows/reusable-code-quality.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-code-quality.yml)                               |
-| Image / SBOM checks | [`.github/workflows/reusable-check.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-check.yml)                                             |
-| Docker build        | [`.github/workflows/reusable-build.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-build.yml)                                             |
-| Docker release      | [`.github/workflows/reusable-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-release.yml)                                         |
-| Helm final release  | [`.github/workflows/reusable-helm-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-helm-release.yml)                               |
-| Helm pre-release    | [`.github/workflows/reusable-helm-pre-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-helm-pre-release.yml)                       |
-| Registry retry      | [`.github/workflows/reusable-registry-retry.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-registry-retry.yml) — existing release only   |
-| Renovate (per-repo) | [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) + [`renovate.json`](../renovate.json) — see [docs/renovate.md](renovate.md)                                         |
-| CodeQL (per-repo)   | [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) — thin synced workflow; see below                                                                                       |
-| Sync products       | [`.github/workflows/sync-products.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/sync-products.yml) — allowlist push; see [docs/sync.md](sync.md) |
+| Workflow                      | Path                                                                                                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code quality                  | [`.github/workflows/reusable-code-quality.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-code-quality.yml)                                  |
+| Image / SBOM checks           | [`.github/workflows/reusable-check.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-check.yml)                                                |
+| Docker build                  | [`.github/workflows/reusable-build.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-build.yml)                                                |
+| Docker release                | [`.github/workflows/reusable-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-release.yml)                                            |
+| Helm final release            | [`.github/workflows/reusable-helm-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-helm-release.yml)                                  |
+| Helm pre-release              | [`.github/workflows/reusable-helm-pre-release.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-helm-pre-release.yml)                          |
+| Registry retry                | [`.github/workflows/reusable-registry-retry.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-registry-retry.yml) — existing release only      |
+| Docker bake (nested)          | [`.github/workflows/reusable-docker-bake.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-docker-bake.yml) — called via `$/` from build/retry |
+| Docker registry push (nested) | [`.github/workflows/reusable-docker-registry-push.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-docker-registry-push.yml)                  |
+| Helm OCI push (nested)        | [`.github/workflows/reusable-helm-oci-push.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/reusable-helm-oci-push.yml)                                |
+| Renovate (per-repo)           | [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) + [`renovate.json`](../renovate.json) — see [docs/renovate.md](renovate.md)                                            |
+| CodeQL (per-repo)             | [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) — thin synced workflow; see below                                                                                          |
+| Sync products                 | [`.github/workflows/sync-products.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/sync-products.yml) — allowlist push; see [docs/sync.md](sync.md)    |
 
 Dockerfile pins Renovate skips (`apk=…-rN`, inline `name==…`): synced
 [`scripts/update-dockerfile-pins.sh`](../scripts/update-dockerfile-pins.sh) — see
@@ -366,9 +369,14 @@ gh release list --limit 20
 Secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` — **required** when `retry_dockerhub: true` (fail closed if missing). GHCR
 uses `GITHUB_TOKEN` (`packages: write` on push jobs; `contents: write` to edit the Release body).
 
-**Docker path:** checkout `git_tag` → Bake rebuild → push selected registries → replace `## Registry status` on the
-Release. **Helm path:** download `{chart_name}-{version}.tgz` from the Release → `helm push` to selected OCI registries
-→ same body replace. Other Release sections (e.g. Image licenses) are preserved.
+Bake and registry pushes are **nested reusables** (`reusable-docker-bake.yml`, `reusable-docker-registry-push.yml`,
+`reusable-helm-oci-push.yml`). Outer Devinfra workflows call them with `$/.github/workflows/<file>` so the nested file
+comes from the **same Devinfra commit** as the outer reusable (product callers do not need those files locally).
+Requires Actions runner ≥ 2.336 for `$/` (GitHub-hosted is fine).
+
+**Docker path:** nested Bake at `git_tag` → nested registry push → replace `## Registry status` on the Release. **Helm
+path:** download `{chart_name}-{version}.tgz` from the Release → nested Helm OCI push → same body replace. Other Release
+sections (e.g. Image licenses) are preserved.
 
 Thin caller example (product repo; add one workflow per product as follow-up):
 

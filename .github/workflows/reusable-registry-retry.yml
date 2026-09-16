@@ -3,8 +3,7 @@
 # Call from the product repo (thin workflow_dispatch):
 #   uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-registry-retry.yml@<ref>
 #
-# Docker: checkout git_tag → Bake rebuild → push selected registries.
-# Helm final: download Release .tgz → helm push to selected OCI registries.
+# Nested: reusable-docker-bake, reusable-docker-registry-push, reusable-helm-oci-push ($/ same commit).
 # Helm pre-release is out of scope.
 name: Reusable Registry Retry
 
@@ -157,202 +156,63 @@ jobs:
     name: Docker rebuild
     needs: validate
     if: ${{ needs.validate.outputs.kind == 'docker' }}
-    strategy:
-      matrix:
-        component: ${{ fromJson(inputs.components) }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.git_tag }}
+    uses: $/.github/workflows/reusable-docker-bake.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      app_version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      checkout_ref: ${{ inputs.git_tag }}
+      artifact_name_prefix: retry-docker-image
 
-      - name: Load version pins from versions.env
-        id: versions
-        run: |
-          # shellcheck source=scripts/load-versions-env.sh
-          source scripts/load-versions-env.sh
-          {
-            echo "python=${PYTHON_VERSION}"
-            echo "alpine=${ALPINE_VERSION}"
-            echo "alpine_minor=${ALPINE_MINOR}"
-            echo "pip=${PIP_VERSION}"
-            echo "uv=${UV_VERSION}"
-            echo "pyinstaller=${PYINSTALLER_VERSION}"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build Docker image (Bake)
-        uses: docker/bake-action@v7
-        with:
-          files: docker-bake.hcl
-          targets: ${{ matrix.component }}
-          load: true
-          set: |
-            *.platform=linux/amd64
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
-            ${{ matrix.component }}.tags=local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}
-            *.args.APP_VERSION=${{ needs.validate.outputs.version }}
-            *.args.PYTHON_VERSION=${{ steps.versions.outputs.python }}
-            *.args.ALPINE_VERSION=${{ steps.versions.outputs.alpine }}
-            *.args.ALPINE_MINOR=${{ steps.versions.outputs.alpine_minor }}
-            *.args.PIP_VERSION=${{ steps.versions.outputs.pip }}
-            *.args.UV_VERSION=${{ steps.versions.outputs.uv }}
-            *.args.PYINSTALLER_VERSION=${{ steps.versions.outputs.pyinstaller }}
-
-      - name: Save Docker image as artifact
-        run: |
-          IMAGE_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}"
-          docker save "$IMAGE_TAG" | gzip > "docker-image-${{ matrix.component }}.tar.gz"
-
-      - name: Upload Docker image artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: retry-docker-image-${{ matrix.component }}-${{ needs.validate.outputs.version }}
-          path: docker-image-${{ matrix.component }}.tar.gz
-          retention-days: 1
-
-  docker-push-dockerhub:
+  push-dockerhub:
     name: Retry push DockerHub
     needs: [validate, docker-build]
     if: ${{ needs.validate.outputs.kind == 'docker' && inputs.retry_dockerhub }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      matrix:
-        component: ${{ fromJson(inputs.components) }}
-    steps:
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: retry-docker-image-${{ matrix.component }}-${{ needs.validate.outputs.version }}
+    uses: $/.github/workflows/reusable-docker-registry-push.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      dockerhub_namespace: ${{ inputs.dockerhub_namespace }}
+      push_dockerhub: true
+      push_ghcr: false
+      image_artifact_prefix: retry-docker-image
+      status_artifact_prefix: retry-dockerhub
+      soft_skip_missing_dockerhub: false
+      write_ghcr_status: false
+      success_reason_prefix: Retry pushed
+    secrets: inherit
 
-      - name: Load Docker image
-        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Tag and Push to DockerHub
-        id: push
-        run: |
-          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}"
-          DH_TAG="${{ inputs.dockerhub_namespace }}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}"
-          docker tag "$LOCAL_TAG" "$DH_TAG"
-          docker push "$DH_TAG"
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$DH_TAG" | cut -d'@' -f2)
-          mkdir -p digests status
-          echo "$DIGEST" > "digests/dockerhub-${{ matrix.component }}.digest"
-          echo "success" > "status/dockerhub-${{ matrix.component }}.status"
-          echo "Retry pushed ${DH_TAG}" > "status/dockerhub-${{ matrix.component }}.reason"
-
-      - name: Upload DockerHub status
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: retry-dockerhub-${{ matrix.component }}-${{ needs.validate.outputs.version }}
-          path: |
-            digests/
-            status/
-          retention-days: 1
-
-      - name: Record DockerHub failure
-        if: ${{ failure() }}
-        run: |
-          mkdir -p status
-          echo "failure" > "status/dockerhub-${{ matrix.component }}.status"
-          echo "DockerHub retry push failed for ${{ matrix.component }} (see job logs)" > "status/dockerhub-${{ matrix.component }}.reason"
-
-      - name: Upload DockerHub failure status
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: retry-dockerhub-${{ matrix.component }}-${{ needs.validate.outputs.version }}
-          path: status/
-          retention-days: 1
-
-  docker-push-ghcr:
+  push-ghcr:
     name: Retry push GHCR
     needs: [validate, docker-build]
     if: ${{ needs.validate.outputs.kind == 'docker' && inputs.retry_ghcr }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        component: ${{ fromJson(inputs.components) }}
-    steps:
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: retry-docker-image-${{ matrix.component }}-${{ needs.validate.outputs.version }}
+    uses: $/.github/workflows/reusable-docker-registry-push.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      ghcr_namespace: ${{ inputs.ghcr_namespace }}
+      push_dockerhub: false
+      push_ghcr: true
+      image_artifact_prefix: retry-docker-image
+      status_artifact_prefix: retry
+      soft_skip_missing_dockerhub: false
+      write_ghcr_status: true
+      success_reason_prefix: Retry pushed
+    secrets: inherit
 
-      - name: Load Docker image
-        run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag and Push to GHCR
-        id: push
-        run: |
-          LOCAL_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}"
-          GHCR_NS="${{ inputs.ghcr_namespace }}"
-          if [[ -z "$GHCR_NS" ]]; then
-            GHCR_NS="${{ github.repository_owner }}"
-          fi
-          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
-          GHCR_TAG="ghcr.io/${GHCR_NS}/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ needs.validate.outputs.version }}"
-          docker tag "$LOCAL_TAG" "$GHCR_TAG"
-          docker push "$GHCR_TAG"
-          mkdir -p status
-          echo "success" > "status/ghcr-${{ matrix.component }}.status"
-          echo "Retry pushed ${GHCR_TAG}" > "status/ghcr-${{ matrix.component }}.reason"
-          echo "Pushed to GHCR: $GHCR_TAG"
-
-      - name: Record GHCR failure
-        if: ${{ failure() }}
-        run: |
-          mkdir -p status
-          echo "failure" > "status/ghcr-${{ matrix.component }}.status"
-          echo "GHCR retry push failed for ${{ matrix.component }} (see job logs)" > "status/ghcr-${{ matrix.component }}.reason"
-
-      - name: Upload GHCR status
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: retry-ghcr-${{ matrix.component }}-${{ needs.validate.outputs.version }}
-          path: status/
-          retention-days: 1
-          if-no-files-found: ignore
-
-  helm-push:
-    name: Helm OCI retry
+  helm-prepare:
+    name: Prepare Helm chart artifact
     needs: validate
     if: ${{ needs.validate.outputs.kind == 'helm' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     outputs:
-      dh_status: ${{ steps.dh.outputs.status }}
-      dh_reason: ${{ steps.dh.outputs.reason }}
-      ghcr_status: ${{ steps.ghcr.outputs.status }}
-      ghcr_reason: ${{ steps.ghcr.outputs.reason }}
-      ghcr_ns: ${{ steps.ghcr.outputs.ghcr_ns }}
+      chart_package: ${{ steps.dl.outputs.chart_package }}
+      helm_version: ${{ steps.versions.outputs.helm }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -370,11 +230,8 @@ jobs:
           fi
           echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
 
-      - uses: azure/setup-helm@v5
-        with:
-          version: ${{ steps.versions.outputs.helm }}
-
       - name: Download chart .tgz from GitHub Release
+        id: dl
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -386,76 +243,36 @@ jobs:
             echo "::error::Release asset ${NAME}-${VER}.tgz not found on tag ${TAG}."
             exit 1
           fi
-          echo "chart_package=${NAME}-${VER}.tgz" >> "$GITHUB_ENV"
+          echo "chart_package=${NAME}-${VER}.tgz" >> "$GITHUB_OUTPUT"
 
-      - name: Push Helm chart to Docker Hub
-        id: push_dh
-        if: ${{ inputs.retry_dockerhub }}
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          echo "${DOCKERHUB_TOKEN}" | helm registry login -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
-          helm push "${{ env.chart_package }}" "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
-          echo "status=success" >> "$GITHUB_OUTPUT"
-          echo "reason=Retry pushed to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
+      - name: Upload chart package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: helm-chart-retry-${{ needs.validate.outputs.version }}
+          path: ${{ steps.dl.outputs.chart_package }}
+          retention-days: 1
 
-      - name: Normalize DockerHub outcome
-        id: dh
-        run: |
-          if [[ "${{ inputs.retry_dockerhub }}" != "true" ]]; then
-            echo "status=skipped" >> "$GITHUB_OUTPUT"
-            echo "reason=retry_dockerhub=false" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ steps.push_dh.outcome }}" == "success" ]]; then
-            echo "status=${{ steps.push_dh.outputs.status }}" >> "$GITHUB_OUTPUT"
-            echo "reason=${{ steps.push_dh.outputs.reason }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "reason=DockerHub helm push failed — see job logs" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-
-      - name: Push Helm chart to GHCR
-        id: push_ghcr
-        if: ${{ inputs.retry_ghcr }}
-        run: |
-          GHCR_NS="${{ inputs.ghcr_namespace }}"
-          if [[ -z "$GHCR_NS" ]]; then
-            GHCR_NS="${{ github.repository_owner }}"
-          fi
-          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login -u "${{ github.actor }}" --password-stdin ghcr.io
-          helm push "${{ env.chart_package }}" "oci://ghcr.io/${GHCR_NS}"
-          echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
-          echo "status=success" >> "$GITHUB_OUTPUT"
-          echo "reason=Retry pushed to oci://ghcr.io/${GHCR_NS}" >> "$GITHUB_OUTPUT"
-
-      - name: Normalize GHCR outcome
-        id: ghcr
-        run: |
-          if [[ "${{ inputs.retry_ghcr }}" != "true" ]]; then
-            echo "status=skipped" >> "$GITHUB_OUTPUT"
-            echo "reason=retry_ghcr=false" >> "$GITHUB_OUTPUT"
-            echo "ghcr_ns=" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
-            echo "status=success" >> "$GITHUB_OUTPUT"
-            echo "reason=${{ steps.push_ghcr.outputs.reason }}" >> "$GITHUB_OUTPUT"
-            echo "ghcr_ns=${{ steps.push_ghcr.outputs.ghcr_ns }}" >> "$GITHUB_OUTPUT"
-          else
-            GHCR_NS="${{ inputs.ghcr_namespace }}"
-            if [[ -z "$GHCR_NS" ]]; then
-              GHCR_NS="${{ github.repository_owner }}"
-            fi
-            GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
-            echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "reason=GHCR helm push failed — see job logs" >> "$GITHUB_OUTPUT"
-            echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
+  helm-push:
+    name: Helm OCI retry
+    needs: [validate, helm-prepare]
+    if: ${{ needs.validate.outputs.kind == 'helm' }}
+    uses: $/.github/workflows/reusable-helm-oci-push.yml
+    with:
+      chart_artifact_name: helm-chart-retry-${{ needs.validate.outputs.version }}
+      chart_package: ${{ needs.helm-prepare.outputs.chart_package }}
+      push_dockerhub: ${{ inputs.retry_dockerhub }}
+      push_ghcr: ${{ inputs.retry_ghcr }}
+      dockerhub_namespace: ${{ inputs.dockerhub_namespace }}
+      ghcr_namespace: ${{ inputs.ghcr_namespace }}
+      soft_skip_missing_dockerhub: false
+      soft_fail: false
+      helm_version: ${{ needs.helm-prepare.outputs.helm_version }}
+      success_reason_prefix: Retry pushed
+    secrets: inherit
 
   update-release-body:
     name: Update Release Registry status
-    needs: [validate, docker-push-dockerhub, docker-push-ghcr, helm-push]
+    needs: [validate, push-dockerhub, push-ghcr, helm-push]
     if: ${{ always() && needs.validate.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
@@ -487,17 +304,14 @@ jobs:
           COMPONENTS_JSON: ${{ inputs.components }}
           RETRY_DH: ${{ inputs.retry_dockerhub }}
           RETRY_GHCR: ${{ inputs.retry_ghcr }}
-          DH_JOB: ${{ needs.docker-push-dockerhub.result }}
-          GHCR_JOB: ${{ needs.docker-push-ghcr.result }}
+          DH_JOB: ${{ needs.push-dockerhub.result }}
+          GHCR_JOB: ${{ needs.push-ghcr.result }}
           HELM_DH: ${{ needs.helm-push.outputs.dh_status }}
           HELM_DH_REASON: ${{ needs.helm-push.outputs.dh_reason }}
           HELM_GHCR: ${{ needs.helm-push.outputs.ghcr_status }}
           HELM_GHCR_REASON: ${{ needs.helm-push.outputs.ghcr_reason }}
-          DH_NS: ${{ inputs.dockerhub_namespace }}
           IMG_BASE: ${{ inputs.image_base_name }}
-          CHART_NAME: ${{ inputs.chart_name }}
           GHCR_INPUT: ${{ inputs.ghcr_namespace }}
-          HELM_GHCR_NS: ${{ needs.helm-push.outputs.ghcr_ns }}
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
           GHCR_NS="${GHCR_INPUT}"

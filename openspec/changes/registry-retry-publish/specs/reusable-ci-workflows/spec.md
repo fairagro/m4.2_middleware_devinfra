@@ -1,5 +1,21 @@
 ## ADDED Requirements
 
+### Requirement: Shared nested bake and registry-push reusables
+
+The repository MUST provide nested reusable workflows `.github/workflows/reusable-docker-bake.yml`,
+`.github/workflows/reusable-docker-registry-push.yml`, and `.github/workflows/reusable-helm-oci-push.yml`. Shared build,
+Docker release, Helm final, Helm pre-release, and registry-retry workflows MUST call those nested workflows for
+overlapping Bake/push work rather than duplicating job YAML. Nested calls from Devinfra reusables MUST use the
+self-repository form `$/.github/workflows/<file>` so the nested workflow resolves to the same Devinfra commit as the
+outer reusable (not the product caller tree). Composite actions under `.github/actions/` MUST NOT be required for this
+Bake/push sharing.
+
+#### Scenario: Release and retry share docker registry-push
+
+- **WHEN** Docker release and registry-retry both push component images
+- **THEN** both invoke `reusable-docker-registry-push.yml` via a nested `uses:` call
+- **AND** image naming inputs remain aligned
+
 ### Requirement: Reusable registry-retry workflow
 
 The repository MUST provide `.github/workflows/reusable-registry-retry.yml` callable via `workflow_call` that retries
