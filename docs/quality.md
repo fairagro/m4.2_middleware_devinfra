@@ -170,16 +170,17 @@ repo’s `pyproject.toml` (Devinfra: `scripts/ai/tests`; products: their `middle
 
 **Untyped fleet deps (arctrl / fable_library):** silenced in synced [`mypy.ini`](../mypy.ini)
 (`ignore_missing_imports`) and [`pyrightconfig.json`](../pyrightconfig.json)
-(`reportMissingTypeStubs: none`). Do **not** reintroduce incomplete shared stub trees for those
-packages — they did not improve type safety over config silences (see [`stubs/README.md`](../stubs/README.md)).
+(`reportMissingTypeStubs: none`, `useLibraryCodeForTypes: false`, `reportAny: none`).
+Do **not** reintroduce incomplete shared stub trees for those packages — they did not
+improve type safety over config silences (see [`stubs/README.md`](../stubs/README.md)).
 Product-local stubs (e.g. owslib/rdflib) may still live under product `stubs/` and use `stubPath`.
 
 **Analysis (basedpyright / Pylance):** use synced [`pyrightconfig.json`](../pyrightconfig.json)
 **verbatim** — root `.venv`, `stubPath: stubs` (for optional product-local stubs only),
-`extraPaths` only for `scripts/ai/src`, and `reportMissingTypeStubs: none`. Do **not** add product
-`middleware/` paths — editable `uv` installs resolve them. Do **not** patch
-`python.analysis.extraPaths` / Cursor Pyright equivalents into synced `.vscode/settings.json`
-after sync for product overlays ([`docs/sync.md`](sync.md)).
+`extraPaths` only for `scripts/ai/src`, plus the silence flags above for untyped deps. Do
+**not** add product `middleware/` paths — editable `uv` installs resolve them. Do **not**
+patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
+`.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)).
 
 Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
 [Environment parity](#environment-parity-ide-hooks-ci)) — do not add product-local IDE settings that invent a second

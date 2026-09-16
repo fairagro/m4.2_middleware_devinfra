@@ -11,5 +11,7 @@
     "**/venv",
     "**/dist"
   ],
-  "reportMissingTypeStubs": "none"
+  "reportMissingTypeStubs": "none",
+  "useLibraryCodeForTypes": false,
+  "reportAny": "none"
 }
