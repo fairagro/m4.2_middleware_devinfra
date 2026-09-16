@@ -48,75 +48,81 @@ policy (avoid duplicate noisy checks). It MUST be syncable into product repos at
 ### Requirement: Shared Pyright / basedpyright fragment exists
 
 The repository MUST provide a root-level `pyrightconfig.json` suitable to sync into product repos at the same relative
-path. The shared file MUST set analysis to the workspace root `.venv` (`venvPath` / `venv`), MUST set `stubPath` to
-`stubs` for product-local third-party stubs (keeping silence out of synced `mypy.ini`), MUST include `scripts/ai/src` in
-`extraPaths` for the shared `m42-ai` workspace member, and MUST include the documented common excludes (`node_modules`,
-`__pycache__`, dot-directories, `.venv` / `venv`). The shared file MUST NOT list product `middleware/` or other
+path. The shared file MUST set analysis to the workspace root `.venv` (`venvPath` / `venv`), MUST include
+`scripts/ai/src` in `extraPaths` for the shared `m42-ai` workspace member, and MUST include the documented common
+excludes (`node_modules`, `__pycache__`, dot-directories, `.venv` / `venv`). The shared file MUST NOT require a synced
+`stubs/` tree or `stubPath` pointing at fleet stubs. The shared file MUST NOT list product `middleware/` or other
 product-only package paths (editable `uv` installs resolve those). Product-only excludes (e.g. `dev_environment`) MUST
 NOT be required in the shared blob.
 
 #### Scenario: Contributor opens shared pyrightconfig
 
 - **WHEN** a contributor opens root `pyrightconfig.json` in this repository
-- **THEN** `venv` / `venvPath`, `stubPath: stubs`, `extraPaths` including `scripts/ai/src`, and the common excludes are
-  present
+- **THEN** `venv` / `venvPath`, `extraPaths` including `scripts/ai/src`, and the common excludes are present
 - **AND** no product `middleware/` package path appears in `extraPaths`
+- **AND** the file does not require a Devinfra-synced `stubs/` directory
 
 #### Scenario: Fragment is on the sync allowlist
 
 - **WHEN** a contributor inspects the product sync path allowlist
 - **THEN** `pyrightconfig.json` is listed for verbatim sync into product repos
 
-### Requirement: Shared incomplete stubs for arctrl and fable_library
+### Requirement: Fleet untyped arctrl and fable_library silenced in tool config
 
-The repository MUST provide incomplete type stub packages under `stubs/arctrl/` and `stubs/fable_library/` suitable to
-sync into product repos (same relative paths). Stubs MAY use `__getattr__ -> Any` (and sparse leaf modules as needed) so
-imports resolve without enumerating every symbol. The repository MUST provide `stubs/README.md` stating: (1) arctrl and
-fable_library stubs are fleet-shared via sync; (2) owslib / rdflib stubs stay product-local when needed; (3) one-off
-untyped libs use `# type: ignore[import-untyped]` on the import rather than new stub packages; (4) products MUST put
-`stubs` on `MYPYPATH` for hooks/CI and rely on synced `pyrightconfig.json` `stubPath` for basedpyright; (5) products
-MUST NOT add `[mypy-arctrl*]` / fable module overrides to synced `mypy.ini` and MUST NOT keep import-untyped ignores for
-packages covered by these stubs after sync.
+The repository MUST NOT provide or sync a `stubs/` directory (including `stubs/README.md` or arctrl/fable stub trees).
+Untyped fleet imports of `arctrl` / `fable_library` MUST be silenced in synced tool fragments instead:
 
-#### Scenario: Shared stub trees exist
+- `mypy.ini`: `[mypy-arctrl*]` / `[mypy-fable_library*]` with `ignore_missing_imports = True`
+- `.pylintrc`: `ignored-modules` including `arctrl` and `fable_library`
+- `ruff.toml`: document that Ruff does not gate missing third-party imports; keep `known-third-party` for isort
+  classification of those packages
+- `pyrightconfig.json`: MUST NOT rely on shared stubs; MAY set `typeCheckingMode` so basedpyright is not a second type
+  gate alongside mypy
 
-- **WHEN** a contributor inspects `stubs/arctrl/` and `stubs/fable_library/` in this repository
-- **THEN** incomplete package stubs are present for both
-- **AND** `stubs/README.md` documents fleet vs product-local vs one-off silence
+Products MUST NOT add duplicate arctrl/fable silences to product `pyproject.toml` when synced fragments already cover
+them. One-off untyped libs (not arctrl/fable) MAY use `# type: ignore[import-untyped]` on the import. Sync allowlist
+MUST NOT list any `stubs/**` paths.
 
-#### Scenario: Stubs are on the sync allowlist
+#### Scenario: No stubs directory in Devinfra
+
+- **WHEN** a contributor inspects the repository root
+- **THEN** there is no `stubs/` directory synced from Devinfra
+
+#### Scenario: Tool fragments silence fleet deps
+
+- **WHEN** a contributor opens synced `mypy.ini`, `.pylintrc`, and `ruff.toml`
+- **THEN** mypy module overrides and pylint `ignored-modules` cover `arctrl` / `fable_library`
+- **AND** ruff documents that it does not emit third-party missing-import diagnostics for those packages
+
+#### Scenario: Sync allowlist excludes stubs
 
 - **WHEN** a contributor inspects the product sync path allowlist
-- **THEN** `stubs/arctrl/**`, `stubs/fable_library/**`, and `stubs/README.md` are listed for verbatim sync
+- **THEN** no `stubs/**` path is listed
 
 ### Requirement: Quality config adoption documentation
 
-Documentation in this repository MUST list the fragment files in the sync set (including `pyrightconfig.json` and the
-shared `stubs/arctrl` / `stubs/fable_library` trees), state that product root `pyproject.toml` keeps `[project]`, uv
-workspace, and (unless later unified) pytest/coverage locally, and state that `scripts/ai/pyproject.toml` is Devinfra
-`m42-ai` package metadata and MUST NOT be treated as product quality sync content. Documentation MUST state that
-Mypy/Pylint path overlays belong on process env / reusable CI inputs because shared invocations use
-`--config-file mypy.ini` / `--rcfile .pylintrc` (so product `[tool.mypy]` / `[tool.pylint.*]` are ignored), MUST NOT
-instruct editing synced fragments for those paths, and MUST NOT instruct post-sync hand-edits of synced
-`.pre-commit-config.yaml` for path overlays. Documentation MUST state that basedpyright / Pylance analysis uses the
-synced `pyrightconfig.json`, that product third-party stubs live under `stubs/` via `stubPath`, and that product package
-paths MUST NOT be added to the synced Pyright config (rely on editable installs). Documentation MUST state that shared
-arctrl / fable_library stubs live under synced `stubs/` and that `MYPYPATH` MUST include `stubs` so mypy finds them;
-MUST NOT instruct `[mypy-arctrl*]` / fable overrides in synced `mypy.ini`. Documentation MUST state that Dockerfile
-sharing is out of this capability’s MVP and point at the follow-up issue. Documentation MUST state that first product
-adoption smoke may happen via sync (#13) rather than in this change.
+Documentation in this repository MUST list the fragment files in the sync set (including `pyrightconfig.json`, without
+any `stubs/**` paths), state that product root `pyproject.toml` keeps `[project]`, uv workspace, and (unless later
+unified) pytest/coverage locally, and state that `scripts/ai/pyproject.toml` is Devinfra `m42-ai` package metadata and
+MUST NOT be treated as product quality sync content. Documentation MUST state that Mypy/Pylint path overlays belong on
+process env / reusable CI inputs because shared invocations use `--config-file mypy.ini` / `--rcfile .pylintrc` (so
+product `[tool.mypy]` / `[tool.pylint.*]` are ignored), MUST NOT instruct editing synced fragments for those paths, and
+MUST NOT instruct post-sync hand-edits of synced `.pre-commit-config.yaml` for path overlays. Documentation MUST state
+that basedpyright / Pylance analysis uses the synced `pyrightconfig.json` and that product package paths MUST NOT be
+added to that file (rely on editable installs). Documentation MUST state that untyped fleet `arctrl` / `fable_library`
+imports are silenced in synced `mypy.ini` / `.pylintrc` (and documented for Ruff), not via stub packages. Documentation
+MUST state that Dockerfile sharing is out of this capability’s MVP and point at the follow-up issue. Documentation MUST
+state that first product adoption smoke may happen via sync (#13) rather than in this change.
 
 #### Scenario: Contributor reads quality docs for fragments
 
 - **WHEN** a contributor opens the quality documentation for shared Python config
-- **THEN** they learn which fragment paths to sync (including `pyrightconfig.json` and shared `stubs/arctrl` /
-  `stubs/fable_library`)
+- **THEN** they learn which fragment paths to sync (including `pyrightconfig.json`, without a synced `stubs/` tree)
 - **AND** they learn what remains in product `pyproject.toml`
 - **AND** they learn path overlays for Mypy/Pylint go on env / CI inputs (not synced pre-commit YAML patches)
 - **AND** they learn `scripts/ai/pyproject.toml` is excluded from that sync set
-- **AND** they learn basedpyright uses synced `pyrightconfig.json` with product stubs under `stubs/` and no product
-  package paths in that file
-- **AND** they learn `MYPYPATH` must include `stubs` for shared arctrl / fable stubs without mypy.ini module overrides
+- **AND** they learn basedpyright uses synced `pyrightconfig.json` with no product package paths in that file
+- **AND** they learn fleet arctrl/fable silence is in mypy/pylint (and ruff docs), not stub packages
 
 ### Requirement: Fragment config is the only policy surface
 
