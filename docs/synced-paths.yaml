@@ -62,7 +62,6 @@ allow:
   - mypy.ini
   - .pylintrc
   - pyrightconfig.json
-  - stubs/README.md
   - .markdownlint.json
   - .markdownlint-cli2.jsonc
   - .markdownlintignore

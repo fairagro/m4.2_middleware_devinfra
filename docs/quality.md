@@ -66,8 +66,7 @@ fail policy only on one surface.
 | `ruff.toml`                                         | Shared Ruff lint/format — **verbatim** sync (no product `extend` / ignore overlay)                              |
 | `mypy.ini`                                          | Shared Mypy strictness + fleet arctrl/fable `ignore_missing_imports` (path overlays via **env**)                |
 | `.pylintrc`                                         | Shared Pylint (`ignored-modules` for arctrl/fable; `extension-pkg-allow-list=lxml`; path overlays via CI / env) |
-| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, optional `stubPath`, `scripts/ai`, `typeCheckingMode: off`) — **verbatim** |
-| `stubs/README.md`                                   | Product-local stubs only; fleet arctrl/fable silence is in tool fragments                                       |
+| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, `scripts/ai`, `typeCheckingMode: off`) — **verbatim**                      |
 | `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                                         |
 | `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                                         |
 | `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                                             |
@@ -116,7 +115,7 @@ Canonical copies live here as **fragment files** so sync (#13) can overwrite the
 | `ruff.toml`          | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps (no product Ruff overlay)                                 |
 | `mypy.ini`           | Fleet `arctrl` / `fable_library` `ignore_missing_imports`; path overlays via **env** (`MYPYPATH`)                |
 | `.pylintrc`          | Fleet `ignored-modules` for arctrl/fable; path overlays via CI / env (`pylint_source_roots`)                     |
-| `pyrightconfig.json` | Optional product-local stubs; `typeCheckingMode: off` (LS = mypy); no middleware paths                           |
+| `pyrightconfig.json` | `typeCheckingMode: off` (LS = mypy); no middleware paths; no `stubPath`                                          |
 | `.bandit`            | pytest / coverage tool tables ([#123](https://github.com/fairagro/m4.2_middleware_devinfra/issues/123) deferred) |
 
 Shared hooks and reusable CI invoke `mypy --config-file mypy.ini` and `pylint --rcfile .pylintrc`. Those flags mean
@@ -171,16 +170,13 @@ repo’s `pyproject.toml` (Devinfra: `scripts/ai/tests`; products: their `middle
 **Untyped fleet deps (arctrl / fable_library):** silenced in synced tool fragments — [`mypy.ini`](../mypy.ini)
 (`ignore_missing_imports`), [`.pylintrc`](../.pylintrc) (`ignored-modules`), and [`ruff.toml`](../ruff.toml)
 (`known-third-party` for isort; Ruff has no third-party missing-import gate). Prefer those configs over call-site
-`# type: ignore[import-untyped]` for arctrl/fable. Do **not** reintroduce incomplete shared stub trees. Product-local
-stubs (e.g. owslib/rdflib) may still live under product `stubs/` and use `stubPath` (see
-[`stubs/README.md`](../stubs/README.md)).
+`# type: ignore[import-untyped]` for arctrl/fable. Do **not** ship a Devinfra `stubs/` tree.
 
 **Analysis (basedpyright / Pylance):** use synced [`pyrightconfig.json`](../pyrightconfig.json) **verbatim** — root
-`.venv`, `stubPath: stubs` (optional product-local stubs only), `extraPaths` only for `scripts/ai/src`, and
-`typeCheckingMode: "off"` so the language server stays for IDE navigation while **mypy** owns type diagnostics (hooks +
-CI). Do **not** add product `middleware/` paths — editable `uv` installs resolve them. Do **not** patch
-`python.analysis.extraPaths` / Cursor Pyright equivalents into synced `.vscode/settings.json` after sync for product
-overlays ([`docs/sync.md`](sync.md)).
+`.venv`, `extraPaths` only for `scripts/ai/src`, and `typeCheckingMode: "off"` so the language server stays for IDE
+navigation while **mypy** owns type diagnostics (hooks + CI). Do **not** add product `middleware/` paths — editable
+`uv` installs resolve them. Do **not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
+`.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)).
 
 Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
 [Environment parity](#environment-parity-ide-hooks-ci)) — do not add product-local IDE settings that invent a second
