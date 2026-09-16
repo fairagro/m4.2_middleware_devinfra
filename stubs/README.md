@@ -6,8 +6,9 @@ third-party imports are silenced in synced tool config instead:
 - **mypy** (`mypy.ini`): `[mypy-arctrl*]`, `[mypy-fable_library*]` with
   `ignore_missing_imports = True`
 - **basedpyright** (`pyrightconfig.json`): `reportMissingTypeStubs = "none"`,
-  `useLibraryCodeForTypes = false`, and `reportAny = "none"` so untyped libraries
-  (no `py.typed`) are not deep-analyzed into noisy errors / `Any` import warnings
+  `useLibraryCodeForTypes = false`, `reportAny = "none"`, and `reportUnknown*Type =
+  "none"` so untyped libraries (no `py.typed`) stay opaque without deep-analysis noise
+  (`Unknown` import / member / argument / parameter warnings)
 
 Incomplete `__getattr__ -> Any` stubs did not improve type safety over those
 silences; maintaining them was busywork.

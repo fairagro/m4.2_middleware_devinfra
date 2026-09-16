@@ -8,10 +8,14 @@
     "**/__pycache__",
     "**/.*",
     "**/.venv",
-    "**/venv",
-    "**/dist"
+    "**/venv"
   ],
   "reportMissingTypeStubs": "none",
   "useLibraryCodeForTypes": false,
-  "reportAny": "none"
+  "reportAny": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownLambdaType": "none"
 }
