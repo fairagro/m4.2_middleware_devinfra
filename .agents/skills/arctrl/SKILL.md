@@ -23,15 +23,13 @@ ARCtrl is a Fable-transpiled F# library — the Python surface is idiomatic but 
 
 ## Package & Imports
 
-arctrl ships no `py.typed` marker. Fleet typing uses **shared incomplete stubs** under
-[`stubs/arctrl/`](../../../stubs/arctrl/) and [`stubs/fable_library/`](../../../stubs/fable_library/) (synced from
-Devinfra — see [`stubs/README.md`](../../../stubs/README.md)).
+arctrl ships no `py.typed` marker. Fleet typing silences it in synced config (not via stubs):
 
-- Put `stubs` on **`MYPYPATH`** in hooks/CI (e.g. `MYPYPATH=stubs:…`).
-- Basedpyright / Pylance: synced `pyrightconfig.json` already sets `stubPath: "stubs"`.
-- Do **not** add `[mypy-arctrl*]` / fable overrides to synced `mypy.ini`, and do **not** keep
-  `# type: ignore[import-untyped]` on arctrl / fable_library imports once stubs are synced.
-- Other one-off untyped libs (few call sites) may still use a per-import ignore; do not invent stub packages for those.
+- **mypy:** `[mypy-arctrl*]` / `[mypy-fable_library*]` `ignore_missing_imports` in synced `mypy.ini`
+- **basedpyright:** `reportMissingTypeStubs: none` in synced `pyrightconfig.json`
+- Do **not** keep `# type: ignore[import-untyped]` on arctrl / fable_library imports for that reason
+- Other one-off untyped libs (few call sites) may still use a per-import ignore; product-local stubs
+  under `stubs/` remain optional (see [`stubs/README.md`](../../../stubs/README.md))
 
 ```python
 from fable_library.async_ import start_as_task
@@ -411,8 +409,7 @@ text payload but semantically wrong for arbitrary supplementary files (serialize
 **`ArcTable` column fields are lowercase** — `col.header` / `col.cells`. `col.Header` / `col.Cells` raise
 `AttributeError` on 3.2+. `table.Headers` and `table.Columns` remain PascalCase.
 
-**`start_as_task` / `fable_library` typing** — covered by shared `stubs/fable_library/` (no per-import ignore once
-`MYPYPATH` / `stubPath` include `stubs`).
+**`start_as_task` / `fable_library` typing** — covered by synced mypy/pyright silences (no per-import ignore).
 
 **`CompositeHeader.performer` and `.date` are properties, not constructors** — call them without `()`:
 

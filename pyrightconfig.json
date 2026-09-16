@@ -11,5 +11,5 @@
     "**/venv",
     "**/dist"
   ],
-  "reportAny": "none"
+  "reportMissingTypeStubs": "none"
 }
