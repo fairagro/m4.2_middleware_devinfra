@@ -1,0 +1,118 @@
+# Nested Docker Bake for one or more components (issue #34).
+# Called from reusable-build / reusable-registry-retry via:
+#   uses: $/.github/workflows/reusable-docker-bake.yml
+# ($/ = same Devinfra commit as the outer reusable; not the product repo.)
+name: Reusable Docker Bake
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Image tag version (local/<base>-<component>:<version>)"
+        required: true
+        type: string
+      app_version:
+        description: "APP_VERSION build-arg (often pep440 or same as version)"
+        required: true
+        type: string
+      components:
+        description: "JSON array of Bake targets / components"
+        required: true
+        type: string
+      image_base_name:
+        required: false
+        type: string
+        default: "fairagro-advanced-middleware"
+      checkout_ref:
+        description: "Git ref to build (empty = caller default SHA)"
+        required: false
+        type: string
+        default: ""
+      artifact_name_prefix:
+        description: "Artifact name prefix before -<component>-<version>"
+        required: false
+        type: string
+        default: "docker-image"
+      skip:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  docker-build:
+    name: Docker Build
+    strategy:
+      matrix:
+        component: ${{ fromJson(inputs.components) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Skipping bake
+        if: ${{ inputs.skip }}
+        run: echo "Skip requested. Exiting with success."
+
+      - name: Checkout code
+        if: ${{ !inputs.skip }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.checkout_ref != '' && inputs.checkout_ref || github.sha }}
+
+      - name: Load version pins from versions.env
+        if: ${{ !inputs.skip }}
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          {
+            echo "python=${PYTHON_VERSION}"
+            echo "alpine=${ALPINE_VERSION}"
+            echo "alpine_minor=${ALPINE_MINOR}"
+            echo "pip=${PIP_VERSION}"
+            echo "uv=${UV_VERSION}"
+            echo "pyinstaller=${PYINSTALLER_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        if: ${{ !inputs.skip }}
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image (Bake)
+        if: ${{ !inputs.skip }}
+        uses: docker/bake-action@v7
+        with:
+          files: docker-bake.hcl
+          targets: ${{ matrix.component }}
+          load: true
+          set: |
+            *.platform=linux/amd64
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+            ${{ matrix.component }}.tags=local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
+            *.args.APP_VERSION=${{ inputs.app_version }}
+            *.args.PYTHON_VERSION=${{ steps.versions.outputs.python }}
+            *.args.ALPINE_VERSION=${{ steps.versions.outputs.alpine }}
+            *.args.ALPINE_MINOR=${{ steps.versions.outputs.alpine_minor }}
+            *.args.PIP_VERSION=${{ steps.versions.outputs.pip }}
+            *.args.UV_VERSION=${{ steps.versions.outputs.uv }}
+            *.args.PYINSTALLER_VERSION=${{ steps.versions.outputs.pyinstaller }}
+
+      - name: Save Docker image as artifact
+        if: ${{ !inputs.skip }}
+        run: |
+          IMAGE_TAG="local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}"
+          docker save "$IMAGE_TAG" | gzip > "docker-image-${{ matrix.component }}.tar.gz"
+
+      - name: Upload Docker image artifact
+        if: ${{ !inputs.skip }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact_name_prefix }}-${{ matrix.component }}-${{ inputs.version }}
+          path: docker-image-${{ matrix.component }}.tar.gz
+          retention-days: 1
