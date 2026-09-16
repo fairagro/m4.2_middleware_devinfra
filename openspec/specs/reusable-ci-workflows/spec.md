@@ -209,6 +209,73 @@ out of these shared workflows.
 - **WHEN** DockerHub secrets are not provided to the Helm final publish workflow
 - **THEN** the GitHub Release body states that DockerHub publish was skipped and why
 
+### Requirement: Shared nested bake and registry-push reusables
+
+The repository MUST provide nested reusable workflows `.github/workflows/reusable-docker-bake.yml`,
+`.github/workflows/reusable-docker-registry-push.yml`, and `.github/workflows/reusable-helm-oci-push.yml`. Shared build,
+Docker release, Helm final, Helm pre-release, and registry-retry workflows MUST call those nested workflows for
+overlapping Bake/push work rather than duplicating job YAML. Nested calls from Devinfra reusables MUST use the
+self-repository form `$/.github/workflows/<file>` so the nested workflow resolves to the same Devinfra commit as the
+outer reusable (not the product caller tree). Composite actions under `.github/actions/` MUST NOT be required for this
+Bake/push sharing.
+
+#### Scenario: Release and retry share docker registry-push
+
+- **WHEN** Docker release and registry-retry both push component images
+- **THEN** both invoke `reusable-docker-registry-push.yml` via a nested `uses:` call
+- **AND** image naming inputs remain aligned
+
+### Requirement: Reusable registry-retry workflow
+
+The repository MUST provide `.github/workflows/reusable-registry-retry.yml` callable via `workflow_call` that retries
+registry publish for an **existing** Docker or Helm **final** GitHub Release identified by a full git tag input
+(`git_tag`). It MUST NOT create a new semver, git tag, or GitHub Release. It MUST accept boolean inputs
+`retry_dockerhub` and `retry_ghcr` and MUST require at least one to be true. DockerHub credentials MAY be omitted only
+when `retry_dockerhub` is false; when `retry_dockerhub` is true and secrets are missing, the workflow MUST fail closed
+with a clear error. GHCR MUST use `GITHUB_TOKEN` with `packages: write` when `retry_ghcr` is true.
+
+For `release_kind: docker` (covering both original `feature` and `final` releases that already have a GitHub Release),
+the workflow MUST check out the caller repository at `git_tag`, rebuild component images with the same Bake-based
+contract as the shared build workflow (caller `components` / `image_base_name` inputs), and push only to the selected
+registries using the same image naming as `reusable-release.yml`.
+
+For `release_kind: helm`, the workflow MUST resolve the GitHub Release for `git_tag`, download the existing chart `.tgz`
+Release asset, and `helm push` that package only to the selected OCI registries. It MUST NOT bump Chart.yaml or create
+chart tags. Helm **pre-release** retry is out of scope for this requirement.
+
+After successful or partially documented registry attempts, when a GitHub Release exists for `git_tag`, the workflow
+MUST update that Release body by **replacing** the existing `## Registry status` section (through the next `##` heading)
+with the retry outcome and MUST NOT invent a second top-level registry section. Other Release body sections (e.g.
+licenses, install docs) MUST be preserved.
+
+#### Scenario: Docker registry retry rebuilds from tag and pushes
+
+- **WHEN** a product caller invokes the registry-retry reusable with `release_kind: docker`, an existing Docker release
+  `git_tag`, `retry_ghcr: true`, and valid component inputs
+- **THEN** images are rebuilt from that tag via Bake
+- **AND** selected registries receive pushes for those components
+- **AND** no new git tag or GitHub Release is created
+
+#### Scenario: Helm final registry retry uses Release asset
+
+- **WHEN** a product caller invokes the registry-retry reusable with `release_kind: helm`, an existing Helm final
+  `git_tag`, and at least one registry flag true
+- **THEN** the chart `.tgz` is taken from the GitHub Release assets for that tag
+- **AND** `helm push` runs only to the selected registries
+- **AND** no new chart version or tag is created
+
+#### Scenario: Release body Registry status is replaced
+
+- **WHEN** a registry retry completes against a tag that has a GitHub Release containing `## Registry status`
+- **THEN** that section is replaced with the retry’s registry status
+- **AND** following body sections remain intact
+
+#### Scenario: Explicit DockerHub retry without secrets fails closed
+
+- **WHEN** `retry_dockerhub` is true and `DOCKERHUB_USER` / `DOCKERHUB_TOKEN` are not available
+- **THEN** the workflow fails with a clear error
+- **AND** it does not silently skip DockerHub
+
 ### Requirement: Consumer call documentation
 
 Documentation in this repository MUST explain how a product PR (or release) workflow calls the reusable code-quality,
@@ -219,7 +286,10 @@ recommended for stability. Documentation MUST include concrete caller snippets f
 flows, and for thin Helm `workflow_dispatch` callers that invoke the shared Helm publish reusables. Documentation MUST
 state that PyPI and ns-pages workflows remain product-local (API) and are not provided as shared reusables here.
 Documentation MUST describe tag-first release identity and that registry push failures/skips are reported in the GitHub
-Release body (or Helm pre-release job summary).
+Release body (or Helm pre-release job summary). Documentation MUST also describe the **registry-retry** reusable: full
+`git_tag` string input (GitHub Actions has no dynamic tag dropdown; operators list newest tags via Releases UI or
+`git tag -l --sort=-creatordate`), `release_kind`, `retry_dockerhub` / `retry_ghcr` flags, that retry does not create
+tags, Docker rebuilds from the tag, Helm final uses the Release `.tgz`, and that Helm pre-release retry is out of scope.
 
 #### Scenario: Contributor reads CI docs
 
@@ -230,3 +300,4 @@ Release body (or Helm pre-release job summary).
 - **AND** they learn PyPI and ns-pages stay product-local
 - **AND** they learn registry pushes may fail or skip (e.g. missing DockerHub secrets) with status recorded on the
   release
+- **AND** they learn how to call the registry-retry reusable for an existing release tag without creating a new tag
