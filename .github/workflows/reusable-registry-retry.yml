@@ -1,0 +1,402 @@
+# Canonical reusable registry retry for an existing Docker/Helm release (issue #34).
+# Does NOT create a new semver, git tag, or GitHub Release.
+# Call from the product repo (thin workflow_dispatch):
+#   uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-registry-retry.yml@<ref>
+#
+# Nested: reusable-docker-bake, reusable-docker-registry-push, reusable-helm-oci-push ($/ same commit).
+# Helm pre-release is out of scope.
+name: Reusable Registry Retry
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      git_tag:
+        description: "Existing release git tag (e.g. 20260916120000-docker-v1.2.3 or …-chart-v1.2.3)"
+        required: true
+        type: string
+      release_kind:
+        description: "docker or helm"
+        required: true
+        type: string
+      retry_dockerhub:
+        description: "Retry push to DockerHub"
+        required: false
+        type: boolean
+        default: false
+      retry_ghcr:
+        description: "Retry push to GHCR"
+        required: false
+        type: boolean
+        default: false
+      components:
+        description: "JSON array of Docker components (required when release_kind=docker)"
+        required: false
+        type: string
+        default: "[]"
+      image_base_name:
+        description: "Image name prefix matching build tags"
+        required: false
+        type: string
+        default: "fairagro-advanced-middleware"
+      dockerhub_namespace:
+        description: "Docker Hub namespace / organization"
+        required: false
+        type: string
+        default: "zalf"
+      ghcr_namespace:
+        description: "GHCR namespace (owner); empty defaults to github.repository_owner"
+        required: false
+        type: string
+        default: ""
+      chart_name:
+        description: "Helm chart name (OCI repo / .tgz basename prefix); required when release_kind=helm"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      DOCKERHUB_USER:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      kind: ${{ steps.parse.outputs.kind }}
+    steps:
+      - name: Require at least one registry flag
+        run: |
+          if [[ "${{ inputs.retry_dockerhub }}" != "true" && "${{ inputs.retry_ghcr }}" != "true" ]]; then
+            echo "::error::Set retry_dockerhub and/or retry_ghcr to true."
+            exit 1
+          fi
+
+      - name: Fail closed when DockerHub retry lacks secrets
+        if: ${{ inputs.retry_dockerhub }}
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "::error::retry_dockerhub=true but DOCKERHUB_USER and/or DOCKERHUB_TOKEN were not provided."
+            exit 1
+          fi
+
+      - name: Parse git_tag and release_kind
+        id: parse
+        run: |
+          KIND="${{ inputs.release_kind }}"
+          TAG="${{ inputs.git_tag }}"
+          case "$KIND" in
+            docker|helm) ;;
+            *)
+              echo "::error::release_kind must be 'docker' or 'helm' (got '${KIND}')."
+              exit 1
+              ;;
+          esac
+          if [[ "$KIND" == "docker" ]]; then
+            if [[ ! "$TAG" =~ ^[0-9]+-docker-v(.+)$ ]]; then
+              echo "::error::git_tag '${TAG}' does not match Docker release pattern '{timestamp}-docker-v{version}'."
+              exit 1
+            fi
+            VERSION="${BASH_REMATCH[1]}"
+            if [[ "${{ inputs.components }}" == "[]" || -z "${{ inputs.components }}" ]]; then
+              echo "::error::components JSON array is required when release_kind=docker."
+              exit 1
+            fi
+          else
+            if [[ ! "$TAG" =~ ^[0-9]+-chart-v(.+)$ ]]; then
+              echo "::error::git_tag '${TAG}' does not match Helm final release pattern '{timestamp}-chart-v{version}'."
+              exit 1
+            fi
+            VERSION="${BASH_REMATCH[1]}"
+            if [[ -z "${{ inputs.chart_name }}" ]]; then
+              echo "::error::chart_name is required when release_kind=helm."
+              exit 1
+            fi
+          fi
+          echo "kind=${KIND}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Parsed kind=${KIND} version=${VERSION} from tag=${TAG}"
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Assert git tag exists
+        run: |
+          TAG="${{ inputs.git_tag }}"
+          if ! git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::git tag '${TAG}' not found in ${{ github.repository }}."
+            exit 1
+          fi
+
+      - name: Assert GitHub Release exists for tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.git_tag }}"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::No GitHub Release for tag '${TAG}' (Helm pre-release retry is out of scope)."
+            exit 1
+          fi
+
+  docker-build:
+    name: Docker rebuild
+    needs: validate
+    if: ${{ needs.validate.outputs.kind == 'docker' }}
+    uses: $/.github/workflows/reusable-docker-bake.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      app_version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      checkout_ref: ${{ inputs.git_tag }}
+      artifact_name_prefix: retry-docker-image
+
+  push-dockerhub:
+    name: Retry push DockerHub
+    needs: [validate, docker-build]
+    if: ${{ needs.validate.outputs.kind == 'docker' && inputs.retry_dockerhub }}
+    uses: $/.github/workflows/reusable-docker-registry-push.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      dockerhub_namespace: ${{ inputs.dockerhub_namespace }}
+      push_dockerhub: true
+      push_ghcr: false
+      image_artifact_prefix: retry-docker-image
+      status_artifact_prefix: retry-dockerhub
+      soft_skip_missing_dockerhub: false
+      write_ghcr_status: false
+      success_reason_prefix: Retry pushed
+    secrets: inherit
+
+  push-ghcr:
+    name: Retry push GHCR
+    needs: [validate, docker-build]
+    if: ${{ needs.validate.outputs.kind == 'docker' && inputs.retry_ghcr }}
+    uses: $/.github/workflows/reusable-docker-registry-push.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+      components: ${{ inputs.components }}
+      image_base_name: ${{ inputs.image_base_name }}
+      ghcr_namespace: ${{ inputs.ghcr_namespace }}
+      push_dockerhub: false
+      push_ghcr: true
+      image_artifact_prefix: retry-docker-image
+      status_artifact_prefix: retry
+      soft_skip_missing_dockerhub: false
+      write_ghcr_status: true
+      success_reason_prefix: Retry pushed
+    secrets: inherit
+
+  helm-prepare:
+    name: Prepare Helm chart artifact
+    needs: validate
+    if: ${{ needs.validate.outputs.kind == 'helm' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      chart_package: ${{ steps.dl.outputs.chart_package }}
+      helm_version: ${{ steps.versions.outputs.helm }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.git_tag }}
+
+      - name: Load HELM_VERSION from versions.env
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          HELM_PIN="${HELM_VERSION#v}"
+          if [[ -z "$HELM_PIN" ]]; then
+            echo "::error::HELM_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
+
+      - name: Download chart .tgz from GitHub Release
+        id: dl
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.git_tag }}"
+          VER="${{ needs.validate.outputs.version }}"
+          NAME="${{ inputs.chart_name }}"
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "${NAME}-${VER}.tgz"
+          if [[ ! -f "${NAME}-${VER}.tgz" ]]; then
+            echo "::error::Release asset ${NAME}-${VER}.tgz not found on tag ${TAG}."
+            exit 1
+          fi
+          echo "chart_package=${NAME}-${VER}.tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Upload chart package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: helm-chart-retry-${{ needs.validate.outputs.version }}
+          path: ${{ steps.dl.outputs.chart_package }}
+          retention-days: 1
+
+  helm-push:
+    name: Helm OCI retry
+    needs: [validate, helm-prepare]
+    if: ${{ needs.validate.outputs.kind == 'helm' }}
+    uses: $/.github/workflows/reusable-helm-oci-push.yml
+    with:
+      chart_artifact_name: helm-chart-retry-${{ needs.validate.outputs.version }}
+      chart_package: ${{ needs.helm-prepare.outputs.chart_package }}
+      push_dockerhub: ${{ inputs.retry_dockerhub }}
+      push_ghcr: ${{ inputs.retry_ghcr }}
+      dockerhub_namespace: ${{ inputs.dockerhub_namespace }}
+      ghcr_namespace: ${{ inputs.ghcr_namespace }}
+      soft_skip_missing_dockerhub: false
+      soft_fail: false
+      helm_version: ${{ needs.helm-prepare.outputs.helm_version }}
+      success_reason_prefix: Retry pushed
+    secrets: inherit
+
+  update-release-body:
+    name: Update Release Registry status
+    needs: [validate, push-dockerhub, push-ghcr, helm-push]
+    if: ${{ always() && needs.validate.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Collect Docker status artifacts
+        if: ${{ needs.validate.outputs.kind == 'docker' }}
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: retry-dockerhub-*
+          path: registry-meta
+          merge-multiple: true
+
+      - name: Collect GHCR status artifacts
+        if: ${{ needs.validate.outputs.kind == 'docker' }}
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: retry-ghcr-*
+          path: registry-meta
+          merge-multiple: true
+
+      - name: Build replacement Registry status section
+        id: section
+        env:
+          KIND: ${{ needs.validate.outputs.kind }}
+          VER: ${{ needs.validate.outputs.version }}
+          COMPONENTS_JSON: ${{ inputs.components }}
+          RETRY_DH: ${{ inputs.retry_dockerhub }}
+          RETRY_GHCR: ${{ inputs.retry_ghcr }}
+          DH_JOB: ${{ needs.push-dockerhub.result }}
+          GHCR_JOB: ${{ needs.push-ghcr.result }}
+          HELM_DH: ${{ needs.helm-push.outputs.dh_status }}
+          HELM_DH_REASON: ${{ needs.helm-push.outputs.dh_reason }}
+          HELM_GHCR: ${{ needs.helm-push.outputs.ghcr_status }}
+          HELM_GHCR_REASON: ${{ needs.helm-push.outputs.ghcr_reason }}
+          IMG_BASE: ${{ inputs.image_base_name }}
+          GHCR_INPUT: ${{ inputs.ghcr_namespace }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          GHCR_NS="${GHCR_INPUT}"
+          if [[ -z "$GHCR_NS" ]]; then GHCR_NS="${REPO_OWNER}"; fi
+          GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "## Registry status"
+            echo ""
+            echo "_Updated by registry-retry workflow (run ${{ github.run_id }}) — no new git tag or Release was created._"
+            echo ""
+            if [[ "$KIND" == "docker" ]]; then
+              echo "### DockerHub"
+              echo ""
+              if [[ "$RETRY_DH" != "true" ]]; then
+                echo "- **Status:** \`skipped\` — retry_dockerhub=false"
+              else
+                echo "- **Job result:** \`${DH_JOB}\`"
+                any=false
+                while IFS= read -r comp; do
+                  st=$(find registry-meta -type f -name "dockerhub-${comp}.status" 2>/dev/null | head -1 || true)
+                  rs=$(find registry-meta -type f -name "dockerhub-${comp}.reason" 2>/dev/null | head -1 || true)
+                  dg=$(find registry-meta -type f -name "dockerhub-${comp}.digest" 2>/dev/null | head -1 || true)
+                  if [[ -n "$st" && -f "$st" ]]; then
+                    any=true
+                    status=$(tr -d '[:space:]' < "$st")
+                    reason=""
+                    [[ -n "$rs" && -f "$rs" ]] && reason=$(tr -d '\r' < "$rs")
+                    echo "- **\`${comp}\`:** \`${status}\`${reason:+ — ${reason}}"
+                    if [[ "$status" == "success" && -n "$dg" && -f "$dg" ]]; then
+                      echo "  - digest: \`$(tr -d '[:space:]' < "$dg")\`"
+                    fi
+                  fi
+                done < <(echo "$COMPONENTS_JSON" | jq -r '.[]')
+                if [[ "$any" != "true" ]]; then
+                  echo "- No per-component status artifacts (job \`${DH_JOB}\`)."
+                fi
+              fi
+              echo ""
+              echo "### GHCR"
+              echo ""
+              if [[ "$RETRY_GHCR" != "true" ]]; then
+                echo "- **Status:** \`skipped\` — retry_ghcr=false"
+              else
+                echo "- **Job result:** \`${GHCR_JOB}\`"
+                if [[ "$GHCR_JOB" == "success" ]]; then
+                  echo "- Retry push succeeded for matrix components."
+                  echo ""
+                  echo '```bash'
+                  echo "$COMPONENTS_JSON" | jq -r --arg ns "$GHCR_NS" --arg base "$IMG_BASE" --arg ver "$VER" \
+                    '.[] | "docker pull ghcr.io/\($ns)/\($base)-\(.):\($ver)"'
+                  echo '```'
+                else
+                  echo "- Retry push result \`${GHCR_JOB}\` — see DockerPush/GHCR job logs."
+                fi
+              fi
+            else
+              echo "### DockerHub"
+              echo "- **Status:** \`${HELM_DH}\`"
+              echo "- **Detail:** ${HELM_DH_REASON}"
+              echo ""
+              echo "### GHCR"
+              echo "- **Status:** \`${HELM_GHCR}\`"
+              echo "- **Detail:** ${HELM_GHCR_REASON}"
+            fi
+            echo ""
+          } > new-registry-status.md
+
+      - name: Replace Registry status in Release body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.git_tag }}
+        run: |
+          gh release view "$TAG" --repo "${{ github.repository }}" --json body --jq .body > old-body.md
+          python3 <<'PY'
+          import pathlib
+          import re
+
+          old = pathlib.Path("old-body.md").read_text(encoding="utf-8")
+          section = pathlib.Path("new-registry-status.md").read_text(encoding="utf-8").rstrip() + "\n"
+          pat = re.compile(r"^## Registry status\n.*?(?=^## |\Z)", re.M | re.S)
+          if pat.search(old):
+              new = pat.sub(section + "\n", old, count=1)
+          else:
+              new = section + "\n" + old
+          pathlib.Path("new-body.md").write_text(new, encoding="utf-8")
+          PY
+          gh release edit "$TAG" --repo "${{ github.repository }}" --notes-file new-body.md
+          echo "Updated ## Registry status on release ${TAG}"
