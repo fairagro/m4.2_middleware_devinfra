@@ -1,11 +1,4 @@
-# shared-git-hooks Specification
-
-## Purpose
-
-Version-controlled git hooks and installer so product repos install the same pre-push quality gate (pre-commit pre-push
-stage) after clone or Dev Container create, without requiring Git LFS.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Setup script installs project git hooks
 

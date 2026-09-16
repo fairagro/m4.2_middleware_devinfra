@@ -54,10 +54,10 @@ npm install   # host clones; optional in Dev Container (global markdownlint/pret
 ./scripts/quality-check.sh          # commit-stage, non-mutating
 ./scripts/quality-fix.sh            # autofix hooks
 uv run pre-commit install --hook-type pre-commit   # also run from Dev Container postCreate
-./scripts/setup-git-hooks.sh        # project pre-push git hooks (also from postCreate / after clone)
+./scripts/setup-git-hooks.sh        # dispatcher + pre-push.d/50-quality (also from postCreate / after clone)
 ```
 
-Pre-push **git** hook (`scripts/git-hooks/pre-push`: pre-commit pre-push stage) is installed by
+Pre-push **git** hook (dispatcher + `pre-push.d/50-quality`: pre-commit pre-push stage) is installed by
 `./scripts/setup-git-hooks.sh` — see [`docs/quality.md`](docs/quality.md). CST runner params (`CST_BAKE_TARGET`,
 `CST_IMAGE_TAG`, `CST_CONFIG`) are documented there. Git LFS is **not** part of the shared toolchain; products that need
 it (e.g. sql-to-arc) install `git-lfs` product-locally.
@@ -143,8 +143,8 @@ steps.
 | `scripts/quality-check.sh`                | Commit-stage quality check                                                          |
 | `scripts/quality-fix.sh`                  | Commit-stage autofix hooks                                                          |
 | `scripts/run-container-structure-test.sh` | Templated Docker + container-structure-test runner                                  |
-| `scripts/setup-git-hooks.sh`              | Install project `pre-push` hook from `scripts/git-hooks/`                           |
-| `scripts/git-hooks/`                      | Version-controlled `pre-push` (pre-commit pre-push stage)                           |
+| `scripts/setup-git-hooks.sh`              | Install dispatcher + `pre-push.d/50-quality` from `scripts/git-hooks/`              |
+| `scripts/git-hooks/`                      | Dispatcher + quality fragment (pre-commit pre-push stage)                           |
 | `.pre-commit-config.yaml`                 | Shared pre-commit skeleton (commit + pre-push stages)                               |
 | `.bandit`                                 | Bandit config for `middleware/` consumers                                           |
 | `scripts/ai/`                             | `m42-ai` CLI (Devinfra: workspace member; consumers: `uv run --project scripts/ai`) |
