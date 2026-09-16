@@ -1,22 +1,24 @@
 # Product-local type stubs (optional)
 
 Shared incomplete stubs for `arctrl` / `fable_library` were **removed**. Untyped
-third-party imports are silenced in synced tool config instead:
+third-party imports are handled without a full API mirror:
 
 - **mypy** (`mypy.ini`): `[mypy-arctrl*]`, `[mypy-fable_library*]` with
-  `ignore_missing_imports = True`
-- **basedpyright** (`pyrightconfig.json`): `reportMissingTypeStubs = "none"`,
-  `useLibraryCodeForTypes = false`, `reportAny = "none"`, and `reportUnknown*Type =
-  "none"` so untyped libraries (no `py.typed`) stay opaque without deep-analysis noise
-  (`Unknown` import / member / argument / parameter warnings)
+  `ignore_missing_imports = True` — **mypy is the type gate** (hooks + CI)
+- **Call sites:** `# type: ignore[import-untyped]` on `arctrl` / `fable_library`
+  imports when needed (same pattern as other untyped deps)
+- **basedpyright / Pylance** (`pyrightconfig.json`): `typeCheckingMode: "off"` —
+  keep the language server (goto, rename, hover, completions); do **not** emit a
+  second set of type diagnostics in the IDE. Do **not** add fleet-wide
+  `reportAny` / `reportUnknown*Type` silences.
 
-Incomplete `__getattr__ -> Any` stubs did not improve type safety over those
-silences; maintaining them was busywork.
+Incomplete `__getattr__ -> Any` stubs did not improve type safety; maintaining
+them was busywork.
 
 ## What may still live under `stubs/`
 
-| Stub / silence                         | Where              | Why                              |
-| -------------------------------------- | ------------------ | -------------------------------- |
+| Stub / silence | Where | Why |
+| --- | --- | --- |
 | `owslib/`, `rdflib/`, other product libs | Product-local only | High churn / not shared fleet-wide |
 | One-off libs (`lxml`, `defusedxml`, …) | `# type: ignore[import-untyped]` on the import | Few call sites |
 

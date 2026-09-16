@@ -2,20 +2,16 @@
   "venvPath": ".",
   "venv": ".venv",
   "stubPath": "stubs",
-  "extraPaths": ["scripts/ai/src"],
+  "extraPaths": [
+    "scripts/ai/src"
+  ],
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/.venv",
-    "**/venv"
+    "**/venv",
+    "**/dist"
   ],
-  "reportMissingTypeStubs": "none",
-  "useLibraryCodeForTypes": false,
-  "reportAny": "none",
-  "reportUnknownVariableType": "none",
-  "reportUnknownMemberType": "none",
-  "reportUnknownArgumentType": "none",
-  "reportUnknownParameterType": "none",
-  "reportUnknownLambdaType": "none"
+  "typeCheckingMode": "off"
 }

@@ -23,14 +23,14 @@ ARCtrl is a Fable-transpiled F# library — the Python surface is idiomatic but 
 
 ## Package & Imports
 
-arctrl ships no `py.typed` marker. Fleet typing silences it in synced config (not via stubs):
+arctrl ships no `py.typed` marker. Fleet typing handles it without shared stubs:
 
 - **mypy:** `[mypy-arctrl*]` / `[mypy-fable_library*]` `ignore_missing_imports` in synced `mypy.ini`
-- **basedpyright:** `reportMissingTypeStubs: none`, `useLibraryCodeForTypes: false`,
-  and `reportAny: none` in synced `pyrightconfig.json` (do not type-check untyped
-  library sources such as arctrl)
-- Do **not** keep `# type: ignore[import-untyped]` on arctrl / fable_library imports for that reason
-- Other one-off untyped libs (few call sites) may still use a per-import ignore; product-local stubs
+  (type gate: hooks + CI)
+- **basedpyright / Pylance:** synced `pyrightconfig.json` sets `typeCheckingMode: "off"` —
+  language server only; no second IDE type-diagnostics stream
+- **Call sites:** `# type: ignore[import-untyped]` on `arctrl` / `fable_library` imports when needed
+- Other one-off untyped libs (few call sites) use the same per-import ignore; product-local stubs
   under `stubs/` remain optional (see [`stubs/README.md`](../../../stubs/README.md))
 
 ```python
