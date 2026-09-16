@@ -66,7 +66,7 @@ fail policy only on one surface.
 | `ruff.toml`                                         | Shared Ruff lint/format — **verbatim** sync (no product `extend` / ignore overlay)                                                           |
 | `mypy.ini`                                          | Shared Mypy strictness (path overlays via **env**, not by editing this file)                                                                 |
 | `.pylintrc`                                         | Shared Pylint (path overlays via CI / env; `extension-pkg-allow-list=lxml` for I1101)                                                        |
-| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, `stubPath: stubs`, `scripts/ai` only) — **verbatim**                                                    |
+| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, `stubPath: stubs`, `scripts/ai` only, `reportAny: none`) — **verbatim**                                 |
 | `stubs/arctrl/`, `stubs/fable_library/`             | Shared incomplete stubs for untyped arctrl/fable — **verbatim** sync ([#67](https://github.com/fairagro/m4.2_middleware_devinfra/issues/67)) |
 | `stubs/README.md`                                   | Fleet vs product-local vs one-off stub/silence contract                                                                                      |
 | `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                                                                      |
@@ -174,13 +174,16 @@ repo’s `pyproject.toml` (Devinfra: `scripts/ai/tests`; products: their `middle
 [`stubs/fable_library/`](../stubs/fable_library/) (see [`stubs/README.md`](../stubs/README.md)). Products MUST put
 `stubs` on `MYPYPATH` for hooks/CI. Do **not** add `[mypy-arctrl*]` / fable module overrides to synced `mypy.ini`, and
 drop `# type: ignore[import-untyped]` on those imports after sync. Product-local stubs (e.g. owslib/rdflib) may coexist
-under `stubs/` without being synced from Devinfra.
+under `stubs/` without being synced from Devinfra. Stubs stay **incomplete** (`__getattr__ -> Any`); do not expand them
+into a full third-party API mirror. Their job is mypy import resolution without synced `mypy.ini` pollution — see
+[`stubs/README.md`](../stubs/README.md).
 
 **Analysis (basedpyright / Pylance):** use synced [`pyrightconfig.json`](../pyrightconfig.json) **verbatim** — root
-`.venv`, `stubPath: stubs` (shared arctrl/fable stubs + any product-local stub dirs), and `extraPaths` only for
-`scripts/ai/src`. Do **not** add product `middleware/` (or other package) paths to that file — editable `uv` installs
-resolve them. Do **not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
-`.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)).
+`.venv`, `stubPath: stubs` (shared arctrl/fable stubs + any product-local stub dirs), `extraPaths` only for
+`scripts/ai/src`, and `"reportAny": "none"` so incomplete stubs do not flood the IDE with `Type of "X" is Any`. Do
+**not** add product `middleware/` (or other package) paths to that file — editable `uv` installs resolve them. Do
+**not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced `.vscode/settings.json` after sync
+for product overlays ([`docs/sync.md`](sync.md)).
 
 Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
 [Environment parity](#environment-parity-ide-hooks-ci)) — do not add product-local IDE settings that invent a second

@@ -10,5 +10,6 @@
     "**/.venv",
     "**/venv",
     "**/dist"
-  ]
+  ],
+  "reportAny": "none"
 }
