@@ -15,7 +15,8 @@ consumers — land shared changes in this repo first. The allowlist is [`docs/sy
 ## Agent skills
 
 First-party shared skills (hand-maintained here; sync to products) include `/review-fixer`, `/create-issue`,
-`/issue-fixer`, and the **arctrl** usage reference under `.agents/skills/arctrl/`. They are **not** `gh skill` pins.
+`/code-review`, `/issue-fixer`, and the **arctrl** usage reference under `.agents/skills/arctrl/`. They are **not**
+`gh skill` pins.
 
 ### Vendor agent skills
 
@@ -113,6 +114,7 @@ steps.
   extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
 - [Create-issue](docs/create-issue.md) — org issue types, triage labels, sub-of vs linked for `/create-issue`
+- [Code-review](docs/code-review.md) — first-party branch/PR review for `/code-review`
 - [Issue-fixer](docs/issue-fixer.md) — triage → OpenSpec (Feature/Refactoring) or Task/Bug fast path → draft PR for
   `/issue-fixer`
 - [Shared principles](openspec/principles.global.md) — synced foundation; extend via
@@ -130,6 +132,7 @@ steps.
 | `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)          |
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                      |
 | `docs/create-issue.md`                    | Org issue types + triage labels + relation for `/create-issue`                      |
+| `docs/code-review.md`                     | Thin index for `/code-review`                                                       |
 | `docs/issue-fixer.md`                     | Thin index for `/issue-fixer`                                                       |
 | `docs/quality.md`                         | Pre-commit skeleton, quality scripts, CST params, Python config fragments           |
 | `docs/ci.md`                              | Reusable CI workflows (`uses:` contract: quality, check, build, release, Helm)      |
@@ -152,6 +155,7 @@ steps.
 | `openspec/principles.md`                  | Repo-local principles extension (points at `.global`)                               |
 | `.agents/skills/review-fixer/`            | Shared `/review-fixer` Fixer skill                                                  |
 | `.agents/skills/create-issue/`            | Shared `/create-issue` creator skill                                                |
+| `.agents/skills/code-review/`             | Shared `/code-review` first-party review skill                                      |
 | `.agents/skills/issue-fixer/`             | Shared `/issue-fixer` Fixer skill                                                   |
 | `.agents/skills/arctrl/`                  | Shared arctrl ≥ 3.2.1 usage reference (first-party; not a vendor pin)               |
 | `.agents/skills/gh/`                      | Vendor `gh` skill (committed; do not hand-edit)                                     |
@@ -160,8 +164,9 @@ steps.
 | `.agents/skills/uv/`                      | Vendor `uv` skill (committed; do not hand-edit)                                     |
 | `.cursor/commands/review-fixer.md`        | Cursor slash command for review-fixer                                               |
 | `.cursor/commands/create-issue.md`        | Cursor slash command for create-issue                                               |
+| `.cursor/commands/code-review.md`         | Cursor slash command for code-review                                                |
 | `.cursor/commands/issue-fixer.md`         | Cursor slash command for issue-fixer                                                |
-| `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, issue-fixer)                           |
+| `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, code-review, issue-fixer)              |
 | `.cursor/`                                | Shared Cursor config (incl. `BUGBOT.md`)                                            |
 | `.github/`                                | Shared workflows / prompts (incl. `copilot-instructions.md`)                        |
 | `scripts/dev-tokens.sh`                   | Personal token load / prompt                                                        |
