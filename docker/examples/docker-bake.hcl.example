@@ -47,6 +47,10 @@ target "api-base" {
     BINARY_NAME         = "middleware-api"
     # Preferred: import path of the installed package that owns main.py (resolved after wheel install)
     PYINSTALLER_IMPORT  = "middleware.api"
+    # Optional secondary (omit / leave empty for single-primary). Example healthcheck onefile:
+    # SECONDARY_BINARY_NAME        = "healthcheck"
+    # SECONDARY_PYINSTALLER_IMPORT = "middleware.harvester.healthcheck"
+    # SECONDARY_ONEFILE            = "true"
   }
 }
 

@@ -31,6 +31,10 @@ RUN apk add --no-cache ca-certificates zlib \
 # hadolint ignore=DL3022
 COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} ${RUNTIME_WORKDIR}/${BINARY_NAME}
 
+# Optional secondary onefile from the same export (uncomment when *-base sets SECONDARY_*):
+# ARG SECONDARY_BINARY_NAME=healthcheck
+# COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${SECONDARY_BINARY_NAME} ${RUNTIME_WORKDIR}/${SECONDARY_BINARY_NAME}
+
 USER ${RUNTIME_USER}
 
 # Replace with product ENTRYPOINT / EXPOSE / HEALTHCHECK as needed.
