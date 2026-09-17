@@ -523,3 +523,10 @@ Container structure tests load:
 Callers that upload SARIF need `security-events: write` on the top-level workflow (or inherit permissions that allow the
 reusable security job). Prefer `secrets: inherit` when product secrets are required by nested steps. Docker/Helm pushes
 need DockerHub secrets on the caller and `packages: write` for GHCR where applicable.
+
+**Nested reusable ceiling:** GitHub intersects permissions down the `workflow_call` chain. An intermediate reusable’s
+top-level `permissions` is the maximum nested jobs may request. Outer Devinfra entrypoints that call
+`reusable-docker-registry-push.yml` / `reusable-helm-oci-push.yml` (notably `reusable-release.yml` and
+`reusable-registry-retry.yml`) therefore grant `packages: write` (and `contents: write` when they tag or edit Releases)
+at the workflow level — not only on leaf jobs — so GHCR push validation succeeds. Granting `packages: write` only on the
+product caller is not enough if the intermediate reusable still declares `packages: none` / omits packages.
