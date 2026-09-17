@@ -11,6 +11,7 @@ from typing import Any
 
 from m42_ai import __version__
 from m42_ai.auth import auth_status
+from m42_ai.code_review import code_review_context, publish_report, write_report
 from m42_ai.gh import GhError
 from m42_ai.issue import (
     branch_ahead,
@@ -29,8 +30,11 @@ def _print_json(data: Any) -> None:
 
 
 def _read_body(args: argparse.Namespace) -> str:
-    if getattr(args, "body_file", None):
-        return Path(args.body_file).read_text(encoding="utf-8")
+    body_file = getattr(args, "body_file", None)
+    if body_file:
+        if body_file == "-":
+            return sys.stdin.read()
+        return Path(body_file).read_text(encoding="utf-8")
     if getattr(args, "body", None) is not None:
         return str(args.body)
     raise SystemExit("provide --body or --body-file")
@@ -144,6 +148,41 @@ def cmd_pr_strip_footer(args: argparse.Namespace) -> int:
     )
     _print_json(data)
     return 0
+
+
+def cmd_code_review_context(args: argparse.Namespace) -> int:
+    data = code_review_context(
+        base=args.base,
+        pr=args.pr,
+        owner=args.owner,
+        repo=args.repo,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    _print_json(data)
+    return 0 if data.get("ok") else 1
+
+
+def cmd_code_review_report_write(args: argparse.Namespace) -> int:
+    body = _read_body(args)
+    data = write_report(
+        body,
+        slug=args.slug,
+        tmp_dir=Path(args.tmp_dir) if args.tmp_dir else None,
+    )
+    _print_json(data)
+    return 0 if data.get("ok") else 1
+
+
+def cmd_code_review_publish(args: argparse.Namespace) -> int:
+    data = publish_report(
+        body_file=Path(args.body_file),
+        pr=args.pr,
+        owner=args.owner,
+        repo=args.repo,
+        cwd=Path(args.cwd) if args.cwd else None,
+    )
+    _print_json(data)
+    return 0 if data.get("ok") else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -261,6 +300,38 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--repo")
     ps.add_argument("--cwd", help="Git repo root (default: cwd)")
     ps.set_defaults(func=cmd_pr_strip_footer)
+
+    crc = sub.add_parser(
+        "code-review-context",
+        help="Shape local or PR diff metadata JSON for /code-review (paths/stats; no full patch)",
+    )
+    crc.add_argument("--base", default="main", help="Local base ref (default: main)")
+    crc.add_argument("--pr", type=int, help="PR number (uses gh; ignores local merge-base)")
+    crc.add_argument("--owner")
+    crc.add_argument("--repo")
+    crc.add_argument("--cwd", help="Git repo root (default: cwd)")
+    crc.set_defaults(func=cmd_code_review_context)
+
+    crw = sub.add_parser(
+        "code-review-report-write",
+        help="Write a code-review Markdown report under /tmp and print JSON path",
+    )
+    crw.add_argument("--body")
+    crw.add_argument("--body-file", help="Markdown path, or '-' for stdin")
+    crw.add_argument("--slug", help="Filename slug (default: local)")
+    crw.add_argument("--tmp-dir", dest="tmp_dir", help="Override /tmp (tests)")
+    crw.set_defaults(func=cmd_code_review_report_write)
+
+    crp = sub.add_parser(
+        "code-review-publish",
+        help="Publish report as COMMENT PR review (or local no-op without --pr)",
+    )
+    crp.add_argument("--pr", type=int, help="PR number; omit for local-only (no GitHub)")
+    crp.add_argument("--body-file", required=True, help="Report Markdown path")
+    crp.add_argument("--owner")
+    crp.add_argument("--repo")
+    crp.add_argument("--cwd", help="Git repo root (default: cwd)")
+    crp.set_defaults(func=cmd_code_review_publish)
 
     return p
 
