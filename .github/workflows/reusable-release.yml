@@ -6,6 +6,10 @@
 # Does not publish to PyPI — keep PyPI jobs in the product repo (API-local).
 name: Reusable Release
 
+concurrency:
+  group: ${{ github.repository }}-reusable-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

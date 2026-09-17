@@ -5,6 +5,10 @@
 # Creates a prerelease chart version (…-rc.<branch>.<run>) and pushes OCI; no GitHub Release.
 name: Reusable Helm Pre Release
 
+concurrency:
+  group: ${{ github.repository }}-reusable-helm-pre-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   packages: write

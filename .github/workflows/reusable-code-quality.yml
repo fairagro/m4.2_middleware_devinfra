@@ -2,6 +2,10 @@
 # Call from the product repo: uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@<ref>
 name: Reusable Code Quality
 
+concurrency:
+  group: ${{ github.repository }}-reusable-code-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

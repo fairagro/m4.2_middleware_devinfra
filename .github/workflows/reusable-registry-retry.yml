@@ -7,6 +7,10 @@
 # Helm pre-release is out of scope.
 name: Reusable Registry Retry
 
+concurrency:
+  group: ${{ github.repository }}-reusable-registry-retry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
