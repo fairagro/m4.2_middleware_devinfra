@@ -14,6 +14,10 @@
 #   - docker-bake.hcl                      (repo root; target name = component)
 name: Reusable Build
 
+concurrency:
+  group: ${{ github.repository }}-reusable-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

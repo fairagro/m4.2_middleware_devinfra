@@ -4,6 +4,10 @@
 # Keep reusable-release tag_prefix at docker-v so this discovery matches.
 name: Reusable Helm Release
 
+concurrency:
+  group: ${{ github.repository }}-reusable-helm-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   packages: write
