@@ -1,4 +1,4 @@
-# Sync shared paths into product repos (allowlist push — issue #13).
+# Sync shared paths into product repos (allowlist push — issue #13 / #168).
 # Bot token: repository secret DEVINFRA_BOT_TOKEN (same PAT as Renovate). See docs/sync.md.
 name: Sync products
 
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "List what would sync; do not open PRs"
+        description: "List what would sync; do not open PRs or create follow-up issues"
         type: boolean
         default: true
       skip_api:
@@ -25,6 +25,10 @@ on:
         description: "Skip fairagro/m4.2_middleware_harvester"
         type: boolean
         default: false
+      followup_id:
+        description: "Optional SYNC-FOLLOWUP stable id (opens product issues; empty = none)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -63,7 +67,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Gate — allowlisted paths changed?
+      - name: Gate — allowlist set or paths changed?
         id: gate
         if: github.event_name == 'push'
         run: |
@@ -72,22 +76,31 @@ jobs:
           if [[ -z "${before}" || "${before}" == 0000000000000000000000000000000000000000 ]]; then
             echo "No usable before SHA; sync"
             echo "should_sync=true" >> "${GITHUB_OUTPUT}"
+            echo "orphan_base=" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
-          allow="$(mktemp)"
-          uv run python scripts/sync-products.py --list-files > "${allow}"
-          if git diff --name-only "${before}" HEAD | grep -Fxf "${allow}" -q; then
-            echo "Allowlisted path(s) changed; sync"
+          echo "orphan_base=${before}" >> "${GITHUB_OUTPUT}"
+          before_list="$(mktemp)"
+          after_list="$(mktemp)"
+          uv run python scripts/sync-products.py --list-files --ref "${before}" > "${before_list}"
+          uv run python scripts/sync-products.py --list-files --ref HEAD > "${after_list}"
+          if ! cmp -s "${before_list}" "${after_list}"; then
+            echo "Allowlist file set changed since ${before}; sync"
+            echo "should_sync=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if git diff --name-only "${before}" HEAD | grep -Fxf "${after_list}" -q; then
+            echo "Allowlisted path content changed; sync"
             echo "should_sync=true" >> "${GITHUB_OUTPUT}"
           else
-            echo "No allowlisted paths changed since ${before}; skip sync"
+            echo "No allowlist set/content change since ${before}; skip file sync"
             echo "should_sync=false" >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Require bot token
-        # Dry-run dispatch never opens PRs and does not need the bot secret.
+        # Dry-run dispatch never opens PRs/issues and does not need the bot secret.
         if: >-
-          (github.event_name == 'push' && steps.gate.outputs.should_sync == 'true') ||
+          (github.event_name == 'push') ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
         env:
           DEVINFRA_BOT_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
@@ -106,6 +119,12 @@ jobs:
         run: |
           set -euo pipefail
           args=()
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            orphan_base="${{ steps.gate.outputs.orphan_base }}"
+            if [[ -n "${orphan_base}" ]]; then
+              args+=(--orphan-base "${orphan_base}")
+            fi
+          fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ inputs.dry_run }}" == "true" ]]; then
               args+=(--dry-run)
@@ -121,3 +140,78 @@ jobs:
             fi
           fi
           uv run python scripts/sync-products.py "${args[@]}"
+
+      - name: Collect SYNC-FOLLOWUP ids
+        id: followups
+        if: >-
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
+        env:
+          GH_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          ids_file="$(mktemp)"
+          : > "${ids_file}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            fid="${{ inputs.followup_id }}"
+            fid="${fid//$'\n'/}"
+            if [[ -n "${fid}" ]]; then
+              printf '%s\n' "${fid}" >> "${ids_file}"
+            fi
+          else
+            sha="${{ github.sha }}"
+            pr_json="$(uv run m42-ai pr-for-commit --sha "${sha}" --owner fairagro --repo m4.2_middleware_devinfra || true)"
+            pr_num="$(printf '%s' "${pr_json}" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=d.get("pr"); print(p["number"] if p else "")')"
+            if [[ -n "${pr_num}" ]]; then
+              uv run m42-ai sync-followup-ids --pr "${pr_num}" --owner fairagro --repo m4.2_middleware_devinfra \
+                | python3 -c 'import json,sys; d=json.load(sys.stdin); print("\n".join(d.get("ids") or []))' >> "${ids_file}"
+            else
+              echo "No PR for ${sha}; skip trailer collection"
+            fi
+          fi
+          # Unique non-empty ids
+          sort -u "${ids_file}" | sed '/^$/d' > "${ids_file}.uniq"
+          mv "${ids_file}.uniq" "${ids_file}"
+          echo "ids_file=${ids_file}" >> "${GITHUB_OUTPUT}"
+          echo "Collected follow-up ids:"
+          cat "${ids_file}" || true
+
+      - name: Ensure product follow-up issues
+        if: >-
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)
+        env:
+          GH_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          ids_file="${{ steps.followups.outputs.ids_file }}"
+          if [[ ! -s "${ids_file}" ]]; then
+            echo "No SYNC-FOLLOWUP ids; done"
+            exit 0
+          fi
+          source_pr_url=""
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            pr_json="$(uv run m42-ai pr-for-commit --sha "${{ github.sha }}" --owner fairagro --repo m4.2_middleware_devinfra || true)"
+            source_pr_url="$(printf '%s' "${pr_json}" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=d.get("pr"); print(p["url"] if p else "")')"
+          fi
+          repos=()
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ inputs.skip_api }}" != "true" ]]; then
+            repos+=("fairagro/m4.2_advanced_middleware_api")
+          fi
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ inputs.skip_sql_to_arc }}" != "true" ]]; then
+            repos+=("fairagro/m4.2_sql_to_arc")
+          fi
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ inputs.skip_harvester }}" != "true" ]]; then
+            repos+=("fairagro/m4.2_middleware_harvester")
+          fi
+          while IFS= read -r id; do
+            [[ -z "${id}" ]] && continue
+            for repo in "${repos[@]}"; do
+              echo "ensure ${id} on ${repo}"
+              args=(sync-followup-ensure --repo "${repo}" --id "${id}" --source-sha "${{ github.sha }}")
+              if [[ -n "${source_pr_url}" ]]; then
+                args+=(--source-pr-url "${source_pr_url}")
+              fi
+              uv run m42-ai "${args[@]}"
+            done
+          done < "${ids_file}"

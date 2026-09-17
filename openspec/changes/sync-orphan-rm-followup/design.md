@@ -22,31 +22,28 @@ comments**.
 
 ## Decisions
 
-1. **Orphan set = `list-files(base) − list-files(HEAD)`**
-   Resolve allowlist at both trees (`git show` / worktree checkout of YAML + expand against that tree’s files, or
-   checkout base briefly). Prefer extending `--list-files` with `--ref` rather than inventing a second path SoT.
-   _Rejected:_ product-side manifest (B); `retire:` YAML.
+1. **Orphan set = `list-files(base) − list-files(HEAD)`** Resolve allowlist at both trees (`git show` / worktree
+   checkout of YAML + expand against that tree’s files, or checkout base briefly). Prefer extending `--list-files` with
+   `--ref` rather than inventing a second path SoT. _Rejected:_ product-side manifest (B); `retire:` YAML.
 
-2. **Comparison base**
-   Actions push: `github.event.before`. Local/dispatch live sync: optional `--orphan-base <sha>`; if omitted, skip
-   deletes (copy-only) and still allow follow-up ensure when ids are known.
-   _Rejected:_ always full-tree reconcile without base.
+2. **Comparison base** Actions push: `github.event.before`. Local/dispatch live sync: optional `--orphan-base <sha>`; if
+   omitted, skip deletes (copy-only) and still allow follow-up ensure when ids are known. _Rejected:_ always full-tree
+   reconcile without base.
 
 3. **`m42-ai` surface (MVP)**
    - `pr-for-commit --sha` → JSON `{number,url,…}|null`
    - `sync-followup-ids --pr N` (or `--body` + `--comments` fixtures) → JSON list of ids from body + comments
-   - `sync-followup-ensure --owner/--repo --id … --source-pr/--source-sha` → create-or-reuse JSON
-     Dedupe key: label `sync-followup:<id>` (create label if missing) and/or title prefix; prefer label for search.
-     Template: file under Devinfra (e.g. `docs/sync-followup-issue.md`) with placeholders — not synced to products
-     unless we explicitly allowlist later (default: Devinfra-only path read by CLI when cwd is Devinfra).
+   - `sync-followup-ensure --owner/--repo --id … --source-pr/--source-sha` → create-or-reuse JSON Dedupe key: label
+     `sync-followup:<id>` (create label if missing) and/or title prefix; prefer label for search. Template: file under
+     Devinfra (e.g. `docs/sync-followup-issue.md`) with placeholders — not synced to products unless we explicitly
+     allowlist later (default: Devinfra-only path read by CLI when cwd is Devinfra).
 
-4. **Orchestration**
-   Workflow after/before sync PRs: resolve PR for `GITHUB_SHA`, collect ids (+ dispatch input), loop products calling
-   `sync-followup-ensure`. `sync-products.py` owns copy + orphan `git rm` + commit/PR; MAY shell out to `m42-ai` for
-   follow-ups or leave that to the workflow for clearer dry-run splits.
+4. **Orchestration** Workflow after/before sync PRs: resolve PR for `GITHUB_SHA`, collect ids (+ dispatch input), loop
+   products calling `sync-followup-ensure`. `sync-products.py` owns copy + orphan `git rm` + commit/PR; MAY shell out to
+   `m42-ai` for follow-ups or leave that to the workflow for clearer dry-run splits.
 
-5. **Comment sources**
-   Issue comments on the PR + submitted review bodies that contain the trailer line. Ignore PENDING review drafts.
+5. **Comment sources** Issue comments on the PR + submitted review bodies that contain the trailer line. Ignore PENDING
+   review drafts.
 
 ## Risks / Trade-offs
 
