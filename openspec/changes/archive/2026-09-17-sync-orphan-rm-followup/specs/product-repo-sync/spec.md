@@ -1,54 +1,4 @@
-# product-repo-sync Specification
-
-## Purpose
-
-Defines automation that opens pull requests in the three m4.2 product repositories copying only Devinfra paths listed in
-the single synced-paths allowlist, so a commit on Devinfra main can propagate shared files without hand-copy Wave
-adopts.
-
-## Requirements
-
-### Requirement: Sync workflow opens PRs in the three product repos
-
-The repository MUST provide a GitHub Actions workflow that can open sync pull requests in
-`fairagro/m4.2_advanced_middleware_api`, `fairagro/m4.2_sql_to_arc`, and `fairagro/m4.2_middleware_harvester`. On push
-to the default branch (`main`), when the run is not skipped, the workflow MUST attempt live sync PRs for those targets
-(issue #13 done-when). The workflow MUST also support `workflow_dispatch` with inputs to dry-run (no PR) and/or skip
-individual targets. Sync MUST authenticate with a repository Actions secret holding a bot token that has Contents and
-Pull requests access on the target repos (same bot identity MAY be shared with Renovate). The bot token MUST also be
-able to create issues on the product repos when follow-up creation runs.
-
-On push-triggered live sync, the workflow MUST resolve the Devinfra pull request associated with source `HEAD` (when one
-exists), collect `SYNC-FOLLOWUP: <stable-id>` trailers from that PR’s body and comments, and for each distinct id ensure
-a deduplicated follow-up issue exists in each non-skipped product repo (via the agent-ai-gh / `m42-ai` plumbing).
-`workflow_dispatch` MUST accept an optional follow-up id input that triggers the same per-product ensure path without
-requiring a merged PR trailer.
-
-#### Scenario: Push to main can open sync PRs
-
-- **WHEN** a commit lands on Devinfra `main` and sync is not skipped
-- **THEN** the sync workflow runs and can open (or update) a sync PR in each configured product repo when allowlisted
-  paths differ **or** allowlist orphans must be deleted
-- **AND** the job uses the documented bot token secret (not `GITHUB_TOKEN` alone for cross-repo PRs)
-
-#### Scenario: Maintainer dry-runs or skips a consumer
-
-- **WHEN** a maintainer runs `workflow_dispatch` with dry-run enabled or a target skip flag
-- **THEN** the job reports what would sync without opening PRs (dry-run), or omits the skipped target
-- **AND** documentation describes these overrides
-
-#### Scenario: Trailer opens product follow-up issues
-
-- **WHEN** live push sync runs and the merged Devinfra PR for `HEAD` contains `SYNC-FOLLOWUP: <stable-id>` in its body
-  or comments
-- **THEN** each non-skipped product repo has an open follow-up issue for that id (create or reuse)
-- **AND** a second sync with the same id does not open a duplicate open issue
-
-#### Scenario: Dispatch follow-up input
-
-- **WHEN** a maintainer runs `workflow_dispatch` with a follow-up id input set
-- **THEN** each non-skipped product repo gets the same ensure-follow-up behavior as a trailer id
-- **AND** dry-run MUST NOT create issues
+## MODIFIED Requirements
 
 ### Requirement: Sync copies only the allowlist SoT paths
 
@@ -98,6 +48,48 @@ from heuristics unrelated to the allowlist delta.
 - **WHEN** sync runs without a usable comparison base SHA for the allowlist delta
 - **THEN** the sync implementation does not remove product paths based on an allowlist delta
 - **AND** it still copies the current allowlist set
+
+### Requirement: Sync workflow opens PRs in the three product repos
+
+The repository MUST provide a GitHub Actions workflow that can open sync pull requests in
+`fairagro/m4.2_advanced_middleware_api`, `fairagro/m4.2_sql_to_arc`, and `fairagro/m4.2_middleware_harvester`. On push
+to the default branch (`main`), when the run is not skipped, the workflow MUST attempt live sync PRs for those targets
+(issue #13 done-when). The workflow MUST also support `workflow_dispatch` with inputs to dry-run (no PR) and/or skip
+individual targets. Sync MUST authenticate with a repository Actions secret holding a bot token that has Contents and
+Pull requests access on the target repos (same bot identity MAY be shared with Renovate). The bot token MUST also be
+able to create issues on the product repos when follow-up creation runs.
+
+On push-triggered live sync, the workflow MUST resolve the Devinfra pull request associated with source `HEAD` (when one
+exists), collect `SYNC-FOLLOWUP: <stable-id>` trailers from that PR’s body and comments, and for each distinct id ensure
+a deduplicated follow-up issue exists in each non-skipped product repo (via the agent-ai-gh / `m42-ai` plumbing).
+`workflow_dispatch` MUST accept an optional follow-up id input that triggers the same per-product ensure path without
+requiring a merged PR trailer.
+
+#### Scenario: Push to main can open sync PRs
+
+- **WHEN** a commit lands on Devinfra `main` and sync is not skipped
+- **THEN** the sync workflow runs and can open (or update) a sync PR in each configured product repo when allowlisted
+  paths differ **or** allowlist orphans must be deleted
+- **AND** the job uses the documented bot token secret (not `GITHUB_TOKEN` alone for cross-repo PRs)
+
+#### Scenario: Maintainer dry-runs or skips a consumer
+
+- **WHEN** a maintainer runs `workflow_dispatch` with dry-run enabled or a target skip flag
+- **THEN** the job reports what would sync without opening PRs (dry-run), or omits the skipped target
+- **AND** documentation describes these overrides
+
+#### Scenario: Trailer opens product follow-up issues
+
+- **WHEN** live push sync runs and the merged Devinfra PR for `HEAD` contains `SYNC-FOLLOWUP: <stable-id>` in its body
+  or comments
+- **THEN** each non-skipped product repo has an open follow-up issue for that id (create or reuse)
+- **AND** a second sync with the same id does not open a duplicate open issue
+
+#### Scenario: Dispatch follow-up input
+
+- **WHEN** a maintainer runs `workflow_dispatch` with a follow-up id input set
+- **THEN** each non-skipped product repo gets the same ensure-follow-up behavior as a trailer id
+- **AND** dry-run MUST NOT create issues
 
 ### Requirement: Sync documentation is indexed
 

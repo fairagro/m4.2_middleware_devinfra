@@ -65,6 +65,9 @@ you pass `--owner` / `--repo` where the command supports them.
 | `code-review-context`           | Local or PR diff metadata JSON (paths/stats; full patch omitted) for `/code-review`                     |
 | `code-review-report-write`      | Write review Markdown under `/tmp/code-review-*.md`; JSON includes path                                 |
 | `code-review-publish`           | COMMENT Pull Request Review via `gh pr review --comment` (local no-op without `--pr`)                   |
+| `pr-for-commit --sha`           | Resolve a PR that contains a commit (sync follow-up)                                                    |
+| `sync-followup-ids`             | Parse `SYNC-FOLLOWUP: <id>` from PR body+comments or offline `--body` / `--comment`                     |
+| `sync-followup-ensure`          | Create or reuse product Task (`--repo`, `--id`; dedupe label `sync-followup:<id>`)                      |
 
 `review-open` has a **git side effect**: it checks out the PR head (via `gh pr checkout`) when the current branch
 differs. Dirty trees on a **different** branch refuse with JSON `{"ok": false, "error": …}` and exit `1`. Dirty on the
