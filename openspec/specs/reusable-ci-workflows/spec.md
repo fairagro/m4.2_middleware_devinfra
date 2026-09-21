@@ -100,6 +100,11 @@ containing `sbom-<component>.spdx.json` when SBOM generation is part of the port
 Variables for correct identity. A boolean `skip` input MAY be provided; when true, required jobs MUST complete
 successfully via a no-op path where callers need stable check names.
 
+When `skip` is false and the caller ref name matches `build/*`, the emitted Docker `version` MUST use the shared
+pre-release pattern derived from the bumped base semver (including a branch label and run discriminator), and
+`pep440_version` MUST be a PEP 440–compatible form suitable for optional local Python packaging. Refs that do **not**
+match `build/*` (including historical `feature/*`) MUST NOT receive that pre-release suffix from this workflow.
+
 #### Scenario: Build produces check-compatible artifacts
 
 - **WHEN** a product workflow calls the reusable build workflow with `skip: false`, components, and `image_base_name`
@@ -109,10 +114,16 @@ successfully via a no-op path where callers need stable check names.
 
 #### Scenario: Feature branch pre-release version
 
-- **WHEN** the caller runs on a `feature/*` ref and `skip` is false
+- **WHEN** the caller runs on a `build/*` ref and `skip` is false
 - **THEN** the emitted Docker `version` follows the shared pre-release pattern derived from the bumped base semver
   (including a run discriminator)
 - **AND** `pep440_version` is a PEP 440–compatible form suitable for optional local Python packaging
+
+#### Scenario: Non-build refs are not RC-suffixed
+
+- **WHEN** the caller runs on a ref that is not `build/*` (for example `feature/*`, `ci/*`, or `issue-*`) and `skip` is
+  false
+- **THEN** the emitted Docker `version` is the bumped base semver without the shared pre-release suffix
 
 #### Scenario: Build uses Bake with base and last stage
 
@@ -191,6 +202,9 @@ When a registry push is skipped or fails, final Helm GitHub Releases MUST docume
 release body; pre-release flows MUST surface the same information in the job summary. ns-pages publishing MUST remain
 out of these shared workflows.
 
+Helm **pre-release** MUST emit chart versions with the shared `…-rc.<branch>.<run>` pattern and MUST fail closed unless
+the caller ref matches `build/*` (hard cut — not `feature/*`).
+
 #### Scenario: Helm final publish from product caller
 
 - **WHEN** a product thin caller invokes the reusable Helm final publish workflow with chart inputs and registry
@@ -208,6 +222,11 @@ out of these shared workflows.
 
 - **WHEN** DockerHub secrets are not provided to the Helm final publish workflow
 - **THEN** the GitHub Release body states that DockerHub publish was skipped and why
+
+#### Scenario: Helm pre-release requires build channel
+
+- **WHEN** a product caller invokes Helm pre-release on a ref that is not `build/*`
+- **THEN** the workflow fails with a clear error naming the `build/*` requirement
 
 ### Requirement: Shared nested bake and registry-push reusables
 

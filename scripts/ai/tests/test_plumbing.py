@@ -7,7 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from m42_ai.auth import auth_status
-from m42_ai.issue import branch_ahead, ensure_issue_branch, view_issue
+from m42_ai.issue import (
+    branch_ahead,
+    ensure_issue_branch,
+    issue_branch_name,
+    normalize_issue_channel,
+    view_issue,
+)
 from m42_ai.pr import pr_strip_footer, strip_marketing_footers
 
 
@@ -170,6 +176,15 @@ def test_ensure_issue_branch_refuses_dirty(tmp_path: Path) -> None:
         run_git.return_value = MagicMock(stdout=" M x\n")
         with pytest.raises(RuntimeError, match="clean"):
             ensure_issue_branch(issue=6, slug="pin", cwd=tmp_path)
+
+
+def test_issue_branch_name_channels() -> None:
+    assert issue_branch_name(185, "fleet", channel=None) == "build/issue-185-fleet"
+    assert issue_branch_name(185, "fleet", channel="ci") == "ci/issue-185-fleet"
+    assert issue_branch_name(185, "fleet", channel="docs") == "docs/issue-185-fleet"
+    assert normalize_issue_channel(None) == "build"
+    with pytest.raises(ValueError, match="channel"):
+        normalize_issue_channel("feature")
 
 
 def test_pr_strip_footer_edits_when_changed() -> None:
