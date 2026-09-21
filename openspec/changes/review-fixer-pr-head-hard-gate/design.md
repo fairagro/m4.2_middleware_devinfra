@@ -2,37 +2,35 @@
 
 ## Context
 
-See `proposal.md` (Why). CLI `ensure_pr_head` already fail-closes; the gap is agent skill wording that was easy to
-bypass after a failed checkout.
+See `proposal.md` (Why). `ensure_pr_head` already fail-closed with a plain `RuntimeError` string; agents still
+improvised. Put the stop contract in JSON the CLI owns.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Skill text that agents cannot reasonably skip: first action = `review-open`, then gate on branch match
-- Explicit forbidden recoveries: stash, force checkout, silent branch restore
-- Align with existing CLI (dirty on head OK)
+- Stable `error_code` + `agent_action: stop` on gate failure; `pr_head_ok` on success
+- Skill reduced to “call CLI → honor JSON”
+- Keep dirty-on-head allowed
 
 **Non-Goals:**
 
-- Changing `ensure_pr_head` / GraphQL shaping
-- Auto-stashing or agent-driven dirty-tree repair
-- New CLI flags
+- Auto-stash or agent-driven dirty-tree repair
+- New subcommand (gate stays inside `review-open`)
 
 ## Decisions
 
-1. **Skill-only hardening** — raise the existing “Ensure PR head” requirement rather than new plumbing. Alternative: CLI
-   wrapper that refuses to print open-work JSON without checkout — already true; agents still need stop rules.
-2. **Place a short “First hard gate” block near the top of the PR-known path** (before Fetch / triage detail), plus
-   tighten the existing Fetch section. Alternative: only deepen Fetch — rejected; agents skim past mid-skill prose.
-3. **Thin docs get at most one sentence** pointing at the skill gate; no duplicate procedure.
+1. **`PrHeadGateError.as_json()`** — codes: `dirty_wrong_branch`, `empty_head_ref`, `checkout_failed`,
+   `checkout_branch_mismatch`. Alternative: string-match `error` in the skill — rejected.
+2. **Success sets `ok` / `pr_head_ok` only when checkout ran** (`ensure_checkout=True`). Library callers with
+   `ensure_checkout=False` keep shaping-only JSON without those flags.
+3. **Skill cites CLI fields**, not a second prose checklist of dirty-tree cases.
 
 ## Risks / Trade-offs
 
-- [Agents still improvise despite text] → Keep language imperative and short; cite fail-closed CLI error as the stop
-  signal.
-- [User wants agent to stash for them] → Out of scope; user cleans the tree or switches branch, then re-runs.
+- [Agents ignore `agent_action`] → Keep skill imperative and short; plumbing still refuse checkout.
+- [Other RuntimeErrors lack `error_code`] → Generic fail JSON still sets `agent_action: stop`.
 
 ## Migration Plan
 
-Sync skill to products. No rollback beyond reverting skill text.
+Ship CLI + skill together via sync. Products pick up both on next Devinfra sync.

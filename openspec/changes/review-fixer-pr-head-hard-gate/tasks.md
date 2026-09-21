@@ -1,13 +1,17 @@
 # Tasks
 
-## 1. Skill / docs
+## 1. Plumbing
 
-- [ ] 1.1 Add a first-hard-gate block to `.agents/skills/review-fixer/SKILL.md` (PR known → always `review-open` first;
-      stop on failure; no stash/improvise/silent branch restore; dirty-on-head allowed); verify Fetch section matches
-- [ ] 1.2 Add a one-line pointer in thin `docs/review-fixer.md` and/or command/prompt if they summarize fetch; verify no
-      contradictory “improvise checkout” wording
+- [x] 1.1 Add structured `PrHeadGateError` + success `ok`/`pr_head_ok` on `review-open`; verify CLI JSON for
+      dirty-wrong-branch includes `error_code` and `agent_action: stop`
+- [x] 1.2 Extend `test_review_checkout.py` for structured gate JSON; verify suite passes
 
-## 2. Validate
+## 2. Skill / docs
 
-- [ ] 2.1 Run `uv run --project scripts/ai pytest scripts/ai/tests/test_review_checkout.py` and confirm pass
-- [ ] 2.2 Run `openspec validate review-fixer-pr-head-hard-gate --strict` and confirm pass
+- [x] 2.1 Point `/review-fixer` skill at CLI `ok` / `pr_head_ok` / `agent_action` (first hard gate); no stash/improvise
+- [x] 2.2 Update thin docs/README for structured gate JSON; verify no contradictory wording
+
+## 3. Validate
+
+- [x] 3.1 Run `uv run --project scripts/ai pytest scripts/ai/tests/test_review_checkout.py` and confirm pass
+- [x] 3.2 Run `openspec validate review-fixer-pr-head-hard-gate --strict` and confirm pass

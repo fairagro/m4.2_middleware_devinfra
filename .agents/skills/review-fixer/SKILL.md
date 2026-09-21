@@ -15,8 +15,8 @@ description: >-
 Implement policy. Do not re-litigate it. Read [`docs/ai_review_policy.md`](../../../docs/ai_review_policy.md) if
 anything here is ambiguous.
 
-You are the **fixer** (precision). Copilot, Bugbot, and `/code-review` are finders (recall). Do not loop until
-comments are gone.
+You are the **fixer** (precision). Copilot, Bugbot, and `/code-review` are finders (recall). Do not loop until comments
+are gone.
 
 **Abort criterion:** When this run’s output shows **Fixed non-nit this run: 0**, the review cycle **stops**. Do not ask
 for another Copilot/Bugbot pass or another `/review-fixer` just because threads/comments remain, Remaining risk is
@@ -44,6 +44,25 @@ threads.
 If they only pasted text, triage that text and **do not** reply on GitHub unless they also gave a PR.
 
 Do **not** commit. Do **not** push. Never create a git commit to obtain a SHA for replies.
+
+## First hard gate (when a PR is known)
+
+**First action — before any checklist, reply, or `fix` edit:**
+
+```bash
+uv run --project scripts/ai m42-ai review-open --pr PR
+# optional permalink scope:
+uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
+```
+
+Trust the CLI JSON (do not invent checkout workarounds):
+
+- Exit `0` and `ok` / `pr_head_ok` true → proceed; triage only that JSON (`current_branch` is the PR head).
+- Exit non-zero or `ok` / `pr_head_ok` false → **stop**. Show the JSON (`error_code`, `error`, `agent_action: stop`) to
+  the user. Do **not** stash, force-checkout, or switch branches yourself. Ask the user to clean up / switch, then
+  re-run.
+
+Dirty on the PR head is allowed by the CLI. Paste-only triage without a PR does **not** require checkout.
 
 ## Two phases (when any thread is `fix`)
 
@@ -94,22 +113,12 @@ do not invent them. Never ask the user to paste a PAT into chat.
 
 ## Fetch open work (when a PR is known)
 
-**Start from the CLI** (do not dump raw GraphQL into context). Successful `review-open` also **checks out the PR head
-branch** (fails closed with JSON error if the tree is dirty on a different branch). Do **not** apply any local `fix`
-edits until this command succeeds and `current_branch` / `head_ref` match. Paste-only triage without a PR does not
-require checkout.
-
-```bash
-uv run --project scripts/ai m42-ai review-open --pr PR
-# optional, when the user gave /pull/N#pullrequestreview-ID:
-uv run --project scripts/ai m42-ai review-open --pr PR --review-id ID
-```
-
-The JSON already filters to **unresolved review threads from any author** (`unresolved_ai_threads` — key kept for
-compat) and **summary-only findings** (`summary_only_findings` / each entry in `ai_reviews`): Copilot/Bugbot/Cursor
-suppressed packing **and** first-party `/code-review` reports (`<!-- m42-ai:code-review -->` + findings table), not
-only the latest submission — Copilot “Suppressed comments” and code-review COMMENT bodies often have no thread and
-would be missed if a later review became “latest”. Optional `--review-id` scopes review bodies when the user gave a
+After the [First hard gate](#first-hard-gate-when-a-pr-is-known) succeeds (do not dump raw GraphQL into context). The
+JSON already filters to **unresolved review threads from any author** (`unresolved_ai_threads` — key kept for compat)
+and **summary-only findings** (`summary_only_findings` / each entry in `ai_reviews`): Copilot/Bugbot/Cursor suppressed
+packing **and** first-party `/code-review` reports (`<!-- m42-ai:code-review -->` + findings table), not only the latest
+submission — Copilot “Suppressed comments” and code-review COMMENT bodies often have no thread and would be missed if a
+later review became “latest”. Optional `--review-id` scopes review bodies when the user gave a
 `/pull/N#pullrequestreview-ID` permalink. Docs: [`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 **Open work** (this is the only set you triage unless the user pasted a specific review URL):
@@ -121,8 +130,8 @@ would be missed if a later review became “latest”. Optional `--review-id` sc
    treated as closed when a triage reply exists after them (PR conversation comment or non-finder review body starting
    with `Fixed in` / `Dismissed.` / `Follow-up:`, ideally including `#pullrequestreview-<id>`). These findings have
    **no** resolve button — **never** call `review-resolve` on them; reply with
-   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later
-   `review-open` marks that review answered.
+   `m42-ai review-reply --pr PR --conversation` and include `#pullrequestreview-<id>` in the body so later `review-open`
+   marks that review answered.
 
 Ignore resolved threads completely (do not reply on them again).
 
