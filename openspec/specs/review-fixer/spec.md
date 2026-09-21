@@ -2,23 +2,25 @@
 
 ## Purpose
 
-Defines the canonical `/review-fixer` Fixer skill and thin Cursor/Copilot entrypoints that triage Copilot and Bugbot PR
-review comments using the shared AI review policy.
+Defines the canonical `/review-fixer` Fixer skill and thin Cursor/Copilot entrypoints that triage unresolved PR review
+threads (any author) and finder summary-only findings using the shared AI review policy.
 
 ## Requirements
 
 ### Requirement: review-fixer skill is canonical here
 
 The repository MUST provide `.agents/skills/review-fixer/SKILL.md` as the Fixer procedure for shared consumers. The
-skill MUST treat `docs/ai_review_policy.md` as the decision source of truth, process open Copilot/Bugbot work only
-unless a specific review URL is given, and MUST NOT commit or push. When any finding is `fix`, the skill MUST use two
-phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>` only after the user has committed.
+skill MUST treat `docs/ai_review_policy.md` as the decision source of truth, process **all unresolved review threads**
+(any author) from `review-open` plus finder summary-only / suppressed findings (Copilot/Bugbot/Cursor heuristics **and**
+`/code-review` marked COMMENT bodies), unless a specific review URL scopes the run, and MUST NOT commit or push. When
+any finding is `fix`, the skill MUST use two phases: local fixes plus dismiss/follow-up replies first; `Fixed in <sha>`
+only after the user has committed.
 
 #### Scenario: Agent runs /review-fixer with a PR number
 
 - **WHEN** the user invokes `/review-fixer` with a PR number or URL
-- **THEN** the skill instructs fetching open AI review work once via `m42-ai review-open` and triaging only unresolved
-  AI threads plus summary-only / suppressed findings from that JSON
+- **THEN** the skill instructs fetching open review work once via `m42-ai review-open` and triaging unresolved threads
+  (any author) plus summary-only / suppressed / code-review findings from that JSON
 - **AND** resolved threads are not re-triaged
 
 #### Scenario: Agent pauses for user commit before Fixed replies
@@ -66,7 +68,8 @@ member.
 
 - **WHEN** the user runs `/review-fixer` with a PR number
 - **THEN** the skill instructs invoking `uv run --project scripts/ai m42-ai review-open` first
-- **AND** triage uses `unresolved_ai_threads` and summary-only / suppressed fields from that JSON
+- **AND** triage uses `unresolved_ai_threads` (all unresolved authors) and summary-only / suppressed / code-review
+  fields from that JSON
 - **AND** the skill treats successful `review-open` as having checked out the PR head before any local `fix` edits
 
 ### Requirement: Ensure PR head before local fix edits
