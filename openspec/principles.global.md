@@ -7,6 +7,18 @@ Canonical engineering foundation for FAIRagro m4.2 middleware product repos and 
 All component specs and design decisions must stay consistent with the constraints here. Product stack, module graphs,
 and scaling notes live in the local `principles.md` (or product capability specs), not in this file.
 
+### Synced `.global` + product overlay
+
+When a shared file needs a product-specific companion that sync must not wipe, use this naming pair:
+
+| Role                                   | Name shape                                                                                                       | Sync                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Fleet SoT (identical in every product) | `*.global` / `*.global.*` (e.g. `principles.global.md`, `surface-quality-bar.global.md`, `.importlinter.global`) | On `docs/synced-paths.yaml` **`allow`** — do not hand-edit in consumers |
+| Product extension / overlay            | Same basename **without** `.global` (e.g. `principles.md`, `surface-quality-bar.md`, `.importlinter`)            | On **`overlays`** (never overwritten by sync)                           |
+
+Do **not** invent alternate suffixes such as `.product` for this split. Other overlay styles (env/CI inputs, nested
+`.gitignore`, verbatim-only fragments with no product twin) stay as documented in `docs/sync.md`.
+
 ---
 
 ## Values
@@ -96,6 +108,8 @@ Product application code under `middleware/` must pass via `uv run`. Prefer shar
   while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md` when that file is synced
 - `uv run vulture middleware/ --min-confidence 100` — unused definitions (hooks + CI; no IDE gate; no synced whitelist;
   see `docs/quality.md`)
+- `./scripts/run-import-linter.sh` — import contracts (synced `.importlinter.global` baseline + optional `.importlinter`
+  overlay; hooks + CI; no IDE gate; see `docs/quality.md`)
 - `./scripts/run-uv-audit.sh` — lockfile CVEs via `uv audit --frozen` (hooks + CI; no IDE gate; optional product
   `.uv-audit-ignore`; needs OSV network — see `docs/quality.md`). Distinct from Trivy on images and from
   `UV_MALWARE_CHECK` at `uv sync`

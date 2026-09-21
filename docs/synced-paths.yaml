@@ -48,6 +48,7 @@ allow:
   - scripts/quality-check.sh
   - scripts/quality-fix.sh
   - scripts/run-container-structure-test.sh
+  - scripts/run-import-linter.sh
   - scripts/run-uv-audit.sh
   - scripts/setup-git-hooks.sh
   - scripts/update-dockerfile-pins.sh
@@ -64,6 +65,7 @@ allow:
   - .python-version
   - .pre-commit-config.yaml
   - .bandit
+  - .importlinter.global
   - ruff.toml
   - mypy.ini
   - .pylintrc
@@ -94,6 +96,7 @@ exclude:
   - AGENTS.md
   - .devcontainer/product.env
   - .uv-audit-ignore
+  - .importlinter
 
 # Product-local overlays (MAY edit in consumers; never overwritten by sync).
 overlays:
@@ -102,3 +105,4 @@ overlays:
   - AGENTS.md
   - .devcontainer/product.env
   - .uv-audit-ignore
+  - .importlinter

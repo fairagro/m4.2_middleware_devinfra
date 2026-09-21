@@ -25,10 +25,10 @@ Issue: [#171](https://github.com/fairagro/m4.2_middleware_devinfra/issues/171) (
 ## Anti-duplication
 
 Do not restate findings owned by Ruff, mypy, pylint, Bandit, markdownlint, Prettier, ggshield, CodeQL, Trivy,
-**vulture**, or (once landed) import-linter. Mechanical unused definitions are vulture’s; keep judgment-only dead-code
-notes for what vulture does not cover. Import-graph judgment applies
-[`openspec/principles.global.md`](../openspec/principles.global.md) **Import policy** until import-linter lands
-(mechanical graphs stay toolchain-owned when present).
+**vulture**, or **import-linter**. Mechanical unused definitions are vulture’s; mechanical cycle/layer/forbidden
+violations are import-linter’s. Keep judgment-only notes for Import-policy rules outside the linter (module-level
+imports, relative imports, `sys.path` mutation, lazy imports used only to break cycles) — see
+[`openspec/principles.global.md`](../openspec/principles.global.md) **Import policy**.
 
 ## Auth
 

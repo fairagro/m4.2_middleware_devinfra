@@ -80,9 +80,9 @@ Local-only reviews never require GitHub auth.
 2. Correctness / missing edge cases (inputs, network, config)
 3. Concurrency & races (when async/shared state)
 4. Architecture & simplicity (YAGNI)
-5. Import graph / cycles — **judgment-only** against
-   [`openspec/principles.global.md`](../../../openspec/principles.global.md) **Import policy** (mechanical graphs →
-   import-linter when present)
+5. Import graph / cycles — **judgment-only** for what import-linter does not encode (Import policy in
+   [`openspec/principles.global.md`](../../../openspec/principles.global.md)); mechanical cycle/layer/forbidden →
+   import-linter
 6. Defensive bloat vs real edges
 7. Resource frugality
 8. Dead / unused code (judgment beyond what vulture already gates; mechanical unused definitions are toolchain-owned)
@@ -96,9 +96,10 @@ Severity / cost language: [`docs/ai_review_policy.md`](../../../docs/ai_review_p
 ## Anti-duplication (hard rule)
 
 Do **not** restate findings owned by: Ruff, mypy, pylint, Bandit, markdownlint, Prettier, ggshield, CodeQL, Trivy,
-**vulture**, and (once landed) **import-linter**. Out of scope: format, import sort, line-length, type noise CI already
-fails. Do not re-report mechanical unused-definition hits that the fleet vulture gate (`--min-confidence 100`) would
-catch.
+**vulture**, and **import-linter**. Out of scope: format, import sort, line-length, type noise CI already fails. Do not
+re-report mechanical unused-definition hits that the fleet vulture gate (`--min-confidence 100`) would catch, or
+cycle/layer/forbidden hits that import-linter would catch. Judgment MAY still cover Import-policy rules outside the
+linter (module-level placement, relative imports, `sys.path` mutation, lazy imports used only to break cycles).
 
 ## Output shape
 

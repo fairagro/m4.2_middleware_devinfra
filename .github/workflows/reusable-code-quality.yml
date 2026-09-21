@@ -194,6 +194,20 @@ jobs:
           # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
           uv run vulture "${PKG}" --min-confidence 100
 
+      - name: Unused code check with vulture
+        if: ${{ !inputs.skip }}
+        env:
+          PKG: ${{ inputs.python_package_root }}
+        run: |
+          # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
+          uv run vulture "${PKG}" --min-confidence 100
+
+      - name: Import contracts with import-linter
+        if: ${{ !inputs.skip }}
+        run: |
+          # Same runner as commit-stage: baseline `.importlinter.global` + optional `.importlinter`.
+          bash scripts/run-import-linter.sh
+
       - name: Lockfile vulnerability audit (uv audit)
         if: ${{ !inputs.skip }}
         run: |

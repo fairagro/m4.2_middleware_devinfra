@@ -146,10 +146,10 @@ stage pre-commit and reusable code-quality CI) MUST use the same fail policy: mi
 synced vulture whitelist / ignore fragment. Policy MUST live in the shared hook and CI entries (same args), not in a
 product-local `pyproject` `[tool.vulture]` table that sync would overwrite inconsistently.
 
-Documentation MUST state that false positives at confidence 100 are handled in product code (`# noqa` / delete / use
-the symbol), not by expanding a Devinfra whitelist file in this change. Dynamic attributes, `__all__`, and pytest
-fixtures that still fail at 100 MUST be fixed or noqa’d in the product — not by lowering fleet confidence in a
-one-off product fork of the synced pre-commit blob.
+Documentation MUST state that false positives at confidence 100 are handled in product code (`# noqa` / delete / use the
+symbol), not by expanding a Devinfra whitelist file in this change. Dynamic attributes, `__all__`, and pytest fixtures
+that still fail at 100 MUST be fixed or noqa’d in the product — not by lowering fleet confidence in a one-off product
+fork of the synced pre-commit blob.
 
 #### Scenario: Vulture gate uses confidence 100 without whitelist file
 
@@ -162,3 +162,46 @@ one-off product fork of the synced pre-commit blob.
 - **WHEN** a contributor reads quality docs for vulture
 - **THEN** they learn confidence 100 and no synced whitelist
 - **AND** they learn to fix or `# noqa` in product code rather than patching synced hook YAML after sync
+
+### Requirement: Shared import-linter baseline and product overlay
+
+The repository MUST provide a syncable **import-linter baseline** configuration for product `middleware/` trees that
+encodes the mechanically enforceable core of the fleet Import policy:
+
+- `root_package` (or equivalent) targeting `middleware`
+- `exclude_type_checking_imports = True` so `TYPE_CHECKING` edges are not treated as runtime graph edges
+- at least one **acyclic_siblings** (or equivalent) contract with ancestor `middleware` so sibling packages under
+  `middleware` must not form import cycles
+
+The baseline MUST NOT invent product-specific layer names (`layers` / `forbidden` / `independence` for product
+packages). Those MUST live in the product-owned overlay **`.importlinter`**. The synced baseline path MUST be
+**`.importlinter.global`**. Naming MUST follow the fleet synced-`.global` + product-local pair (see
+`openspec/principles.global.md` and `docs/synced-paths.yaml` `allow` / `overlays`).
+
+Hooks and reusable CI MUST run import-linter such that the baseline always applies and, when the overlay file is
+present, its contracts are included (via a documented merge/wrapper if the upstream CLI accepts only one config file).
+When the overlay is absent, the baseline alone MUST still run and fail on cycle violations.
+
+Documentation MUST state that **pydeps** (if mentioned) is optional/local visualization only and MUST NOT be a CI or
+pre-commit fail gate. Documentation MUST state which Import-policy rules remain outside import-linter (module-level
+placement, no relative imports, no `sys.path` mutation, no lazy imports solely to break cycles) and stay principles /
+other tools / code-review judgment.
+
+#### Scenario: Baseline encodes acyclic middleware siblings
+
+- **WHEN** a consumer inspects the synced import-linter baseline
+- **THEN** it targets `middleware`, excludes TYPE_CHECKING imports from the graph, and includes an acyclic-siblings
+  contract for `middleware`
+- **AND** it does not define product-specific layer package lists
+
+#### Scenario: Overlay is product-owned
+
+- **WHEN** a contributor inspects the sync allowlist / overlays documentation for import-linter
+- **THEN** `.importlinter.global` is listed under `allow`
+- **AND** `.importlinter` is listed under `overlays` (never overwritten by sync)
+
+#### Scenario: Gate runs baseline with optional overlay
+
+- **WHEN** commit-stage or reusable CI runs import-linter
+- **THEN** the baseline contracts are always checked
+- **AND** if the product overlay exists, its contracts are checked in the same run

@@ -11,6 +11,7 @@ Not every file under `scripts/` is Dev Container-only. Personal-token helpers ar
 | ------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. Commit-stage also runs `npm run lint:md` (Node/`npm`; host: `npm install`). On the host, set `GITGUARDIAN_API_KEY` for ggshield if required. |
 | `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                |
+| `run-import-linter.sh`                | Host or Dev Container  | Needs `uv` + `import-linter`; soft-skips when `middleware/` absent                                                                                       |
 | `run-uv-audit.sh`                     | Host or Dev Container  | Needs `uv` + network to OSV; optional `.uv-audit-ignore`                                                                                                 |
 | `setup-git-hooks.sh` / `git-hooks/`   | Host or Dev Container  | Dispatcher + `pre-push.d/50-quality`; no `git-lfs` required                                                                                              |
 | `load-versions-env.sh`                | Host or Dev Container  | Reads `versions.env`, writes `.python-version`                                                                                                           |
@@ -44,17 +45,18 @@ restate line length, rule selects, ignore lists, or similar policy on the comman
 already defines them. Do not patch synced `.pre-commit-config.yaml` to carry those overlays. After syncing `.pylintrc`,
 products may drop a duplicate `--extension-pkg-allow-list=lxml` CLI flag — that allow-list lives in the rcfile.
 
-| Tool                    | IDE                                                 | Hooks             | CI  | Notes                                                                             |
-| ----------------------- | --------------------------------------------------- | ----------------- | --- | --------------------------------------------------------------------------------- |
-| Ruff format/lint        | yes (`ruff.toml`)                                   | yes               | yes | Primary IDE Python lint/format                                                    |
-| basedpyright / Pylance  | yes (`pyrightconfig.json`, `typeCheckingMode: off`) | —                 | —   | Language server only; type gate is mypy                                           |
-| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension)    | yes               | yes | Shared `.markdownlint*` + Prettier; CI via `npm run format:md:check` / `lint:md`  |
-| Mypy                    | yes (`mypy.ini` via `ms-python.mypy-type-checker`)  | yes (`mypy.ini`)  | yes | Same fragment + `.venv` as hooks/CI; open-file IDE vs whole-tree hooks is allowed |
-| Pylint                  | yes (`.pylintrc` via `ms-python.pylint`)            | yes (`.pylintrc`) | yes | Same fragment + `.venv`; `--source-roots` stays CI/env (see below)                |
-| Bandit                  | **hooks + CI only**                                 | yes (`.bandit`)   | yes | Named IDE exception; medium/high fail — see Bandit note below                     |
-| Vulture                 | **hooks + CI only**                                 | — (CLI policy)    | yes | Named IDE exception; `--min-confidence 100`, no synced whitelist — see below      |
-| uv audit                | **hooks + CI only**                                 | — (CLI + overlay) | yes | Named IDE exception; frozen lockfile CVE gate; needs OSV network — see below      |
-| pytest                  | IDE via `pyproject.toml` `testpaths`                | pre-push          | yes | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings                 |
+| Tool                    | IDE                                                 | Hooks                  | CI  | Notes                                                                             |
+| ----------------------- | --------------------------------------------------- | ---------------------- | --- | --------------------------------------------------------------------------------- |
+| Ruff format/lint        | yes (`ruff.toml`)                                   | yes                    | yes | Primary IDE Python lint/format                                                    |
+| basedpyright / Pylance  | yes (`pyrightconfig.json`, `typeCheckingMode: off`) | —                      | —   | Language server only; type gate is mypy                                           |
+| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension)    | yes                    | yes | Shared `.markdownlint*` + Prettier; CI via `npm run format:md:check` / `lint:md`  |
+| Mypy                    | yes (`mypy.ini` via `ms-python.mypy-type-checker`)  | yes (`mypy.ini`)       | yes | Same fragment + `.venv` as hooks/CI; open-file IDE vs whole-tree hooks is allowed |
+| Pylint                  | yes (`.pylintrc` via `ms-python.pylint`)            | yes (`.pylintrc`)      | yes | Same fragment + `.venv`; `--source-roots` stays CI/env (see below)                |
+| Bandit                  | **hooks + CI only**                                 | yes (`.bandit`)        | yes | Named IDE exception; medium/high fail — see Bandit note below                     |
+| Vulture                 | **hooks + CI only**                                 | — (CLI policy)         | yes | Named IDE exception; `--min-confidence 100`, no synced whitelist — see below      |
+| import-linter           | **hooks + CI only**                                 | `.importlinter.global` | yes | Named IDE exception; baseline + optional `.importlinter` overlay — see below      |
+| uv audit                | **hooks + CI only**                                 | — (CLI + overlay)      | yes | Named IDE exception; frozen lockfile CVE gate; needs OSV network — see below      |
+| pytest                  | IDE via `pyproject.toml` `testpaths`                | pre-push               | yes | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings                 |
 
 **Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks use Bandit’s `-ll` (report MEDIUM+
 only). CI runs without `-ll`, logs all severities (JSON + wrapper), and still fails only on MEDIUM/HIGH — same fail bar
@@ -85,6 +87,22 @@ to OSV; escape hatch only: `SKIP=uv-audit`. See
 Overlap on the same CVE across lock and image is OK — different layers. Do **not** disable Trivy because uv audit
 exists. Malware check is **not** a CVE audit substitute (known malware only; still preview).
 
+**import-linter (named IDE exception):** fleet **baseline** [`.importlinter.global`](../.importlinter.global) encodes
+Import-policy bits that are mechanical: `root_package = middleware`, `exclude_type_checking_imports = True`, and an
+`acyclic_siblings` contract for `middleware`. Hooks and CI run
+[`scripts/run-import-linter.sh`](../scripts/run-import-linter.sh) (same fail bar). Product **layers / forbidden /
+independence** contracts belong in **`.importlinter`** (sync `overlays` — never overwritten); the runner merges contract
+sections onto the baseline. Naming follows the fleet `*.global` + product-local pair (see
+[Synced `.global` + product overlay](../openspec/principles.global.md#synced-global--product-overlay) and
+[`docs/sync.md`](sync.md)). Absent `middleware/` (e.g. Devinfra itself) the runner soft-skips. Products must list
+`import-linter` in their uv dependency set.
+
+**pydeps:** optional local visualization only — **not** a pre-commit or CI fail gate.
+
+Import-policy rules **outside** import-linter (module-level imports, no relative imports, no `sys.path` mutation, no
+lazy imports solely to break cycles) stay principles / other tools / `/code-review` judgment — see
+[Import policy](../openspec/principles.global.md#import-policy).
+
 ## Files
 
 | Path                                                | Role                                                                                                            |
@@ -97,7 +115,10 @@ exists. Malware check is **not** a CVE audit substitute (known malware only; sti
 | `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                                         |
 | `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                                         |
 | `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                                             |
+| `scripts/run-import-linter.sh`                      | import-linter baseline + optional `.importlinter` overlay                                                       |
 | `scripts/run-uv-audit.sh`                           | Frozen `uv audit` + optional product `.uv-audit-ignore` (hooks + CI)                                            |
+| `.importlinter.global`                              | Fleet import-linter baseline (acyclic `middleware` siblings; TYPE_CHECKING excluded from graph)                 |
+| `.importlinter`                                     | Product overlay contracts (`layers` / `forbidden` / …) — sync **overlay**, never wiped                          |
 | `scripts/setup-git-hooks.sh`                        | Install dispatcher + `pre-push.d/50-quality` from `scripts/git-hooks/`                                          |
 | `scripts/git-hooks/`                                | Version-controlled `pre-push` dispatcher + `pre-push.d/`                                                        |
 | `.bandit`                                           | Bandit config (`bandit -c .bandit`)                                                                             |
