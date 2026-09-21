@@ -11,8 +11,9 @@ encodes the mechanically enforceable core of the fleet Import policy:
   `middleware` must not form import cycles
 
 The baseline MUST NOT invent product-specific layer names (`layers` / `forbidden` / `independence` for product
-packages). Those MUST live in a **product-owned overlay** file that sync MUST NOT overwrite (listed under
-`docs/synced-paths.yaml` `overlays` or an equivalent documented non-allowlisted path).
+packages). Those MUST live in the product-owned overlay **`.importlinter`**. The synced baseline path MUST be
+**`.importlinter.global`**. Naming MUST follow the fleet synced-`.global` + product-local pair (see
+`openspec/principles.global.md` and `docs/synced-paths.yaml` `allow` / `overlays`).
 
 Hooks and reusable CI MUST run import-linter such that the baseline always applies and, when the overlay file is
 present, its contracts are included (via a documented merge/wrapper if the upstream CLI accepts only one config file).
@@ -33,8 +34,8 @@ other tools / code-review judgment.
 #### Scenario: Overlay is product-owned
 
 - **WHEN** a contributor inspects the sync allowlist / overlays documentation for import-linter
-- **THEN** the baseline path is synced
-- **AND** the product overlay path is documented as never overwritten by sync
+- **THEN** `.importlinter.global` is listed under `allow`
+- **AND** `.importlinter` is listed under `overlays` (never overwritten by sync)
 
 #### Scenario: Gate runs baseline with optional overlay
 

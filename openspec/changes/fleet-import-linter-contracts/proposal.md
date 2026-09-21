@@ -8,9 +8,11 @@ for all three repos.
 ## What Changes
 
 - Add **import-linter** to the shared quality toolchain (hooks + CI; no IDE — Bandit/vulture-style)
-- Ship a **synced baseline** encoding what Import policy can express mechanically: acyclic `middleware/` +
-  `exclude_type_checking_imports = True` (TYPE_CHECKING edges out of the runtime graph)
-- Document **product-owned overlays** for `layers` / `forbidden` / `independence` (sync must not wipe them) — C3
+- Ship a **synced baseline** `.importlinter.global` encoding what Import policy can express mechanically: acyclic
+  `middleware/` + `exclude_type_checking_imports = True` (TYPE_CHECKING edges out of the runtime graph)
+- Document **product-owned** `.importlinter` overlays for `layers` / `forbidden` / `independence` (sync must not wipe
+  them) — C3; naming = fleet `*.global` + plain product twin (not `.product`)
+- Document the synced-`.global` + product-overlay naming rule in principles + sync specs
 - **pydeps** docs-only / optional local — not a fail gate (D1)
 - Update `/code-review` anti-duplication: import-linter mechanical hits are toolchain-owned once landed
 - **Not** in this change: inventing shared fleet layer names; pydeps CI; encoding module-level / relative-import /
@@ -26,10 +28,9 @@ for all three repos.
 
 - `shared-python-quality-config`: baseline import-linter config + overlay contract
 - `shared-quality-tooling`: pre-commit + reusable CI run import-linter; IDE exception; pydeps non-gate
-- `synced-consumer-paths`: allowlist baseline path; document overlay as non-synced / excluded
+- `synced-consumer-paths`: allowlist `.importlinter.global`; overlay `.importlinter`; naming-rule requirement
 - `code-review`: import-linter owned; judgment remains for what contracts cannot express
-- `global-principles` (optional note only if Code Quality examples need the CLI) — prefer docs/quality + principles
-  Code Quality example without inventing a new requirement unless needed
+- `global-principles`: require documenting synced-`.global` + product-overlay naming in `principles.global.md`
 
 ## Impact
 
