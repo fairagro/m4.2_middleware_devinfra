@@ -78,14 +78,14 @@ caller snippets, and the build→check artifact contract. PyPI and ns-pages stay
 Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
 
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
-- **Sole source:** the store wins over any process `GH_TOKEN` / `GITGUARDIAN_API_KEY` (no env override). Stale agent env
-  cannot shadow a token written via `set-dev-tokens.sh`.
+- **Precedence:** non-empty store wins over process/host env; otherwise a non-empty process value is kept (e.g. host
+  tokens via `remoteEnv` `${localEnv:GH_TOKEN}` / `${localEnv:GITGUARDIAN_API_KEY}`). Prompt only when still empty on a
+  TTY. Override host by writing the store: `source ./scripts/set-dev-tokens.sh`.
 - **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv` uses literal
-  `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh` (applies store; prompts only
-  on a TTY when the store has no entry). No `~/.bashrc` patch. Tokens are **not** injected into agent process env —
-  wrappers load them per invoke. `set-dev-tokens.sh` only writes the store. The project `.venv` is activated via
+  `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh`. No `~/.bashrc` patch. Tokens
+  are **not** injected into agent process env — wrappers load them per invoke. The project `.venv` is activated via
   `remoteEnv.VIRTUAL_ENV=/workspace/.venv` (not only PATH).
-- **Empty prompt** = skip until you re-prompt: `source ./scripts/set-dev-tokens.sh`
+- **Empty prompt** is not persisted (no skip marker); a later load may use host env or ask again.
 - Do **not** put tokens in the git worktree.
 - If agents report `GH_TOKEN` missing while the store is set, check `command -v gh` — `/usr/bin/gh` means PATH wrappers
   are missing (rebuild after sync of `remoteEnv.PATH`), not a bad store.
