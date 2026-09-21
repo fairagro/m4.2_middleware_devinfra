@@ -103,8 +103,9 @@ jobs:
 
           BASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-          if [[ "$GITHUB_REF_NAME" == feature/* ]]; then
-            BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
+          # RC only on build/* (fleet CI channel — hard cut; not feature/*)
+          if [[ "$GITHUB_REF_NAME" == build/* ]]; then
+            BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|^build/||' | tr '/_ ' '---' | cut -c1-30)
             NEW_VERSION="${BASE_VERSION}-rc.${BRANCH_LABEL}.${{ github.run_number }}"
             PEP440_VERSION="${BASE_VERSION}.dev${{ github.run_number }}"
           else

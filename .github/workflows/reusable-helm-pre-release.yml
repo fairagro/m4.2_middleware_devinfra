@@ -72,7 +72,12 @@ jobs:
           PATCH=$(echo "$LATEST_CHART_VERSION" | cut -d. -f3)
           PATCH=$((PATCH + 1))
 
-          BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
+          # RC chart versions only from build/* (fleet CI channel — hard cut; not feature/*)
+          if [[ "$GITHUB_REF_NAME" != build/* ]]; then
+            echo "::error::Helm pre-release requires a build/* branch (got '${GITHUB_REF_NAME}'). Rename or recreate under build/issue-<n>-…."
+            exit 1
+          fi
+          BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|^build/||' | tr '/_ ' '---' | cut -c1-30)
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}-rc.${BRANCH_LABEL}.${{ github.run_number }}"
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
@@ -136,7 +141,7 @@ jobs:
       - name: Detect current Docker release version
         id: docker-version
         run: |
-          # Final tags (*-docker-vX.Y.Z) and feature pre-release tags (*-docker-vX.Y.Z-rc.<branch>.<run>).
+          # Final tags (*-docker-vX.Y.Z) and build-channel pre-release tags (*-docker-vX.Y.Z-rc.<branch>.<run>).
           LATEST=$(git tag --list '*-docker-v*' \
             | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[^/]+)?$' \
             | sed 's/^[0-9]*-docker-v//' \

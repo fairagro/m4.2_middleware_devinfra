@@ -7,6 +7,7 @@ description: "Triage and fix a GitHub issue (OpenSpec for Feature/Refactoring; T
 Triage and fix a GitHub issue following `.agents/skills/issue-fixer/SKILL.md`:
 
 - When explore is required: explore **in-skill** (no `/opsx-explore`)
+- Branch as `{channel}/issue-<n>-<slug>` (`build` / `ci` / `docs` — see skill; not bare `issue-…` / `feature/`)
 - **Feature / Refactoring:** issue branch → follow openspec-propose → pause → apply → pause → draft PR → archive (last
   `go`). **Docs-only** (Markdown/comments only, no skill file): same as Bug path — no OpenSpec. Markdown under
   `openspec/specs/` or `openspec/changes/` is **not** docs-only
