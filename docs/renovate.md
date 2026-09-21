@@ -142,9 +142,10 @@ inside product Dockerfiles. For those, run the synced helper:
 ./scripts/update-dockerfile-pins.sh docker/Dockerfile.<component>
 ```
 
-It refreshes apk pins (APKINDEX main + community) and Dockerfile `name==` pins from PyPI. It does **not** edit
-`versions.env` (Devinfra Renovate + sync). After sync, remove divergent local copies (`update-apk-dependencies.sh`,
-`update-docker-pins.sh`, etc.).
+With no path, it updates every `docker/Dockerfile.*` except `Dockerfile.product-app.base`. Pass a path to limit to one
+file. It does **not** write `*.bak` sidecars — use git to roll back. It refreshes apk pins (APKINDEX main + community)
+and Dockerfile `name==` pins from PyPI. It does **not** edit `versions.env` (Devinfra Renovate + sync). After sync,
+remove divergent local copies (`update-apk-dependencies.sh`, `update-docker-pins.sh`, etc.).
 
 Reusable `reusable-renovate.yml` is **out of scope** for now — the thin workflow is expected to stay identical across
 repos via sync.
