@@ -30,4 +30,4 @@ m42-ai-gh = { workspace = true }
 # for sync into product repos — not in this Devinfra [project] table. See docs/quality.md.
 
 [tool.pytest.ini_options]
-testpaths = ["scripts/ai/tests"]
+testpaths = ["scripts/ai/tests", "scripts/tests"]
