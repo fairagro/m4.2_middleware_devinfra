@@ -116,13 +116,13 @@ Product repos historically kept large `[tool.ruff]` / `[tool.mypy]` / `[tool.pyl
 Canonical copies live here as **fragment files** so sync (#13) can overwrite them without replacing product `[project]`
 / uv workspace sections.
 
-| Sync into products   | Keep product-local                                                                                               |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ruff.toml`          | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps (no product Ruff overlay)                                 |
-| `mypy.ini`           | Fleet `arctrl` / `fable_library` `ignore_missing_imports`; path overlays via **env** (`MYPYPATH`)                |
-| `.pylintrc`          | Fleet `ignored-modules` for arctrl/fable; path overlays via CI / env (`pylint_source_roots`)                     |
-| `pyrightconfig.json` | `typeCheckingMode: off` (LS = mypy); no middleware paths; no `stubPath`                                          |
-| `.bandit`            | pytest / coverage tool tables ([#123](https://github.com/fairagro/m4.2_middleware_devinfra/issues/123) deferred) |
+| Sync into products   | Keep product-local                                                                                                                                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ruff.toml`          | Root `pyproject.toml` `[project]`, `[tool.uv.*]`, deps (no product Ruff overlay)                                                                                                                                                                                         |
+| `mypy.ini`           | Fleet `arctrl` / `fable_library` `ignore_missing_imports`; path overlays via **env** (`MYPYPATH`)                                                                                                                                                                        |
+| `.pylintrc`          | Fleet `ignored-modules` for arctrl/fable; path overlays via CI / env (`pylint_source_roots`)                                                                                                                                                                             |
+| `pyrightconfig.json` | `typeCheckingMode: off` (LS = mypy); no middleware paths; no `stubPath`                                                                                                                                                                                                  |
+| `.bandit`            | pytest markers / coverage: products keep local registration until the **planned** pytest-plugin SoT ships ([#123](https://github.com/fairagro/m4.2_middleware_devinfra/issues/123); design `fleet-pytest-markers-plugin-design`); coverage fragment is a later follow-up |
 
 Shared hooks and reusable CI invoke `mypy --config-file mypy.ini` and `pylint --rcfile .pylintrc`. Those flags mean
 product `[tool.mypy]` / `[tool.pylint.*]` in `pyproject.toml` are **ignored**. Do **not** put path overlays into the
@@ -230,10 +230,12 @@ Synced pre-push pytest excludes heavy system suites by default:
 -m "not system_external and not system_local"
 ```
 
-Products must register those markers in local `pyproject.toml` (or equivalent) so `--strict-markers` stays valid. A
-shared pytest-plugin / coverage-fragment SoT is deferred
-([#123](https://github.com/fairagro/m4.2_middleware_devinfra/issues/123)) — do **not** hand-copy marker strings into
-Devinfra sync blobs as a permanent product fork.
+Products must register those markers in local `pyproject.toml` (or equivalent) so `--strict-markers` stays valid until
+the planned fleet SoT lands. **Locked design** ([#123](https://github.com/fairagro/m4.2_middleware_devinfra/issues/123),
+OpenSpec change `fleet-pytest-markers-plugin-design`): a Devinfra **pytest plugin** will register the shared marker set
+(product `testpaths` / `pythonpath` stay local); a shared **coverage** fragment is deferred as a separate follow-up. Do
+**not** hand-copy marker strings into Devinfra sync blobs as a permanent product fork, and do **not** treat this docs
+note as “the plugin already ships.”
 
 The remaining suite can still take several minutes. The hook prints a short notice before pytest runs.
 `SKIP=pytest git push` is an **escape hatch only**, not the normal workflow.
