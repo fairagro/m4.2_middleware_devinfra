@@ -336,7 +336,7 @@ custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm 
 
 | Input                 | Default      | Purpose                                                                  |
 | --------------------- | ------------ | ------------------------------------------------------------------------ |
-| `python_package_root` | `middleware` | Path for ruff / pylint / mypy / bandit / pytest                          |
+| `python_package_root` | `middleware` | Path for ruff / pylint / mypy / bandit / vulture / pytest                |
 | `mypy_path`           | `""`         | Optional colon-separated `MYPYPATH` (stubs + src roots); empty = default |
 | `pylint_source_roots` | `""`         | Optional comma-separated pylint `--source-roots`                         |
 | `components`          | (optional)   | Accepted for caller compatibility; unused by this workflow               |

@@ -9,11 +9,11 @@ Issue: [#171](https://github.com/fairagro/m4.2_middleware_devinfra/issues/171) (
 
 ## Relationship
 
-| Skill           | Role                                                                 |
-| --------------- | -------------------------------------------------------------------- |
-| `/code-review`  | **Produce** a first-party review of a diff/PR (marker + findings)    |
-| `/review-fixer` | **Consume** Copilot/Bugbot threads **and** `/code-review` summaries  |
-| `/create-issue` | Optional hand-off for Medium+ deferrals                              |
+| Skill           | Role                                                                |
+| --------------- | ------------------------------------------------------------------- |
+| `/code-review`  | **Produce** a first-party review of a diff/PR (marker + findings)   |
+| `/review-fixer` | **Consume** Copilot/Bugbot threads **and** `/code-review` summaries |
+| `/create-issue` | Optional hand-off for Medium+ deferrals                             |
 
 ## Inputs / outputs
 
@@ -24,8 +24,9 @@ Issue: [#171](https://github.com/fairagro/m4.2_middleware_devinfra/issues/171) (
 
 ## Anti-duplication
 
-Do not restate findings owned by Ruff, mypy, pylint, Bandit, markdownlint, Prettier, ggshield, CodeQL, Trivy, or (once
-landed) vulture / import-linter. Import-graph judgment applies
+Do not restate findings owned by Ruff, mypy, pylint, Bandit, markdownlint, Prettier, ggshield, CodeQL, Trivy,
+**vulture**, or (once landed) import-linter. Mechanical unused definitions are vulture’s; keep judgment-only dead-code
+notes for what vulture does not cover. Import-graph judgment applies
 [`openspec/principles.global.md`](../openspec/principles.global.md) **Import policy** until import-linter lands
 (mechanical graphs stay toolchain-owned when present).
 

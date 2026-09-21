@@ -82,6 +82,14 @@ repos:
         files: ^middleware/
         pass_filenames: false
 
+      - id: vulture
+        name: vulture unused code
+        # Confidence 100; no synced whitelist — FP → fix or # noqa in product code (docs/quality.md)
+        entry: uv run vulture middleware/ --min-confidence 100
+        language: system
+        files: ^middleware/
+        pass_filenames: false
+
       - id: markdownlint
         name: markdownlint-cli2
         entry: npm run lint:md
