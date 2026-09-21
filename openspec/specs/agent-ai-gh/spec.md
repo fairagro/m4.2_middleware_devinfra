@@ -160,7 +160,8 @@ NOT introduce a second credential model.
 
 `issue-view` MUST fetch an issue and print JSON including `number`, `title`, `url`, `body`, `state`, `issue_type`
 (nullable), `labels`, `triage` (`severity` / `practicality` / `cost` extracted from allowlisted label names when
-present), and `author`.
+present), `author`, and `comments` (array of `{author, body, created_at}`, oldest first; empty when none). Comments
+MUST come from the issue conversation (same source as `gh issue view --json comments`).
 
 #### Scenario: Triage labels extracted
 
@@ -168,6 +169,12 @@ present), and `author`.
 - **THEN** `triage.severity` is `severity:medium`
 - **AND** `triage.practicality` is `practicality:high`
 - **AND** `triage.cost` is `cost:cheap`
+
+#### Scenario: Comments included oldest first
+
+- **WHEN** `issue-view` runs on an issue that has two comments with distinct `createdAt` timestamps
+- **THEN** JSON `comments` lists both entries with `author`, `body`, and `created_at`
+- **AND** the list is ordered oldest → newest
 
 ### Requirement: issue-branch and branch-ahead
 
