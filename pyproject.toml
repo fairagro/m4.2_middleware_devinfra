@@ -15,6 +15,7 @@ dev = [
   "ggshield>=1.43.0",
   "ruff>=0.15.0",
   "pytest>=8.0",
+  "vulture>=2.14",
 ]
 
 [tool.uv]

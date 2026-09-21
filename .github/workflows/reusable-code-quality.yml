@@ -183,6 +183,14 @@ jobs:
               sys.exit(1)
           PY
 
+      - name: Unused code check with vulture
+        if: ${{ !inputs.skip }}
+        env:
+          PKG: ${{ inputs.python_package_root }}
+        run: |
+          # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
+          uv run vulture "${PKG}" --min-confidence 100
+
       - name: Run tests
         if: ${{ !inputs.skip }}
         env:

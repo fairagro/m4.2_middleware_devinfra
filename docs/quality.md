@@ -51,12 +51,19 @@ products may drop a duplicate `--extension-pkg-allow-list=lxml` CLI flag — tha
 | Mypy                    | yes (`mypy.ini` via `ms-python.mypy-type-checker`)  | yes (`mypy.ini`)  | yes | Same fragment + `.venv` as hooks/CI; open-file IDE vs whole-tree hooks is allowed |
 | Pylint                  | yes (`.pylintrc` via `ms-python.pylint`)            | yes (`.pylintrc`) | yes | Same fragment + `.venv`; `--source-roots` stays CI/env (see below)                |
 | Bandit                  | **hooks + CI only**                                 | yes (`.bandit`)   | yes | Named IDE exception; medium/high fail — see Bandit note below                     |
+| Vulture                 | **hooks + CI only**                                 | — (CLI policy)    | yes | Named IDE exception; `--min-confidence 100`, no synced whitelist — see below      |
 | pytest                  | IDE via `pyproject.toml` `testpaths`                | pre-push          | yes | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings                 |
 
 **Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks use Bandit’s `-ll` (report MEDIUM+
 only). CI runs without `-ll`, logs all severities (JSON + wrapper), and still fails only on MEDIUM/HIGH — same fail bar
 as hooks, matching [principles Code Quality](../openspec/principles.global.md#code-quality). Do not reintroduce a second
 fail policy only on one surface.
+
+**Vulture (named IDE exception):** unused-definition gate for `middleware/` (or reusable `python_package_root`). Hooks
+and CI both run `uv run vulture <root> --min-confidence 100` with **no** synced whitelist file. False positives at that
+bar are fixed in product code (delete, use the symbol, or `# noqa`) — do **not** patch synced `.pre-commit-config.yaml`
+or lower fleet confidence after sync. Products must list `vulture` in their uv dependency set (same class as bandit /
+mypy / pylint). Ruff still owns unused **imports**; vulture owns unused **definitions**.
 
 ## Files
 
