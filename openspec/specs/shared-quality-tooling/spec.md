@@ -30,7 +30,7 @@ auto-fixes where hooks support them.
 The repository MUST provide a root `.pre-commit-config.yaml` that defines:
 
 - **Commit-stage** hooks covering at least: trailing-whitespace / YAML or TOML hygiene, ggshield, ruff, mypy, bandit,
-  pylint, **vulture**, and markdownlint (aligned with the product API pattern).
+  pylint, **vulture**, **import-linter**, and markdownlint (aligned with the product API pattern).
 - **Pre-push stage** hooks for `pytest` and container-structure-test that invoke
   `scripts/run-container-structure-test.sh`.
 
@@ -47,7 +47,8 @@ exclude Go-templated Helm chart templates under `helm/**/templates/` and `helmch
 paths are absent) so product repos can adopt `.pre-commit-config.yaml` verbatim without post-sync hand-edits for Helm.
 
 The commit-stage **vulture** hook MUST match the reusable code-quality vulture fail policy (minimum confidence 100; no
-synced whitelist file).
+synced whitelist file). The commit-stage **import-linter** hook MUST apply the shared baseline and, when present, the
+product overlay, matching the reusable code-quality fail policy.
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -78,6 +79,12 @@ synced whitelist file).
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** a vulture unused-code hook is present for `middleware/`
 - **AND** it uses minimum confidence 100 without a synced whitelist file
+
+#### Scenario: Commit-stage includes import-linter
+
+- **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
+- **THEN** an import-linter hook is present for the shared baseline (+ optional product overlay)
+- **AND** it fails closed on contract violations
 
 ### Requirement: Pre-push vs CI pytest scope is documented
 
@@ -163,28 +170,29 @@ MUST be consistent with those fragment paths after sync (hooks discover or pass 
 ### Requirement: Three-environment quality parity
 
 Every shared quality tool that gates commits or CI for this repository or for synced product consumers (at least: Ruff
-format/lint, Mypy, Pylint, Bandit, **vulture**, markdownlint/Prettier where applicable, and pytest when configured as a
-quality gate) MUST be runnable in all three environments:
+format/lint, Mypy, Pylint, Bandit, **vulture**, **import-linter**, markdownlint/Prettier where applicable, and pytest
+when configured as a quality gate) MUST be runnable in all three environments:
 
 1. **IDE** — workspace / extension settings that invoke the same tool binary family and the same shared config file(s)
 2. **Git hooks** — pre-commit (commit stage) and, where the tool is a pre-push gate, the pre-push stage
 3. **GitHub pipelines** — reusable or caller workflows that run the shared quality bar
 
-**Documented IDE exceptions (named):** Bandit and **vulture** MUST gate via hooks and GitHub CI with a matching fail
-bar, and MUST NOT require an IDE extension / workspace setting as a third gate (same class of exception as existing
-Bandit documentation).
+**Documented IDE exceptions (named):** Bandit, **vulture**, and **import-linter** MUST gate via hooks and GitHub CI with
+a matching fail bar, and MUST NOT require an IDE extension / workspace setting as a third gate.
 
 For markdownlint/Prettier, GitHub pipelines MUST invoke the shared check scripts (e.g. `npm run format:md:check` /
 `npm run lint:md`) in reusable code-quality (or an explicitly documented equivalent), not only commit-stage hooks.
 
 For the same repository tree, the same toolchain pins (`versions.env` / `uv sync` / documented Node toolchain), and the
-same target paths, the **pass/fail outcome and substantive findings** MUST match across those environments that gate
-the tool. Divergent severity, rule sets, or config files between hooks and CI are forbidden unless a documented
-exception exists (none by default for vulture beyond the IDE exception above).
+same target paths, the **pass/fail outcome and substantive findings** MUST match across those environments that gate the
+tool. Divergent severity, rule sets, or config files between hooks and CI are forbidden unless a documented exception
+exists (none by default for vulture/import-linter beyond the IDE exceptions above).
 
 Shared **config files** (e.g. `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, markdownlint/Prettier configs) MUST be
 the single source of truth for tool policy when the tool supports a syncable fragment. For **vulture** under the locked
-fail policy (confidence 100, no whitelist file), matching hook and CI CLI args ARE the policy source of truth.
+fail policy (confidence 100, no whitelist file), matching hook and CI CLI args ARE the policy source of truth. For
+**import-linter**, the synced baseline plus optional product overlay (via the documented runner) ARE the policy source
+of truth.
 
 Invocations (CLI, hook `entry`/`args`, CI steps, IDE settings) MUST pass at most: the path to the shared config file
 when the tool does not auto-discover it, the analysis target path(s), documented path overlays, and for vulture the
@@ -192,7 +200,8 @@ shared confidence flag. They MUST NOT pass additional flags that restate or over
 shared config file. They MUST NOT require post-sync hand-edits of synced `.pre-commit-config.yaml` for those overlays.
 
 Documentation (`docs/quality.md` and/or Code Quality in `openspec/principles.global.md`) MUST state this three-
-environment parity rule, the minimal-CLI rule, and the Bandit/vulture IDE exceptions.
+environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-linter IDE exceptions. It MUST state that
+**pydeps** is not a fail gate.
 
 #### Scenario: Same tree fails or passes consistently
 
@@ -216,17 +225,35 @@ environment parity rule, the minimal-CLI rule, and the Bandit/vulture IDE except
 - **THEN** hooks and GitHub CI are listed as gates with the same fail bar
 - **AND** IDE is documented as not required (named exception with Bandit)
 
+#### Scenario: Import-linter gates hooks and CI without IDE
+
+- **WHEN** a contributor reads the environment parity table for import-linter
+- **THEN** hooks and GitHub CI are listed as gates with the same fail bar
+- **AND** IDE is documented as not required (named exception)
+- **AND** pydeps is not listed as a fail gate
+
 ### Requirement: Reusable code-quality runs vulture
 
-The reusable code-quality workflow MUST run vulture against the configured Python package root with the same fail
-policy as the commit-stage vulture hook (minimum confidence 100; no synced whitelist file). A failing vulture finding
-at that policy MUST fail the job.
+The reusable code-quality workflow MUST run vulture against the configured Python package root with the same fail policy
+as the commit-stage vulture hook (minimum confidence 100; no synced whitelist file). A failing vulture finding at that
+policy MUST fail the job.
 
 #### Scenario: CI vulture matches hook policy
 
 - **WHEN** reusable code-quality runs with `skip` false
 - **THEN** it executes vulture on the package root with minimum confidence 100
 - **AND** a confidence-100 unused-code finding fails the workflow
+
+### Requirement: Reusable code-quality runs import-linter
+
+The reusable code-quality workflow MUST run import-linter against the shared baseline and, when present, the product
+overlay, with the same fail policy as the commit-stage hook. A contract violation MUST fail the job.
+
+#### Scenario: CI import-linter matches hook policy
+
+- **WHEN** reusable code-quality runs with `skip` false
+- **THEN** it executes import-linter with baseline (+ overlay when present)
+- **AND** a contract violation fails the workflow
 
 ### Requirement: Markdown quality is gated in GitHub CI
 

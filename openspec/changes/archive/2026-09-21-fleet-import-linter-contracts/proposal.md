@@ -1,9 +1,9 @@
 ## Why
 
-Import-graph / layer health is a `/code-review` goal, but mechanical contracts are missing. The skill stays judgment-only
-until **import-linter** lands ([#173](https://github.com/fairagro/m4.2_middleware_devinfra/issues/173); [#140](https://github.com/fairagro/m4.2_middleware_devinfra/issues/140)).
-Fleet Import policy already requires an acyclic DAG; products need local layer contracts without a single synced layout
-for all three repos.
+Import-graph / layer health is a `/code-review` goal, but mechanical contracts are missing. The skill stays
+judgment-only until **import-linter** lands ([#173](https://github.com/fairagro/m4.2_middleware_devinfra/issues/173);
+[#140](https://github.com/fairagro/m4.2_middleware_devinfra/issues/140)). Fleet Import policy already requires an
+acyclic DAG; products need local layer contracts without a single synced layout for all three repos.
 
 ## What Changes
 

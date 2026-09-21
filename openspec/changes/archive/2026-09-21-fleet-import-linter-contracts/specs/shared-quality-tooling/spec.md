@@ -78,9 +78,9 @@ For markdownlint/Prettier, GitHub pipelines MUST invoke the shared check scripts
 `npm run lint:md`) in reusable code-quality (or an explicitly documented equivalent), not only commit-stage hooks.
 
 For the same repository tree, the same toolchain pins (`versions.env` / `uv sync` / documented Node toolchain), and the
-same target paths, the **pass/fail outcome and substantive findings** MUST match across those environments that gate
-the tool. Divergent severity, rule sets, or config files between hooks and CI are forbidden unless a documented
-exception exists (none by default for vulture/import-linter beyond the IDE exceptions above).
+same target paths, the **pass/fail outcome and substantive findings** MUST match across those environments that gate the
+tool. Divergent severity, rule sets, or config files between hooks and CI are forbidden unless a documented exception
+exists (none by default for vulture/import-linter beyond the IDE exceptions above).
 
 Shared **config files** (e.g. `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, markdownlint/Prettier configs) MUST be
 the single source of truth for tool policy when the tool supports a syncable fragment. For **vulture** under the locked
