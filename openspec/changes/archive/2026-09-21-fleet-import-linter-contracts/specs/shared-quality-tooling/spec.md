@@ -1,29 +1,4 @@
-# shared-quality-tooling Specification
-
-## Purpose
-
-Shared commit-stage and pre-push quality tooling (scripts, pre-commit skeleton, bandit, templated
-container-structure-test runner) that product repos can sync with minimal local tweaks.
-
-## Requirements
-
-### Requirement: Commit-stage quality helper scripts
-
-The repository MUST provide `scripts/quality-check.sh` and `scripts/quality-fix.sh` that run the shared **commit-stage**
-pre-commit hooks only (MUST NOT run the pre-push hook stage). Check MUST be non-mutating validation; fix MUST apply
-auto-fixes where hooks support them.
-
-#### Scenario: Contributor runs quality-check
-
-- **WHEN** a contributor runs `scripts/quality-check.sh` with a configured `.pre-commit-config.yaml`
-- **THEN** commit-stage hooks run
-- **AND** pre-push stage hooks (pytest / container-structure-test) do not run
-
-#### Scenario: Contributor runs quality-fix
-
-- **WHEN** a contributor runs `scripts/quality-fix.sh`
-- **THEN** commit-stage hooks run in a mode that applies supported auto-fixes
-- **AND** pre-push stage hooks do not run
+## MODIFIED Requirements
 
 ### Requirement: Shared pre-commit skeleton
 
@@ -85,87 +60,6 @@ product overlay, matching the reusable code-quality fail policy.
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** an import-linter hook is present for the shared baseline (+ optional product overlay)
 - **AND** it fails closed on contract violations
-
-### Requirement: Pre-push vs CI pytest scope is documented
-
-Documentation (`docs/quality.md` and/or `docs/ci.md`) MUST state that synced pre-push pytest excludes `system_external`
-and `system_local` by default, that the stage may take minutes for the remaining suite, that `SKIP=pytest` is an escape
-hatch only, and that CI / intentional local runs of `system_*` use an explicit broader command (not a product fork of
-`.pre-commit-config.yaml`). Docs MAY point at a follow-up for a shared pytest-marker plugin / coverage fragment SoT
-without requiring that work in this change.
-
-#### Scenario: Contributor reads pre-push pytest docs
-
-- **WHEN** a contributor opens quality docs for pre-push
-- **THEN** they learn which markers pre-push excludes
-- **AND** they learn CI stays on a broader suite
-- **AND** they learn `SKIP=pytest` is not the normal workflow
-
-### Requirement: Templated container-structure-test runner
-
-The repository MUST provide `scripts/run-container-structure-test.sh` that builds a Docker image via **Buildx Bake** and
-runs `container-structure-test` against it. It MUST NOT fall back to a monolith `docker build -f` path. Bake target,
-Bake file, image tag, and test definition paths MUST be configurable (arguments and/or environment variables) so product
-repos can keep local values. When `CST_BAKE_TARGET` is unset and the checkout has **no product CST layout** — either no
-`docker/` directory, or `docker/` without a `docker/container-structure-tests/` directory (e.g. shared Devinfra that
-only ships `docker/Dockerfile.product-app.base` and examples) — the script MUST exit successfully with a clear skip
-warning rather than failing the pre-push quality stage. Product repos that ship `docker/container-structure-tests/` MUST
-require a Bake target / file and MUST still fail hard when those paths are wrong.
-
-#### Scenario: Runner uses product parameters
-
-- **WHEN** the script is invoked with product-specific Bake target, tag, and test paths
-- **THEN** it builds that image via Bake and runs container-structure-test with those tests
-- **AND** it does not hardcode another product’s paths as the only option
-- **AND** it does not use monolith `docker build -f` as a fallback
-
-#### Scenario: Devinfra without product CST layout skips
-
-- **WHEN** the script runs without `CST_BAKE_TARGET`
-- **AND** the repository has no `docker/` directory, **or** has `docker/` but no `docker/container-structure-tests/`
-- **THEN** the script prints a skip warning and exits 0
-- **AND** it does not attempt `docker buildx bake`
-
-### Requirement: Bandit and markdownlint config files
-
-The repository MUST provide a root `.bandit` suitable for `bandit -c`. It MUST provide or retain `.markdownlint.json`,
-`.markdownlintignore`, and `.markdownlint-cli2.jsonc` consistent with Prettier and vendor excludes.
-
-#### Scenario: Bandit config exists
-
-- **WHEN** a consumer runs bandit with `-c .bandit` against `middleware/`
-- **THEN** the shared `.bandit` file is present at the repo root
-
-### Requirement: Documentation of hook install boundaries
-
-Documentation (README and/or `docs/`) MUST state that commit-stage installation is
-`pre-commit install --hook-type pre-commit` (performed by shared `scripts/devcontainer-post-create.sh` on Dev Container
-create, and runnable manually after clone), and that the pre-push **git** hook (pre-commit pre-push stage only) is
-installed via `scripts/setup-git-hooks.sh` from the shared git-hooks extract (also invoked from that postCreate). Manual
-`uv run pre-commit run --hook-stage pre-push` remains valid without that git hook. Documentation MUST NOT require Git
-LFS for the shared pre-push quality path.
-
-#### Scenario: Contributor reads install docs
-
-- **WHEN** a contributor opens the quality / README docs for this tooling
-- **THEN** they learn how to install the commit-stage hook
-- **AND** they learn pre-push git-hook install is `./scripts/setup-git-hooks.sh` (wired from postCreate on the Dev
-  Container path)
-
-### Requirement: Python tool config via syncable fragments
-
-Shared Python quality **tool configuration** for product repos MUST be provided as dedicated fragment files owned in
-this repository (Ruff, Mypy, Pylint — see `shared-python-quality-config`), not by treating this repository’s root
-`pyproject.toml` as a drop-in replacement for product root `pyproject.toml`. The pre-commit skeleton and quality docs
-MUST be consistent with those fragment paths after sync (hooks discover or pass the documented config files). Existing
-`.bandit` and markdownlint configs remain separate fragment-style files as already required.
-
-#### Scenario: Pre-commit expects fragment configs after sync
-
-- **WHEN** a product repo has synced the shared Ruff/Mypy/Pylint fragments and the shared pre-commit skeleton
-- **THEN** commit-stage Ruff/Mypy/Pylint hooks can resolve configuration without requiring product `[tool.ruff]` blocks
-  copied from an old monolith `pyproject.toml`
-- **AND** documentation states that product `[project]` / uv workspace sections stay local
 
 ### Requirement: Three-environment quality parity
 
@@ -232,17 +126,7 @@ environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-lin
 - **AND** IDE is documented as not required (named exception)
 - **AND** pydeps is not listed as a fail gate
 
-### Requirement: Reusable code-quality runs vulture
-
-The reusable code-quality workflow MUST run vulture against the configured Python package root with the same fail policy
-as the commit-stage vulture hook (minimum confidence 100; no synced whitelist file). A failing vulture finding at that
-policy MUST fail the job.
-
-#### Scenario: CI vulture matches hook policy
-
-- **WHEN** reusable code-quality runs with `skip` false
-- **THEN** it executes vulture on the package root with minimum confidence 100
-- **AND** a confidence-100 unused-code finding fails the workflow
+## ADDED Requirements
 
 ### Requirement: Reusable code-quality runs import-linter
 
@@ -254,15 +138,3 @@ overlay, with the same fail policy as the commit-stage hook. A contract violatio
 - **WHEN** reusable code-quality runs with `skip` false
 - **THEN** it executes import-linter with baseline (+ overlay when present)
 - **AND** a contract violation fails the workflow
-
-### Requirement: Markdown quality is gated in GitHub CI
-
-Documentation of three-environment parity (`docs/quality.md` and related) MUST treat Prettier and markdownlint as gated
-in **GitHub CI** via the reusable code-quality workflow (same shared configs and pass/fail outcome as IDE and hooks). It
-MUST NOT present “commit-stage / docs scripts only” as a substitute for CI for those tools.
-
-#### Scenario: Quality parity table shows CI for markdown
-
-- **WHEN** a contributor reads the environment parity table in `docs/quality.md`
-- **THEN** Prettier / markdownlint list GitHub CI as a real gate (not only commit-stage)
-- **AND** the same shared config files are cited for IDE, hooks, and CI
