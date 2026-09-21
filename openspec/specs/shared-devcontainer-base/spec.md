@@ -54,22 +54,22 @@ Compose workspace path matches the shared `devcontainer.json` `workspaceFolder`.
 `scripts/devcontainer-post-create.sh` MUST remain free of hardcoded product workspace names. On Dev Container create it
 MUST: fix documented volume permissions when present; sync `.python-version` via `scripts/load-versions-env.sh`; run
 `uv sync --dev --all-packages` when a root `pyproject.toml` exists (dev dependency group and all uv workspace members —
-aligned with shared reusable code-quality CI); install the commit-stage hook with
-`pre-commit install --hook-type pre-commit` (via the synced environment); run `./scripts/setup-git-hooks.sh`; import
-`public_gpg_keys/*.asc` when that directory contains `.asc` files (MUST skip cleanly when absent or empty); attempt to
-install recommended IDE extensions via Cursor/VS Code remote CLI when available (at least `charliermarsh.ruff`; MUST NOT
-fail the whole postCreate if the CLI or an extension install is missing); and **after** those shared steps (**T-late**),
-run every `scripts/devcontainer-post-create.d/*` drop-in in lexicographic order when that directory has matching entries
-(`nullglob`: absent or empty directory MUST skip cleanly). Each present drop-in MUST be a regular file and executable; a
-missing execute bit or non-zero exit MUST fail the whole postCreate (**hard-fail**). Shared postCreate MUST NOT
-hard-code optional product-local script names (e.g. `scripts/install-dev-hooks.sh`, `scripts/setup-git-lfs.sh`). The
-Ruff CLI MUST come from the uv project environment after sync. This repository’s `devcontainer.json` MUST list the
-shared product IDE extension set (Docker / Helm / Python / Ruff / Pylint / Mypy / PlantUML / Prettier / markdownlint /
-signageos SOPS, Kubernetes Tools, and related helpers used across the three product repos) and postCreate MUST attempt
-soft-fail install of that same set via remote CLI when available. The list MUST include at least: `charliermarsh.ruff`,
-`jebbs.plantuml`, `signageos.signageos-vscode-sops` (Open VSX / Cursor-supported SOPS editor; MUST NOT require
-`shipitsmarter.sops-edit` in the shared recommendation list), `esbenp.prettier-vscode`,
-`davidanson.vscode-markdownlint`, and `ms-kubernetes-tools.vscode-kubernetes-tools`.
+aligned with shared reusable code-quality CI) **with uv malware check enabled** (`UV_MALWARE_CHECK=1` or equivalent);
+install the commit-stage hook with `pre-commit install --hook-type pre-commit` (via the synced environment); run
+`./scripts/setup-git-hooks.sh`; import `public_gpg_keys/*.asc` when that directory contains `.asc` files (MUST skip
+cleanly when absent or empty); attempt to install recommended IDE extensions via Cursor/VS Code remote CLI when
+available (at least `charliermarsh.ruff`; MUST NOT fail the whole postCreate if the CLI or an extension install is
+missing); and **after** those shared steps (**T-late**), run every `scripts/devcontainer-post-create.d/*` drop-in in
+lexicographic order when that directory has matching entries (`nullglob`: absent or empty directory MUST skip cleanly).
+Each present drop-in MUST be a regular file and executable; a missing execute bit or non-zero exit MUST fail the whole
+postCreate (**hard-fail**). Shared postCreate MUST NOT hard-code optional product-local script names (e.g.
+`scripts/install-dev-hooks.sh`, `scripts/setup-git-lfs.sh`). The Ruff CLI MUST come from the uv project environment
+after sync. This repository’s `devcontainer.json` MUST list the shared product IDE extension set (Docker / Helm / Python
+/ Ruff / Pylint / Mypy / PlantUML / Prettier / markdownlint / signageos SOPS, Kubernetes Tools, and related helpers used
+across the three product repos) and postCreate MUST attempt soft-fail install of that same set via remote CLI when
+available. The list MUST include at least: `charliermarsh.ruff`, `jebbs.plantuml`, `signageos.signageos-vscode-sops`
+(Open VSX / Cursor-supported SOPS editor; MUST NOT require `shipitsmarter.sops-edit` in the shared recommendation list),
+`esbenp.prettier-vscode`, `davidanson.vscode-markdownlint`, and `ms-kubernetes-tools.vscode-kubernetes-tools`.
 
 #### Scenario: Fresh Dev Container create
 
@@ -84,6 +84,11 @@ soft-fail install of that same set via remote CLI when available. The list MUST 
 - **AND** if `scripts/devcontainer-post-create.d/` is absent or empty, postCreate completes successfully
 - **AND** postCreate does not call `scripts/install-dev-hooks.sh` or `scripts/setup-git-lfs.sh` by those hard-coded
   names even if those files exist
+
+#### Scenario: Post-create sync enables malware check
+
+- **WHEN** postCreate runs `uv sync` because a root `pyproject.toml` exists
+- **THEN** the malware check is enabled for that sync
 
 #### Scenario: Product postCreate drop-ins run at T-late
 
