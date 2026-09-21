@@ -19,7 +19,8 @@ invoked explicitly.
 
 ## Workflow (summary)
 
-1. Fetch + triage (type, labels, done-when).
+1. Fetch + triage (type, labels, done-when, **issue comments** — newer comment wins on conflict with body or older
+   comments; via `m42-ai issue-view`).
 2. When explore is required (`Feature` / `Refactoring`, or Bug/Security/Task when criteria are unclear / user asks):
    explore **in-skill** (no `/opsx-explore`). Wait for lock-in / `go` / `skip explore`.
 3. Create `{channel}/issue-<n>-<slug>` **before** propose or implement (`build` / `ci` / `docs` per skill).

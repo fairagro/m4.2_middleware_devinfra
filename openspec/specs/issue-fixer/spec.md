@@ -11,14 +11,24 @@ commits and no empty bootstrap commits.
 ### Requirement: issue-fixer skill is canonical here
 
 The repository MUST provide `.agents/skills/issue-fixer/SKILL.md` as the shared issue-fixer procedure. The skill MUST
-accept an issue number or URL, fetch the issue with `gh`, determine org issue type and triage labels when present, and
-MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` / `/create-issue`.
+accept an issue number or URL, fetch the issue with `gh` (prefer `m42-ai issue-view`), determine org issue type and triage
+labels when present, and MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` /
+`/create-issue`.
+
+Triage MUST include issue conversation comments from `issue-view` JSON `comments` (or `gh issue view` including
+comments). When comments contradict each other or the issue body, the **newer** comment wins (`created_at` later).
 
 #### Scenario: Agent runs /issue-fixer with an issue number
 
 - **WHEN** the user invokes `/issue-fixer` with an issue number or URL
-- **THEN** the skill instructs fetching the issue and triaging type, labels, problem, paths, and acceptance criteria
+- **THEN** the skill instructs fetching the issue and triaging type, labels, problem, paths, acceptance criteria, and
+  issue comments
 - **AND** it does not commit or push product fix commits
+
+#### Scenario: Newer comment wins on conflict
+
+- **WHEN** triage finds an issue body (or older comment) that conflicts with a later comment
+- **THEN** the skill treats the newer comment as authoritative for problem statement / done-when / lock-ins
 
 ### Requirement: issue-fixer does not run OpenSpec
 
@@ -114,8 +124,18 @@ explore in-skill (clarify scope, compare options, wait for lock-in / `go` / `ski
 
 ### Requirement: Branch then implement then pause then draft PR
 
-On every run that will implement, the skill MUST create local branch `issue-<issue_number>-<slug>` from `main` before
-writing OpenSpec artifacts or product code. The skill MUST NOT auto-commit; MUST NOT use empty bootstrap commits.
+On every run that will implement, the skill MUST create a local branch
+`{channel}/issue-<issue_number>-<slug>` from `main` before writing OpenSpec artifacts or product code. `{channel}` is
+one of `build`, `ci`, or `docs` (CI channel prefix — not the GitHub issue type). The skill MUST pick:
+
+- `docs` when the slice is clearly docs-only (Markdown/MDC and/or code comments, no skill file, not under
+  `openspec/specs/` or `openspec/changes/`)
+- `ci` when the slice is clearly limited to shared CI/tooling (for example `scripts/`, `.devcontainer/`, workflows,
+  quality configs, tests for those) without product image/app code
+- `build` otherwise (including unclear scope — fail-safe toward image/RC-eligible work)
+
+The skill MUST NOT use `feature/` as the channel prefix. The skill MUST NOT auto-commit; MUST NOT use empty bootstrap
+commits. Prefer `m42-ai issue-branch` with the chosen channel when available.
 
 For **Feature** and **Refactoring** that are **not** docs-only (or any type that touches a skill file, including Task)
 the skill MUST then:
@@ -134,9 +154,25 @@ Early exits that never implement MAY skip this cadence.
 #### Scenario: Branch before propose or implement
 
 - **WHEN** the run will implement after explore (or after skipping explore)
-- **THEN** the skill creates `issue-<issue_number>-<slug>` from `main` before writing product code or OpenSpec artifacts
+- **THEN** the skill creates `{channel}/issue-<issue_number>-<slug>` from `main` before writing product code or OpenSpec
+  artifacts
 - **AND** it does not open a draft PR yet
 - **AND** it does not auto-commit
+
+#### Scenario: Docs-only uses docs channel
+
+- **WHEN** the slice is clearly docs-only per the docs-only rule
+- **THEN** the skill creates a branch under `docs/issue-<issue_number>-…`
+
+#### Scenario: Tooling-only uses ci channel
+
+- **WHEN** the slice is clearly limited to shared CI/tooling without product image/app code
+- **THEN** the skill creates a branch under `ci/issue-<issue_number>-…`
+
+#### Scenario: Unclear or image-related uses build channel
+
+- **WHEN** scope is unclear or includes product image/app code
+- **THEN** the skill creates a branch under `build/issue-<issue_number>-…`
 
 #### Scenario: Propose pause before apply
 
@@ -200,6 +236,7 @@ user override), the skill-file exception, misfile pause for Task, `skip_specs` v
 - **THEN** they learn explore is in-skill when required
 - **AND** they learn Feature/Refactoring use propose → apply → draft PR → archive except clear docs-only slices
 - **AND** they learn Task/Bug/Security stay off OpenSpec unless asked or a skill file is in scope
+- **AND** they learn triage includes issue comments with newer-wins on conflict
 - **AND** they learn `/review-fixer` and `/create-issue` do not run OpenSpec
 
 ### Requirement: Portable m42-ai examples in skill and docs

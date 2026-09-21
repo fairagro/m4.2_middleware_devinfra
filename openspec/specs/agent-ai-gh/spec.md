@@ -122,11 +122,12 @@ missing.
 
 ### Requirement: issue-start
 
-`issue-start` MUST, on a clean working tree/index: ensure branch `issue-<n>-<slug>` exists (create from `main` if needed
-after fetch + fast-forward pull of the base), refuse when `HEAD` is not ahead of the base, push the tip, and open a
-draft PR whose body includes `Fixes #<n>`. It MUST NOT create empty bootstrap commits. It MUST NOT mark the PR ready.
-The draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”. Fetch + fast-forward pull of the
-base branch MUST succeed before creating a missing issue branch (MUST NOT ignore pull failures).
+`issue-start` MUST, on a clean working tree/index: ensure branch `{channel}/issue-<n>-<slug>` exists (create from `main`
+if needed after fetch + fast-forward pull of the base), refuse when `HEAD` is not ahead of the base, push the tip, and
+open a draft PR whose body includes `Fixes #<n>`. `{channel}` MUST be one of `build`, `ci`, or `docs` (default `build`
+when the caller does not pass a channel). It MUST NOT create empty bootstrap commits. It MUST NOT mark the PR ready. The
+draft PR body MUST NOT include tool marketing footers such as “Made with Cursor”. Fetch + fast-forward pull of the base
+branch MUST succeed before creating a missing issue branch (MUST NOT ignore pull failures).
 
 #### Scenario: Dirty tree refuses issue-start
 
@@ -144,6 +145,11 @@ base branch MUST succeed before creating a missing issue branch (MUST NOT ignore
 - **THEN** the body contains `Fixes #<n>`
 - **AND** it does not contain “Made with Cursor”
 
+#### Scenario: issue-start uses channel prefix
+
+- **WHEN** `issue-start` creates a missing branch with `--channel ci`
+- **THEN** the branch name is `ci/issue-<n>-<slug>`
+
 ### Requirement: auth-status
 
 `auth-status` MUST call `gh auth status --json hosts` (or equivalent) and print shaped JSON including `ok`, `hostname`,
@@ -160,7 +166,8 @@ NOT introduce a second credential model.
 
 `issue-view` MUST fetch an issue and print JSON including `number`, `title`, `url`, `body`, `state`, `issue_type`
 (nullable), `labels`, `triage` (`severity` / `practicality` / `cost` extracted from allowlisted label names when
-present), and `author`.
+present), `author`, and `comments` (array of `{author, body, created_at}`, oldest first; empty when none). Comments
+MUST come from the issue conversation (same source as `gh issue view --json comments`).
 
 #### Scenario: Triage labels extracted
 
@@ -169,18 +176,30 @@ present), and `author`.
 - **AND** `triage.practicality` is `practicality:high`
 - **AND** `triage.cost` is `cost:cheap`
 
+#### Scenario: Comments included oldest first
+
+- **WHEN** `issue-view` runs on an issue that has two comments with distinct `createdAt` timestamps
+- **THEN** JSON `comments` lists both entries with `author`, `body`, and `created_at`
+- **AND** the list is ordered oldest → newest
+
 ### Requirement: issue-branch and branch-ahead
 
-`issue-branch` MUST, on a clean working tree/index: ensure `issue-<n>-<slug>` exists (create from base after fetch +
-fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `branch-ahead` MUST fetch
-`origin/<base>` before counting, print JSON with `base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, and
-`ok` (`true` iff `ahead > 0`), and MUST exit non-zero when not ahead.
+`issue-branch` MUST, on a clean working tree/index: ensure `{channel}/issue-<n>-<slug>` exists (create from base after
+fetch + fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `{channel}` MUST be one
+of `build`, `ci`, or `docs` (default `build`). `branch-ahead` MUST fetch `origin/<base>` before counting, print JSON with
+`base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, and `ok` (`true` iff `ahead > 0`), and MUST exit
+non-zero when not ahead.
 
 #### Scenario: issue-branch creates without PR
 
 - **WHEN** `issue-branch` runs and the local issue branch is missing
-- **THEN** it creates and checks out `issue-<n>-<slug>` from the base
+- **THEN** it creates and checks out `{channel}/issue-<n>-<slug>` from the base
 - **AND** it does not push or open a PR
+
+#### Scenario: issue-branch default channel is build
+
+- **WHEN** `issue-branch` runs without an explicit channel
+- **THEN** the branch name starts with `build/issue-`
 
 #### Scenario: branch-ahead exit code
 
