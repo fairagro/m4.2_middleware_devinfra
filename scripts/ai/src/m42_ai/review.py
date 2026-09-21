@@ -67,28 +67,101 @@ def is_finder_review(review: dict[str, Any]) -> bool:
     return is_ai_author(author) or is_code_review_report(body)
 
 
+class PrHeadGateError(RuntimeError):
+    """Fail-closed PR-head checkout for review-open (structured for agents)."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: str,
+        head_ref: str | None = None,
+        current_branch: str | None = None,
+        pr: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+        self.head_ref = head_ref
+        self.current_branch = current_branch
+        self.pr = pr
+
+    def as_json(self) -> dict[str, Any]:
+        """Machine-readable gate failure — agents MUST stop (no stash/improvise)."""
+        out: dict[str, Any] = {
+            "ok": False,
+            "pr_head_ok": False,
+            "error_code": self.error_code,
+            "error": str(self),
+            "agent_action": "stop",
+        }
+        if self.pr is not None:
+            out["pr"] = self.pr
+        if self.head_ref is not None:
+            out["head_ref"] = self.head_ref
+        if self.current_branch is not None:
+            out["current_branch"] = self.current_branch
+        return out
+
+
+def _md_table_cells(line: str) -> list[str]:
+    return [p.strip() for p in line.strip().strip("|").split("|")]
+
+
+def _find_path_table_header(lines: list[str]) -> tuple[int, list[str]] | None:
+    for i, line in enumerate(lines):
+        if "|" not in line:
+            continue
+        parts = [p.lower() for p in _md_table_cells(line)]
+        if "path" in parts:
+            return i, parts
+    return None
+
+
+def _optional_col(cols: list[str], name: str) -> int | None:
+    return cols.index(name) if name in cols else None
+
+
+def _cell_at(parts: list[str], idx: int | None) -> str:
+    if idx is None or idx >= len(parts):
+        return ""
+    return parts[idx]
+
+
+def _parse_code_review_table_row(
+    line: str,
+    *,
+    path_i: int,
+    goal_i: int | None,
+    severity_i: int | None,
+    note_i: int | None,
+) -> dict[str, str | None] | None:
+    if "|" not in line:
+        return None
+    parts = _md_table_cells(line)
+    if not parts or all(set(p) <= set("-: ") for p in parts):
+        return None
+    if len(parts) <= path_i:
+        return None
+    path = parts[path_i]
+    if not path or path.lower() == "path":
+        return None
+    bits = [b for b in (_cell_at(parts, goal_i), _cell_at(parts, severity_i), _cell_at(parts, note_i)) if b]
+    return {"path": path, "line": None, "text": " — ".join(bits) if bits else path}
+
+
 def extract_code_review_findings(body: str) -> list[dict[str, str | None]]:
     """Parse the Markdown findings table from a marked `/code-review` report."""
     if not is_code_review_report(body):
         return []
     lines = body.splitlines()
-    header_idx: int | None = None
-    cols: list[str] = []
-    for i, line in enumerate(lines):
-        if "|" not in line:
-            continue
-        parts = [p.strip().lower() for p in line.strip().strip("|").split("|")]
-        if "path" in parts:
-            header_idx = i
-            cols = parts
-            break
-    if header_idx is None:
+    header = _find_path_table_header(lines)
+    if header is None:
         return []
-
+    header_idx, cols = header
     path_i = cols.index("path")
-    note_i = cols.index("note") if "note" in cols else None
-    severity_i = cols.index("severity") if "severity" in cols else None
-    goal_i = cols.index("goal") if "goal" in cols else None
+    goal_i = _optional_col(cols, "goal")
+    severity_i = _optional_col(cols, "severity")
+    note_i = _optional_col(cols, "note")
 
     items: list[dict[str, str | None]] = []
     for line in lines[header_idx + 1 :]:
@@ -96,25 +169,9 @@ def extract_code_review_findings(body: str) -> list[dict[str, str | None]]:
             if items:
                 break
             continue
-        parts = [p.strip() for p in line.strip().strip("|").split("|")]
-        if not parts:
-            continue
-        if all(set(p) <= set("-: ") for p in parts):
-            continue
-        if len(parts) <= path_i:
-            continue
-        path = parts[path_i]
-        if not path or path.lower() == "path":
-            continue
-        bits: list[str] = []
-        if goal_i is not None and goal_i < len(parts) and parts[goal_i]:
-            bits.append(parts[goal_i])
-        if severity_i is not None and severity_i < len(parts) and parts[severity_i]:
-            bits.append(parts[severity_i])
-        if note_i is not None and note_i < len(parts) and parts[note_i]:
-            bits.append(parts[note_i])
-        text = " — ".join(bits) if bits else path
-        items.append({"path": path, "line": None, "text": text})
+        row = _parse_code_review_table_row(line, path_i=path_i, goal_i=goal_i, severity_i=severity_i, note_i=note_i)
+        if row is not None:
+            items.append(row)
     return items
 
 
@@ -378,6 +435,7 @@ def ensure_pr_head(
 
     Dirty working tree/index on a *different* branch refuses checkout. Dirty on the
     PR head is allowed. Fail closed when checkout cannot establish the head branch.
+    Raises PrHeadGateError with a stable error_code for CLI JSON.
     """
     root = cwd or Path.cwd()
     view_args = ["pr", "view", str(pr), "--json", "headRefName"]
@@ -386,7 +444,11 @@ def ensure_pr_head(
     meta = json.loads(run_gh(view_args, cwd=root).stdout)
     head_ref = str(meta.get("headRefName") or "").strip()
     if not head_ref:
-        raise RuntimeError(f"PR #{pr} has empty headRefName")
+        raise PrHeadGateError(
+            f"PR #{pr} has empty headRefName",
+            error_code="empty_head_ref",
+            pr=pr,
+        )
 
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     dirty = bool(run_git(["status", "--porcelain"], cwd=root).stdout.strip())
@@ -396,11 +458,16 @@ def ensure_pr_head(
             "head_ref": head_ref,
             "current_branch": current,
             "checked_out": False,
+            "pr_head_ok": True,
         }
 
     if dirty:
-        raise RuntimeError(
-            f"working tree/index dirty on branch {current!r}; refuse checkout of PR #{pr} head {head_ref!r}"
+        raise PrHeadGateError(
+            f"working tree/index dirty on branch {current!r}; refuse checkout of PR #{pr} head {head_ref!r}",
+            error_code="dirty_wrong_branch",
+            head_ref=head_ref,
+            current_branch=current,
+            pr=pr,
         )
 
     checkout_args = ["pr", "checkout", str(pr)]
@@ -409,16 +476,29 @@ def ensure_pr_head(
     try:
         run_gh(checkout_args, cwd=root)
     except GhError as exc:
-        raise RuntimeError(f"failed to checkout PR #{pr} head {head_ref!r}: {exc}") from exc
+        raise PrHeadGateError(
+            f"failed to checkout PR #{pr} head {head_ref!r}: {exc}",
+            error_code="checkout_failed",
+            head_ref=head_ref,
+            current_branch=current,
+            pr=pr,
+        ) from exc
 
     current = run_git(["branch", "--show-current"], cwd=root).stdout.strip()
     if current != head_ref:
-        raise RuntimeError(f"after checkout expected branch {head_ref!r}, got {current!r}")
+        raise PrHeadGateError(
+            f"after checkout expected branch {head_ref!r}, got {current!r}",
+            error_code="checkout_branch_mismatch",
+            head_ref=head_ref,
+            current_branch=current,
+            pr=pr,
+        )
 
     return {
         "head_ref": head_ref,
         "current_branch": current,
         "checked_out": True,
+        "pr_head_ok": True,
     }
 
 
@@ -464,6 +544,8 @@ def fetch_review_open(
     if head_info is not None:
         shaped["head_ref"] = head_info["head_ref"]
         shaped["current_branch"] = head_info["current_branch"]
+        shaped["pr_head_ok"] = True
+        shaped["ok"] = True
     return shaped
 
 

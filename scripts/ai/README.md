@@ -70,9 +70,11 @@ you pass `--owner` / `--repo` where the command supports them.
 | `sync-followup-ensure`          | Create or reuse product Task (`--repo`, `--id`; dedupe label `sync-followup:<id>`)                                                                         |
 
 `review-open` has a **git side effect**: it checks out the PR head (via `gh pr checkout`) when the current branch
-differs. Dirty trees on a **different** branch refuse with JSON `{"ok": false, "error": …}` and exit `1`. Dirty on the
-correct head is allowed. Paste-only / shaping-only callers can use library
-`fetch_review_open(..., ensure_checkout=False)`.
+differs. Dirty trees on a **different** branch refuse with structured JSON
+`{"ok": false, "pr_head_ok": false, "error_code": "dirty_wrong_branch", "agent_action": "stop", …}` and exit `1`. Other
+gate failures use `empty_head_ref` / `checkout_failed` / `checkout_branch_mismatch`. Dirty on the correct head is
+allowed. Success includes `ok` / `pr_head_ok` true plus `head_ref` / `current_branch`. Paste-only / shaping-only callers
+can use library `fetch_review_open(..., ensure_checkout=False)`.
 
 ## Tests
 
