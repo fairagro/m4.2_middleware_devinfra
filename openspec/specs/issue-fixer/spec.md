@@ -11,14 +11,24 @@ commits and no empty bootstrap commits.
 ### Requirement: issue-fixer skill is canonical here
 
 The repository MUST provide `.agents/skills/issue-fixer/SKILL.md` as the shared issue-fixer procedure. The skill MUST
-accept an issue number or URL, fetch the issue with `gh`, determine org issue type and triage labels when present, and
-MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` / `/create-issue`.
+accept an issue number or URL, fetch the issue with `gh` (prefer `m42-ai issue-view`), determine org issue type and triage
+labels when present, and MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` /
+`/create-issue`.
+
+Triage MUST include issue conversation comments from `issue-view` JSON `comments` (or `gh issue view` including
+comments). When comments contradict each other or the issue body, the **newer** comment wins (`created_at` later).
 
 #### Scenario: Agent runs /issue-fixer with an issue number
 
 - **WHEN** the user invokes `/issue-fixer` with an issue number or URL
-- **THEN** the skill instructs fetching the issue and triaging type, labels, problem, paths, and acceptance criteria
+- **THEN** the skill instructs fetching the issue and triaging type, labels, problem, paths, acceptance criteria, and
+  issue comments
 - **AND** it does not commit or push product fix commits
+
+#### Scenario: Newer comment wins on conflict
+
+- **WHEN** triage finds an issue body (or older comment) that conflicts with a later comment
+- **THEN** the skill treats the newer comment as authoritative for problem statement / done-when / lock-ins
 
 ### Requirement: issue-fixer does not run OpenSpec
 
@@ -200,6 +210,7 @@ user override), the skill-file exception, misfile pause for Task, `skip_specs` v
 - **THEN** they learn explore is in-skill when required
 - **AND** they learn Feature/Refactoring use propose → apply → draft PR → archive except clear docs-only slices
 - **AND** they learn Task/Bug/Security stay off OpenSpec unless asked or a skill file is in scope
+- **AND** they learn triage includes issue comments with newer-wins on conflict
 - **AND** they learn `/review-fixer` and `/create-issue` do not run OpenSpec
 
 ### Requirement: Portable m42-ai examples in skill and docs
