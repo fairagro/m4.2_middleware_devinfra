@@ -96,6 +96,9 @@ Product application code under `middleware/` must pass via `uv run`. Prefer shar
   while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md` when that file is synced
 - `uv run vulture middleware/ --min-confidence 100` — unused definitions (hooks + CI; no IDE gate; no synced whitelist;
   see `docs/quality.md`)
+- `./scripts/run-uv-audit.sh` — lockfile CVEs via `uv audit --frozen` (hooks + CI; no IDE gate; optional product
+  `.uv-audit-ignore`; needs OSV network — see `docs/quality.md`). Distinct from Trivy on images and from
+  `UV_MALWARE_CHECK` at `uv sync`
 
 Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):

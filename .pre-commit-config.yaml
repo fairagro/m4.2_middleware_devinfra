@@ -90,6 +90,14 @@ repos:
         files: ^middleware/
         pass_filenames: false
 
+      - id: uv-audit
+        name: uv audit (lockfile CVEs)
+        # Frozen lockfile; optional product `.uv-audit-ignore` overlay — needs OSV network (docs/quality.md)
+        entry: ./scripts/run-uv-audit.sh
+        language: system
+        files: ^(uv\.lock|pyproject\.toml|\.uv-audit-ignore)$
+        pass_filenames: false
+
       - id: markdownlint
         name: markdownlint-cli2
         entry: npm run lint:md

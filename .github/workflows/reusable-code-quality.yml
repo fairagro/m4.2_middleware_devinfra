@@ -138,7 +138,10 @@ jobs:
 
       - name: Install dependencies
         if: ${{ !inputs.skip }}
-        run: uv sync --dev --all-packages
+        env:
+          # Install-time OSV MAL advisory block (preview); not a substitute for uv audit (docs/quality.md).
+          UV_MALWARE_CHECK: "1"
+        run: uv sync --dev --all-packages --preview-features malware-check
 
       - name: Code formatting and linting
         if: ${{ !inputs.skip }}
@@ -190,6 +193,12 @@ jobs:
         run: |
           # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
           uv run vulture "${PKG}" --min-confidence 100
+
+      - name: Lockfile vulnerability audit (uv audit)
+        if: ${{ !inputs.skip }}
+        run: |
+          # Same fail bar as commit-stage hook: frozen lockfile + optional `.uv-audit-ignore` (docs/quality.md).
+          ./scripts/run-uv-audit.sh
 
       - name: Run tests
         if: ${{ !inputs.skip }}
