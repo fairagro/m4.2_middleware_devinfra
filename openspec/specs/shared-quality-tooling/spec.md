@@ -30,7 +30,8 @@ auto-fixes where hooks support them.
 The repository MUST provide a root `.pre-commit-config.yaml` that defines:
 
 - **Commit-stage** hooks covering at least: trailing-whitespace / YAML or TOML hygiene, ggshield, ruff, mypy, bandit,
-  pylint, **vulture**, **import-linter**, and markdownlint (aligned with the product API pattern).
+  pylint, **vulture**, **import-linter**, **uv audit** (Python lockfile CVE gate), and markdownlint (aligned with the
+  product API pattern).
 - **Pre-push stage** hooks for `pytest` and container-structure-test that invoke
   `scripts/run-container-structure-test.sh`.
 
@@ -48,7 +49,9 @@ paths are absent) so product repos can adopt `.pre-commit-config.yaml` verbatim 
 
 The commit-stage **vulture** hook MUST match the reusable code-quality vulture fail policy (minimum confidence 100; no
 synced whitelist file). The commit-stage **import-linter** hook MUST apply the shared baseline and, when present, the
-product overlay, matching the reusable code-quality fail policy.
+product overlay, matching the reusable code-quality fail policy. The commit-stage **uv audit** hook MUST match the
+reusable code-quality uv-audit fail policy (audit the project lockfile with `--frozen` or equivalent; fail on any
+reported vulnerability / adverse status except IDs listed via the documented ignore mechanism).
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -85,6 +88,12 @@ product overlay, matching the reusable code-quality fail policy.
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** an import-linter hook is present for the shared baseline (+ optional product overlay)
 - **AND** it fails closed on contract violations
+
+#### Scenario: Commit-stage includes uv audit
+
+- **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
+- **THEN** a uv-audit lockfile vulnerability hook is present
+- **AND** it fails closed on findings except documented ignored advisory IDs
 
 ### Requirement: Pre-push vs CI pytest scope is documented
 
@@ -170,15 +179,15 @@ MUST be consistent with those fragment paths after sync (hooks discover or pass 
 ### Requirement: Three-environment quality parity
 
 Every shared quality tool that gates commits or CI for this repository or for synced product consumers (at least: Ruff
-format/lint, Mypy, Pylint, Bandit, **vulture**, **import-linter**, markdownlint/Prettier where applicable, and pytest
-when configured as a quality gate) MUST be runnable in all three environments:
+format/lint, Mypy, Pylint, Bandit, **vulture**, **import-linter**, **uv audit**, markdownlint/Prettier where applicable,
+and pytest when configured as a quality gate) MUST be runnable in all three environments:
 
 1. **IDE** — workspace / extension settings that invoke the same tool binary family and the same shared config file(s)
 2. **Git hooks** — pre-commit (commit stage) and, where the tool is a pre-push gate, the pre-push stage
 3. **GitHub pipelines** — reusable or caller workflows that run the shared quality bar
 
-**Documented IDE exceptions (named):** Bandit, **vulture**, and **import-linter** MUST gate via hooks and GitHub CI with
-a matching fail bar, and MUST NOT require an IDE extension / workspace setting as a third gate.
+**Documented IDE exceptions (named):** Bandit, **vulture**, **import-linter**, and **uv audit** MUST gate via hooks and
+GitHub CI with a matching fail bar, and MUST NOT require an IDE extension / workspace setting as a third gate.
 
 For markdownlint/Prettier, GitHub pipelines MUST invoke the shared check scripts (e.g. `npm run format:md:check` /
 `npm run lint:md`) in reusable code-quality (or an explicitly documented equivalent), not only commit-stage hooks.
@@ -186,13 +195,14 @@ For markdownlint/Prettier, GitHub pipelines MUST invoke the shared check scripts
 For the same repository tree, the same toolchain pins (`versions.env` / `uv sync` / documented Node toolchain), and the
 same target paths, the **pass/fail outcome and substantive findings** MUST match across those environments that gate the
 tool. Divergent severity, rule sets, or config files between hooks and CI are forbidden unless a documented exception
-exists (none by default for vulture/import-linter beyond the IDE exceptions above).
+exists (none by default for vulture/import-linter/uv-audit beyond the IDE exceptions above).
 
 Shared **config files** (e.g. `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, markdownlint/Prettier configs) MUST be
 the single source of truth for tool policy when the tool supports a syncable fragment. For **vulture** under the locked
 fail policy (confidence 100, no whitelist file), matching hook and CI CLI args ARE the policy source of truth. For
 **import-linter**, the synced baseline plus optional product overlay (via the documented runner) ARE the policy source
-of truth.
+of truth. For **uv audit**, the documented runner invocation (frozen lockfile audit + shared ignore mechanism) IS the
+policy source of truth.
 
 Invocations (CLI, hook `entry`/`args`, CI steps, IDE settings) MUST pass at most: the path to the shared config file
 when the tool does not auto-discover it, the analysis target path(s), documented path overlays, and for vulture the
@@ -200,8 +210,11 @@ shared confidence flag. They MUST NOT pass additional flags that restate or over
 shared config file. They MUST NOT require post-sync hand-edits of synced `.pre-commit-config.yaml` for those overlays.
 
 Documentation (`docs/quality.md` and/or Code Quality in `openspec/principles.global.md`) MUST state this three-
-environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-linter IDE exceptions. It MUST state that
-**pydeps** is not a fail gate.
+environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-linter/uv-audit IDE exceptions. It MUST
+state that **pydeps** is not a fail gate. It MUST state that **uv audit** is the primary Python lockfile/env CVE gate
+and **Trivy** remains the image/SBOM vulnerability gate (`reusable-check`). It MUST state that **`UV_MALWARE_CHECK`**
+(or equivalent uv malware-check config) blocks known MAL advisories at **sync/install** time and is not a substitute for
+`uv audit`.
 
 #### Scenario: Same tree fails or passes consistently
 
@@ -232,6 +245,13 @@ environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-lin
 - **AND** IDE is documented as not required (named exception)
 - **AND** pydeps is not listed as a fail gate
 
+#### Scenario: uv audit gates hooks and CI without IDE
+
+- **WHEN** a contributor reads the environment parity table for uv audit
+- **THEN** hooks and GitHub CI are listed as gates with the same fail bar
+- **AND** IDE is documented as not required (named exception)
+- **AND** docs distinguish uv audit (lock CVE gate) from Trivy (image gate) and from UV_MALWARE_CHECK (sync-time MAL)
+
 ### Requirement: Reusable code-quality runs vulture
 
 The reusable code-quality workflow MUST run vulture against the configured Python package root with the same fail policy
@@ -254,6 +274,48 @@ overlay, with the same fail policy as the commit-stage hook. A contract violatio
 - **WHEN** reusable code-quality runs with `skip` false
 - **THEN** it executes import-linter with baseline (+ overlay when present)
 - **AND** a contract violation fails the workflow
+
+### Requirement: uv audit lockfile gate and ignore overlay
+
+The repository MUST provide a documented way to run **`uv audit`** against the project lockfile (`--frozen` or
+equivalent) as the fleet primary Python lockfile/env vulnerability gate. Hooks and reusable CI MUST use the same
+invocation and MUST fail on any vulnerability or adverse project status that is not ignored.
+
+Accepted-risk ignores MUST use uv’s ID ignore flags (`--ignore` / `--ignore-until-fixed` or equivalent) applied via a
+**product-owned overlay** (sync `overlays`, never wiped) and/or a thin shared runner that reads that overlay — MUST NOT
+require post-sync edits to synced `.pre-commit-config.yaml`. Documentation MUST note that `uv audit` is preview /
+experimental at the current uv pin and that there is **no** CRITICAL/HIGH-only severity filter.
+
+#### Scenario: Frozen lockfile audit fails on findings
+
+- **WHEN** commit-stage or reusable CI runs uv audit and the lockfile has a non-ignored advisory
+- **THEN** the gate fails
+- **AND** a clean lockfile (no findings / only ignored IDs) passes
+
+#### Scenario: Product ignore overlay is not wiped by sync
+
+- **WHEN** a product lists accepted advisory IDs in the documented overlay path
+- **THEN** sync does not overwrite that overlay
+- **AND** hooks and CI both honor those IDs without patching synced pre-commit YAML
+
+### Requirement: UV malware check on fleet sync entrypoints
+
+Fleet entrypoints that run `uv sync` for developer or quality bootstrap (at least reusable code-quality’s install step
+and Dev Container post-create when it syncs) MUST enable uv’s malware check (`UV_MALWARE_CHECK=1` or equivalent
+supported config) so known OSV MAL advisories abort sync before install. Documentation MUST state this is **install-time
+malware blocking**, complementary to `uv audit`, and still preview/experimental at the current pin.
+
+#### Scenario: Code-quality sync enables malware check
+
+- **WHEN** reusable code-quality runs `uv sync` with `skip` false
+- **THEN** the malware check is enabled for that sync
+- **AND** a locked MAL advisory aborts the sync (gate fails)
+
+#### Scenario: Docs describe malware check vs uv audit
+
+- **WHEN** a contributor reads quality or CI docs for Python supply-chain gates
+- **THEN** they learn UV_MALWARE_CHECK (or equivalent) runs at sync/install
+- **AND** they learn `uv audit` remains the lockfile CVE gate
 
 ### Requirement: Markdown quality is gated in GitHub CI
 
