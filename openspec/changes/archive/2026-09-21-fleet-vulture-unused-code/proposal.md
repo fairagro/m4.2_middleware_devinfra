@@ -2,7 +2,8 @@
 
 Dead/unused definitions are a `/code-review` goal, but the fleet has no static unused-code gate—only Ruff unused
 **imports**. Agents must not invent mechanical dead-code nits once a toolchain owns them
-([#172](https://github.com/fairagro/m4.2_middleware_devinfra/issues/172); contract from [#140](https://github.com/fairagro/m4.2_middleware_devinfra/issues/140)).
+([#172](https://github.com/fairagro/m4.2_middleware_devinfra/issues/172); contract from
+[#140](https://github.com/fairagro/m4.2_middleware_devinfra/issues/140)).
 
 ## What Changes
 
@@ -33,4 +34,5 @@ Dead/unused definitions are a `/code-review` goal, but the fleet has no static u
 - `docs/quality.md`, `openspec/principles.global.md` (Code Quality examples)
 - `.agents/skills/code-review/SKILL.md`, `docs/code-review.md`
 - Product adopt via sync of pre-commit + dep pin; first runs may fail on real unused code at confidence 100
-- Issue [#172](https://github.com/fairagro/m4.2_middleware_devinfra/issues/172); sibling [#173](https://github.com/fairagro/m4.2_middleware_devinfra/issues/173) unchanged
+- Issue [#172](https://github.com/fairagro/m4.2_middleware_devinfra/issues/172); sibling
+  [#173](https://github.com/fairagro/m4.2_middleware_devinfra/issues/173) unchanged

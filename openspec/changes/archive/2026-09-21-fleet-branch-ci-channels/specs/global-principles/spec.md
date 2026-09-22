@@ -5,13 +5,13 @@
 `openspec/principles.global.md` MUST document the fleet **Branch Strategy** using CI **channel** prefixes (not GitHub
 issue types):
 
-| Prefix     | Purpose                                              |
-| ---------- | ---------------------------------------------------- |
-| `main`     | Trunk — always deployable                            |
-| `build/*`  | Product image/app work; optional Pre Release / RC    |
-| `ci/*`     | Shared CI/tooling (scripts, Dev Container, tests…)   |
-| `docs/*`   | Documentation-only; may skip unnecessary CI jobs     |
-| `chore/*`  | Sync/bots; MUST NOT Pre Release                      |
+| Prefix    | Purpose                                            |
+| --------- | -------------------------------------------------- |
+| `main`    | Trunk — always deployable                          |
+| `build/*` | Product image/app work; optional Pre Release / RC  |
+| `ci/*`    | Shared CI/tooling (scripts, Dev Container, tests…) |
+| `docs/*`  | Documentation-only; may skip unnecessary CI jobs   |
+| `chore/*` | Sync/bots; MUST NOT Pre Release                    |
 
 Issue-driven work MUST keep the issue number in the branch name as `{channel}/issue-<n>-<slug>`. Fine-grained job
 selection remains path/change detection — prefixes MUST NOT multiply per file kind (`test/`, `scripts/`, …).

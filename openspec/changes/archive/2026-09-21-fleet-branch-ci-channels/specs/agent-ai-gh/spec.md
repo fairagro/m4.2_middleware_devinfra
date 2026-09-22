@@ -34,8 +34,8 @@ branch MUST succeed before creating a missing issue branch (MUST NOT ignore pull
 
 `issue-branch` MUST, on a clean working tree/index: ensure `{channel}/issue-<n>-<slug>` exists (create from base after
 fetch + fast-forward pull when missing), check it out, and MUST NOT commit, push, or open a PR. `{channel}` MUST be one
-of `build`, `ci`, or `docs` (default `build`). `branch-ahead` MUST fetch `origin/<base>` before counting, print JSON with
-`base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, and `ok` (`true` iff `ahead > 0`), and MUST exit
+of `build`, `ci`, or `docs` (default `build`). `branch-ahead` MUST fetch `origin/<base>` before counting, print JSON
+with `base`, `upstream` (`origin/<base>`), `current_branch`, `ahead`, and `ok` (`true` iff `ahead > 0`), and MUST exit
 non-zero when not ahead.
 
 #### Scenario: issue-branch creates without PR

@@ -2,9 +2,9 @@
 
 ### Requirement: Branch then implement then pause then draft PR
 
-On every run that will implement, the skill MUST create a local branch
-`{channel}/issue-<issue_number>-<slug>` from `main` before writing OpenSpec artifacts or product code. `{channel}` is
-one of `build`, `ci`, or `docs` (CI channel prefix — not the GitHub issue type). The skill MUST pick:
+On every run that will implement, the skill MUST create a local branch `{channel}/issue-<issue_number>-<slug>` from
+`main` before writing OpenSpec artifacts or product code. `{channel}` is one of `build`, `ci`, or `docs` (CI channel
+prefix — not the GitHub issue type). The skill MUST pick:
 
 - `docs` when the slice is clearly docs-only (Markdown/MDC and/or code comments, no skill file, not under
   `openspec/specs/` or `openspec/changes/`)

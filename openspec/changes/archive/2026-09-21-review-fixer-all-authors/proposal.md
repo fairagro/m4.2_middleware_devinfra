@@ -9,7 +9,7 @@ triageable too. Keep Copilot summary-only / suppressed packing.
 
 - `review-open` includes **all** unresolved review threads (any first-comment author).
 - Finder / summary packing: Copilot/Bugbot/Cursor heuristics **plus** `/code-review` reports (stable HTML comment marker
-  + findings-table extract) so human-authored first-party reviews are not skipped.
+  - findings-table extract) so human-authored first-party reviews are not skipped.
 - Update `review-fixer` / `code-review` skill text; tests for human threads + code-review body findings + suppressed
   Copilot.
 
