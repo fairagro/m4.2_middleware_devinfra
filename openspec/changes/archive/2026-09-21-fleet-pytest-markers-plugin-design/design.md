@@ -1,10 +1,10 @@
 ## Context
 
-See `proposal.md` — Why. Today products duplicate fleet pytest markers in local `pyproject.toml` so the synced
-pre-push expression `-m "not system_external and not system_local"` stays valid under `--strict-markers`. Pytest does
-not merge config files; a synced `pytest.ini` that only registers markers would displace product `testpaths` /
-`pythonpath`. Coverage tables have the same first-wins problem. Related work (#120/#121) shipped the marker filter with
-local registration; #123 deferred a real SoT.
+See `proposal.md` — Why. Today products duplicate fleet pytest markers in local `pyproject.toml` so the synced pre-push
+expression `-m "not system_external and not system_local"` stays valid under `--strict-markers`. Pytest does not merge
+config files; a synced `pytest.ini` that only registers markers would displace product `testpaths` / `pythonpath`.
+Coverage tables have the same first-wins problem. Related work (#120/#121) shipped the marker filter with local
+registration; #123 deferred a real SoT.
 
 This change documents the **future implement contract** only. Apply updates `docs/quality.md`; it does **not** add a
 plugin or coverage fragment.

@@ -1,8 +1,8 @@
 ## Context
 
 See `proposal.md` — Why. Explore lock-in for [#172](https://github.com/fairagro/m4.2_middleware_devinfra/issues/172):
-**A1** vulture, **B1** hooks+CI (no IDE), **C1** shared policy via synced pre-commit/CI (no separate whitelist
-fragment under D2), **D2** `--min-confidence 100` and **no** fleet whitelist, **E1** vulture only (#173 separate).
+**A1** vulture, **B1** hooks+CI (no IDE), **C1** shared policy via synced pre-commit/CI (no separate whitelist fragment
+under D2), **D2** `--min-confidence 100` and **no** fleet whitelist, **E1** vulture only (#173 separate).
 
 Bandit is the pattern: commit-stage hook + reusable CI, named IDE exception in `docs/quality.md`.
 

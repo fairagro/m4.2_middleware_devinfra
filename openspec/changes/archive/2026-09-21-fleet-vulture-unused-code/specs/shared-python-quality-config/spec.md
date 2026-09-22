@@ -7,10 +7,10 @@ stage pre-commit and reusable code-quality CI) MUST use the same fail policy: mi
 synced vulture whitelist / ignore fragment. Policy MUST live in the shared hook and CI entries (same args), not in a
 product-local `pyproject` `[tool.vulture]` table that sync would overwrite inconsistently.
 
-Documentation MUST state that false positives at confidence 100 are handled in product code (`# noqa` / delete / use
-the symbol), not by expanding a Devinfra whitelist file in this change. Dynamic attributes, `__all__`, and pytest
-fixtures that still fail at 100 MUST be fixed or noqa’d in the product — not by lowering fleet confidence in a
-one-off product fork of the synced pre-commit blob.
+Documentation MUST state that false positives at confidence 100 are handled in product code (`# noqa` / delete / use the
+symbol), not by expanding a Devinfra whitelist file in this change. Dynamic attributes, `__all__`, and pytest fixtures
+that still fail at 100 MUST be fixed or noqa’d in the product — not by lowering fleet confidence in a one-off product
+fork of the synced pre-commit blob.
 
 #### Scenario: Vulture gate uses confidence 100 without whitelist file
 

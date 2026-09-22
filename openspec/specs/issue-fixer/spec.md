@@ -11,8 +11,8 @@ commits and no empty bootstrap commits.
 ### Requirement: issue-fixer skill is canonical here
 
 The repository MUST provide `.agents/skills/issue-fixer/SKILL.md` as the shared issue-fixer procedure. The skill MUST
-accept an issue number or URL, fetch the issue with `gh` (prefer `m42-ai issue-view`), determine org issue type and triage
-labels when present, and MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` /
+accept an issue number or URL, fetch the issue with `gh` (prefer `m42-ai issue-view`), determine org issue type and
+triage labels when present, and MUST NOT auto-commit or auto-push fix commits. Auth MUST match `/review-fixer` /
 `/create-issue`.
 
 Triage MUST include issue conversation comments from `issue-view` JSON `comments` (or `gh issue view` including
@@ -124,9 +124,9 @@ explore in-skill (clarify scope, compare options, wait for lock-in / `go` / `ski
 
 ### Requirement: Branch then implement then pause then draft PR
 
-On every run that will implement, the skill MUST create a local branch
-`{channel}/issue-<issue_number>-<slug>` from `main` before writing OpenSpec artifacts or product code. `{channel}` is
-one of `build`, `ci`, or `docs` (CI channel prefix — not the GitHub issue type). The skill MUST pick:
+On every run that will implement, the skill MUST create a local branch `{channel}/issue-<issue_number>-<slug>` from
+`main` before writing OpenSpec artifacts or product code. `{channel}` is one of `build`, `ci`, or `docs` (CI channel
+prefix — not the GitHub issue type). The skill MUST pick:
 
 - `docs` when the slice is clearly docs-only (Markdown/MDC and/or code comments, no skill file, not under
   `openspec/specs/` or `openspec/changes/`)

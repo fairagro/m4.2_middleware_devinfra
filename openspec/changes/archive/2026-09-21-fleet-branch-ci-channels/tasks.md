@@ -2,8 +2,8 @@
 
 - [x] 1.1 Change `reusable-build.yml` RC gate from `feature/*` to `build/*` (hard cut; update branch-label strip) and
       verify the condition string is `build/*`
-- [x] 1.1b Align `reusable-helm-pre-release.yml` (fail unless `build/*`; strip `build/` for label) and verify no remaining
-      `feature/` label strip in `.github/workflows/`
+- [x] 1.1b Align `reusable-helm-pre-release.yml` (fail unless `build/*`; strip `build/` for label) and verify no
+      remaining `feature/` label strip in `.github/workflows/`
 - [x] 1.2 Update `docs/ci.md` version scheme text from `feature/*` to `build/*` and mention fleet channels briefly
 - [x] 1.3 Update `openspec/principles.global.md` Branch Strategy table to `build`/`ci`/`docs`/`chore` and verify no
       normative `feature/*` work-branch row remains

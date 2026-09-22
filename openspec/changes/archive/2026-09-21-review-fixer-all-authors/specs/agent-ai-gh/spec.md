@@ -2,18 +2,18 @@
 
 ### Requirement: review-open shapes open AI work
 
-`review-open` MUST emit JSON including: PR number/url, finder review round count, **all unresolved review threads**
-(any first-comment author; JSON key MAY remain `unresolved_ai_threads` for compatibility), **every** finder review body
-— author matching Copilot/Bugbot/Cursor heuristics **or** body containing the stable `/code-review` marker
+`review-open` MUST emit JSON including: PR number/url, finder review round count, **all unresolved review threads** (any
+first-comment author; JSON key MAY remain `unresolved_ai_threads` for compatibility), **every** finder review body —
+author matching Copilot/Bugbot/Cursor heuristics **or** body containing the stable `/code-review` marker
 `<!-- m42-ai:code-review -->` — with heuristically extracted suppressed / summary-only findings (`ai_reviews`,
 `summary_only_findings`), and a convenience `latest_ai_review`, plus the PR head branch name after successful checkout.
 Resolved threads MUST be omitted from the unresolved list. Round count and finder-review lists MUST include only
-**submitted** finder reviews (non-null `submittedAt`, state not `PENDING`). Summary-only findings MUST NOT be limited
-to the single latest finder review (a later Bugbot/Cursor/`code-review` submission MUST NOT hide earlier Copilot
-suppressed comments except via the answered-summary selection rule). Only the latest **unanswered** summary finder
-review contributes to `summary_only_findings` (at most one open summary review); a triage reply (`Fixed in` /
-`Dismissed.` / `Follow-up:`, optionally with `#pullrequestreview-<id>`) after a summary review MUST mark it answered.
-Only **submitted** non-finder review bodies count as such triage replies (PENDING / unsubmitted drafts MUST be ignored;
+**submitted** finder reviews (non-null `submittedAt`, state not `PENDING`). Summary-only findings MUST NOT be limited to
+the single latest finder review (a later Bugbot/Cursor/`code-review` submission MUST NOT hide earlier Copilot suppressed
+comments except via the answered-summary selection rule). Only the latest **unanswered** summary finder review
+contributes to `summary_only_findings` (at most one open summary review); a triage reply (`Fixed in` / `Dismissed.` /
+`Follow-up:`, optionally with `#pullrequestreview-<id>`) after a summary review MUST mark it answered. Only
+**submitted** non-finder review bodies count as such triage replies (PENDING / unsubmitted drafts MUST be ignored;
 `/code-review` marked bodies MUST NOT count as triage replies). An optional `--review-id` MAY force that review’s
 summary items into the open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with
 a clear error naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable. For `/code-review` bodies,

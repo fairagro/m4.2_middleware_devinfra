@@ -1,9 +1,9 @@
 ## Why
 
-Issue-fixer and humans often use `issue-<n>-…` branches. Shared `reusable-build` only mints RC versions on
-`feature/*`, so Pre Release from an issue branch looks like a final `X.Y.Z` and can collide with a later release. Prefix
-`feature/` also collides with the GitHub Feature issue type (a Bug should not require a “feature” branch). We need fleet
-branch **channels** that encode CI intent, keep the issue number in the name, and align `/issue-fixer` + plumbing.
+Issue-fixer and humans often use `issue-<n>-…` branches. Shared `reusable-build` only mints RC versions on `feature/*`,
+so Pre Release from an issue branch looks like a final `X.Y.Z` and can collide with a later release. Prefix `feature/`
+also collides with the GitHub Feature issue type (a Bug should not require a “feature” branch). We need fleet branch
+**channels** that encode CI intent, keep the issue number in the name, and align `/issue-fixer` + plumbing.
 
 ## What Changes
 

@@ -1,6 +1,7 @@
 ## 1. Runner, hook, CI
 
-- [x] 1.1 Add `scripts/run-uv-audit.sh` (`uv audit --frozen`, optional `.uv-audit-ignore` → `--ignore`, fail on findings)
+- [x] 1.1 Add `scripts/run-uv-audit.sh` (`uv audit --frozen`, optional `.uv-audit-ignore` → `--ignore`, fail on
+      findings)
 - [x] 1.2 Add commit-stage pre-commit hook calling the runner; document `SKIP` / network need in `docs/quality.md`
 - [x] 1.3 Add matching step in `reusable-code-quality.yml` after `uv sync`; set `UV_MALWARE_CHECK=1` on the sync step
 
