@@ -48,10 +48,17 @@ exclude Go-templated Helm chart templates under `helm/**/templates/` and `helmch
 paths are absent) so product repos can adopt `.pre-commit-config.yaml` verbatim without post-sync hand-edits for Helm.
 
 The commit-stage **vulture** hook MUST match the reusable code-quality vulture fail policy (minimum confidence 100; no
-synced whitelist file). The commit-stage **import-linter** hook MUST apply the shared baseline and, when present, the
-product overlay, matching the reusable code-quality fail policy. The commit-stage **uv audit** hook MUST match the
+synced whitelist file). The commit-stage **import-linter** hook MUST run against the product-owned **`.importlinter`**
+(fleet-required settings documented in `docs/quality.md`). The commit-stage **uv audit** hook MUST match the
 reusable code-quality uv-audit fail policy (audit the project lockfile with `--frozen` or equivalent; fail on any
 reported vulnerability / adverse status except IDs listed via the documented ignore mechanism).
+
+Commit-stage and reusable code-quality invocations of **ggshield**, **ruff**, **mypy**, **pylint**, **bandit**,
+**vulture**, and **import-linter** MUST obtain those CLIs via a synced fleet pin file (e.g.
+`scripts/quality-tools-pins.txt` via `scripts/run-quality-cli.sh`) so a product that has not listed the tool in
+`pyproject.toml` still runs the gate instead of failing with a missing-binary / `Failed to spawn` error. **pytest** and
+application/runtime dependencies MAY remain product-owned project deps. Documentation MUST state that products MAY
+optionally keep the same CLIs in the project env for IDE extensions.
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -86,14 +93,27 @@ reported vulnerability / adverse status except IDs listed via the documented ign
 #### Scenario: Commit-stage includes import-linter
 
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
-- **THEN** an import-linter hook is present for the shared baseline (+ optional product overlay)
-- **AND** it fails closed on contract violations
+- **THEN** an import-linter hook is present that runs the documented runner (or equivalent) against product `.importlinter`
+- **AND** it fails closed when that config is missing in a product with `middleware/`
 
 #### Scenario: Commit-stage includes uv audit
 
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** a uv-audit lockfile vulnerability hook is present
 - **AND** it fails closed on findings except documented ignored advisory IDs
+
+#### Scenario: Missing product quality dep does not spawn-fail the gate
+
+- **WHEN** a product checkout runs a synced vulture (or ruff/mypy/pylint/bandit/ggshield/import-linter) hook or reusable
+  code-quality step without that package in its `pyproject.toml`
+- **THEN** the invocation still resolves the CLI from the fleet requirements pin
+- **AND** it does not fail solely because the tool binary is absent from the project environment
+
+#### Scenario: pytest stays product-owned
+
+- **WHEN** a contributor inspects pre-push / reusable pytest invocations
+- **THEN** they still use the project environment (`uv run pytest` or equivalent)
+- **AND** pytest is not required to be listed in the fleet quality-tools requirements file
 
 ### Requirement: Pre-push vs CI pytest scope is documented
 
@@ -200,9 +220,9 @@ exists (none by default for vulture/import-linter/uv-audit beyond the IDE except
 Shared **config files** (e.g. `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, markdownlint/Prettier configs) MUST be
 the single source of truth for tool policy when the tool supports a syncable fragment. For **vulture** under the locked
 fail policy (confidence 100, no whitelist file), matching hook and CI CLI args ARE the policy source of truth. For
-**import-linter**, the synced baseline plus optional product overlay (via the documented runner) ARE the policy source
-of truth. For **uv audit**, the documented runner invocation (frozen lockfile audit + shared ignore mechanism) IS the
-policy source of truth.
+**import-linter**, the product-owned **`.importlinter`** (fleet-required settings in `docs/quality.md`) IS the policy
+source of truth. For **uv audit**, the documented runner invocation (frozen lockfile audit + shared ignore mechanism) IS
+the policy source of truth.
 
 Invocations (CLI, hook `entry`/`args`, CI steps, IDE settings) MUST pass at most: the path to the shared config file
 when the tool does not auto-discover it, the analysis target path(s), documented path overlays, and for vulture the
@@ -266,14 +286,15 @@ policy MUST fail the job.
 
 ### Requirement: Reusable code-quality runs import-linter
 
-The reusable code-quality workflow MUST run import-linter against the shared baseline and, when present, the product
-overlay, with the same fail policy as the commit-stage hook. A contract violation MUST fail the job.
+The reusable code-quality workflow MUST run import-linter against the product-owned **`.importlinter`** with the same
+fail policy as the commit-stage hook. A missing config (when `middleware/` is present) or a contract violation MUST fail
+the job. When `middleware/` is absent the step MAY skip.
 
 #### Scenario: CI import-linter matches hook policy
 
-- **WHEN** reusable code-quality runs with `skip` false
-- **THEN** it executes import-linter with baseline (+ overlay when present)
-- **AND** a contract violation fails the workflow
+- **WHEN** reusable code-quality runs with `skip` false and `middleware/` present
+- **THEN** it executes the documented import-linter runner (or equivalent) against `.importlinter`
+- **AND** a contract violation or missing `.importlinter` fails the workflow
 
 ### Requirement: uv audit lockfile gate and ignore overlay
 
