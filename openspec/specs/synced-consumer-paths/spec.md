@@ -99,11 +99,11 @@ live in nested `.gitignore` files under product-owned trees. Sync MUST NOT overw
 
 ### Requirement: Import-linter is product-owned; quality CLI pins are allowlisted
 
-`docs/synced-paths.yaml` MUST **not** list `.importlinter.global` under `allow`.
-Product **`.importlinter`** MUST be listed under `exclude` and/or `overlays` so sync never copies or overwrites it.
-Documentation (`docs/quality.md`) MUST state the fleet-required settings every product `.importlinter` must adopt. The
-allowlist MUST include the fleet quality CLI pin file used by hooks/CI (`scripts/run-quality-cli.sh`, `scripts/quality-tools-pins.txt`) when
-that path is the documented SoT for spawn-safe gates.
+`docs/synced-paths.yaml` MUST **not** list `.importlinter.global` under `allow`. Product **`.importlinter`** MUST be
+listed under `exclude` and/or `overlays` so sync never copies or overwrites it. Documentation (`docs/quality.md`) MUST
+state the fleet-required settings every product `.importlinter` must adopt. The allowlist MUST include the fleet quality
+CLI pin file used by hooks/CI (`scripts/run-quality-cli.sh`, `scripts/quality-tools-pins.txt`) when that path is the
+documented SoT for spawn-safe gates.
 
 #### Scenario: No synced import-linter baseline
 
@@ -147,3 +147,14 @@ MUST state this naming rule. Alternate suffixes such as `.product` MUST NOT be u
 - **WHEN** a contributor inspects sync overlays documentation for uv audit
 - **THEN** the ignore file path appears under `overlays`
 - **AND** sync does not wipe product-local ignore entries
+
+### Requirement: Import-public-gpg-keys script is allowlisted
+
+`docs/synced-paths.yaml` MUST list `scripts/import-public-gpg-keys.sh` under `allow` so products can sync the shared
+import runner. `.sops.yaml` and `public_gpg_keys/**` MUST NOT be on `allow` (repo-local recipient content).
+
+#### Scenario: Import script on allowlist
+
+- **WHEN** a contributor inspects the product sync path allowlist
+- **THEN** `scripts/import-public-gpg-keys.sh` appears under `allow`
+- **AND** `.sops.yaml` and `public_gpg_keys/` do not appear under `allow`
