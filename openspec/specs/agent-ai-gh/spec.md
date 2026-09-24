@@ -39,7 +39,9 @@ contributes to `summary_only_findings` (at most one open summary review); a tria
 `/code-review` marked bodies MUST NOT count as triage replies). An optional `--review-id` MAY force that review’s
 summary items into the open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with
 a clear error naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable. For `/code-review` bodies,
-findings MUST be extracted from the Markdown findings table (header row with a `path` column).
+findings MUST be extracted from numbered finding blocks (a `- **Path:**` / `**Path:**` bullet carrying a repository
+path); extractors MAY also accept a legacy Markdown findings table whose header includes a `path` column so older
+published reviews remain triageable.
 
 #### Scenario: Fixture filters resolved and human threads
 
@@ -66,9 +68,9 @@ findings MUST be extracted from the Markdown findings table (header row with a `
 #### Scenario: Human-login code-review COMMENT is summary-packed
 
 - **WHEN** GraphQL includes a submitted review under a human login whose body starts with `<!-- m42-ai:code-review -->`
-  and a findings table with a `path` column
+  and numbered findings with **Path** bullets (or a legacy findings table with a `path` column)
 - **THEN** that review is included in `ai_reviews` / `round_count`
-- **AND** its table rows appear under `summary_only_findings` when it is the open unanswered summary review
+- **AND** its findings appear under `summary_only_findings` when it is the open unanswered summary review
 - **AND** those findings are marked non-resolvable
 
 ### Requirement: review-open ensures PR head checkout

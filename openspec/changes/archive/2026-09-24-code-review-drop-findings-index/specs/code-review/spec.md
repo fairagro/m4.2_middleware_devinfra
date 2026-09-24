@@ -18,14 +18,11 @@ Published report bodies (PR Review **and** `/tmp`) MUST start with the stable HT
 `<!-- m42-ai:code-review -->` so `/review-fixer` / `review-open` can treat the submission as a finder summary source
 even under a human GitHub login.
 
-Human-visible findings MUST use **numbered blocks** (not a multi-column Markdown table as the primary layout, and not
-`###` headings per finding): each finding is `N. **Title**` followed by bullets that carry at least **severity**,
-**cost**, **goal**, **path**, and **note** (same triage fields as before). Empty findings MAY omit the list.
-
-The same body MUST also include a **compact Markdown findings table** whose header includes a `path` column (suggested
-columns: path, goal, severity, cost, note) so `review-open` / `/review-fixer` can extract summary-only work. The table
-MUST list the same findings as the numbered blocks (dual layout). The table MAY follow the numbered list (e.g. under a
-short “Findings index” heading). The skill MUST NOT rely on HTML `<table>` or images for the published review body.
+Findings MUST use **numbered blocks** only (not a multi-column Markdown table, and not `###` headings per finding): each
+finding is `N. **Title**` followed by bullets that carry at least **severity**, **cost**, **goal**, **path**, and
+**note**. Empty findings MAY omit the list. The skill MUST NOT emit a separate “Findings index” (or equivalent) Markdown
+table for machine consumption — `/review-fixer` extracts paths from the numbered **Path** bullets. The skill MUST NOT
+rely on HTML `<table>` or images for the published review body.
 
 #### Scenario: Local review writes /tmp only
 
@@ -43,11 +40,5 @@ short “Findings index” heading). The skill MUST NOT rely on HTML `<table>` o
 
 - **WHEN** the skill writes a `/tmp` report or publishes a COMMENT review
 - **THEN** the body begins with `<!-- m42-ai:code-review -->`
-- **AND** findings use a Markdown table with a `path` column so `review-open` can extract summary-only work
-
-#### Scenario: Report body uses dual human + table layout
-
-- **WHEN** the skill writes a `/tmp` report or publishes a COMMENT review with findings
-- **THEN** findings appear as numbered blocks with severity/cost/goal/path/note bullets (not `###` per finding)
-- **AND** the body also includes the compact Markdown findings table with a `path` column
-- **AND** the numbered blocks and table describe the same findings
+- **AND** findings use numbered blocks with a **Path** bullet so `review-open` can extract summary-only work
+- **AND** the body does not include a Findings index Markdown table

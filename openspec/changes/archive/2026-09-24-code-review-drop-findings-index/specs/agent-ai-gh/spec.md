@@ -17,8 +17,9 @@ contributes to `summary_only_findings` (at most one open summary review); a tria
 `/code-review` marked bodies MUST NOT count as triage replies). An optional `--review-id` MAY force that review’s
 summary items into the open set for permalink triage. When GraphQL returns a null `pullRequest`, the CLI MUST fail with
 a clear error naming owner/repo/PR. Summary-only findings MUST be marked non-resolvable. For `/code-review` bodies,
-findings MUST be extracted from a Markdown findings table whose header includes a `path` column (legacy table-only
-bodies and dual bodies that also include numbered human-readable blocks MUST both extract via that table).
+findings MUST be extracted from numbered finding blocks (a `- **Path:**` / `**Path:**` bullet carrying a repository
+path); extractors MAY also accept a legacy Markdown findings table whose header includes a `path` column so older
+published reviews remain triageable.
 
 #### Scenario: Fixture filters resolved and human threads
 
@@ -45,12 +46,7 @@ bodies and dual bodies that also include numbered human-readable blocks MUST bot
 #### Scenario: Human-login code-review COMMENT is summary-packed
 
 - **WHEN** GraphQL includes a submitted review under a human login whose body starts with `<!-- m42-ai:code-review -->`
-  and a findings table with a `path` column (with or without preceding numbered finding blocks)
+  and numbered findings with **Path** bullets (or a legacy findings table with a `path` column)
 - **THEN** that review is included in `ai_reviews` / `round_count`
-- **AND** its table rows appear under `summary_only_findings` when it is the open unanswered summary review
+- **AND** its findings appear under `summary_only_findings` when it is the open unanswered summary review
 - **AND** those findings are marked non-resolvable
-
-#### Scenario: Legacy table-only code-review body still extracts
-
-- **WHEN** a marked `/code-review` body contains only the findings table (no numbered blocks)
-- **THEN** `extract_code_review_findings` / `review-open` still returns the table rows as summary findings
