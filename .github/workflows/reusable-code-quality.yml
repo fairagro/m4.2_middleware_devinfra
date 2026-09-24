@@ -24,17 +24,24 @@ on:
       mypy_path:
         description: >-
           Optional MYPYPATH (colon-separated), e.g. stubs + package src roots.
-          Empty keeps default mypy module discovery (fine for flat layouts).
+          Empty: load MYPYPATH from quality_env_file when present; else default mypy discovery.
         required: false
         type: string
         default: ""
       pylint_source_roots:
         description: >-
           Optional comma-separated --source-roots for pylint (same-dir test helpers).
-          Empty omits the flag.
+          Empty: load PYLINT_SOURCE_ROOTS from quality_env_file when present; else omit the flag.
         required: false
         type: string
         default: ""
+      quality_env_file:
+        description: >-
+          Product-owned env file for MYPYPATH= and PYLINT_SOURCE_ROOTS= when the matching
+          workflow inputs are empty (default .devcontainer/product.env). Missing file is soft-skip.
+        required: false
+        type: string
+        default: ".devcontainer/product.env"
       skip:
         description: "Exit successfully without running checks (PRs with no code changes)"
         required: false
@@ -148,19 +155,27 @@ jobs:
         env:
           PKG: ${{ inputs.python_package_root }}
           MYPY_PATH_INPUT: ${{ inputs.mypy_path }}
-          PYLINT_SOURCE_ROOTS: ${{ inputs.pylint_source_roots }}
+          PYLINT_SOURCE_ROOTS_INPUT: ${{ inputs.pylint_source_roots }}
+          QUALITY_ENV_FILE: ${{ inputs.quality_env_file }}
         run: |
           # Fleet CLI via scripts/run-quality-cli.sh (same as commit-stage; no product dep required).
-          bash scripts/run-quality-cli.sh ruff format --check --diff --config ruff.toml "${PKG}"
-          bash scripts/run-quality-cli.sh ruff check --config ruff.toml "${PKG}"
-          pylint_args=(--rcfile .pylintrc)
-          if [[ -n "${PYLINT_SOURCE_ROOTS}" ]]; then
-            pylint_args+=(--source-roots="${PYLINT_SOURCE_ROOTS}")
-          fi
-          bash scripts/run-quality-cli.sh pylint "${pylint_args[@]}" "${PKG}"
+          # Path overlays: non-empty workflow inputs win; else MYPYPATH / PYLINT_SOURCE_ROOTS from
+          # quality_env_file (default .devcontainer/product.env). Helper soft-skips missing file.
+          # shellcheck source=scripts/load-quality-path-env.sh
+          source scripts/load-quality-path-env.sh "${QUALITY_ENV_FILE}"
           if [[ -n "${MYPY_PATH_INPUT}" ]]; then
             export MYPYPATH="${MYPY_PATH_INPUT}"
           fi
+          if [[ -n "${PYLINT_SOURCE_ROOTS_INPUT}" ]]; then
+            export PYLINT_SOURCE_ROOTS="${PYLINT_SOURCE_ROOTS_INPUT}"
+          fi
+          bash scripts/run-quality-cli.sh ruff format --check --diff --config ruff.toml "${PKG}"
+          bash scripts/run-quality-cli.sh ruff check --config ruff.toml "${PKG}"
+          pylint_args=(--rcfile .pylintrc)
+          if [[ -n "${PYLINT_SOURCE_ROOTS:-}" ]]; then
+            pylint_args+=(--source-roots="${PYLINT_SOURCE_ROOTS}")
+          fi
+          bash scripts/run-quality-cli.sh pylint "${pylint_args[@]}" "${PKG}"
           bash scripts/run-quality-cli.sh mypy --config-file mypy.ini "${PKG}"
 
       - name: Security check with bandit
