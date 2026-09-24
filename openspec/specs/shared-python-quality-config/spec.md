@@ -165,9 +165,9 @@ fork of the synced pre-commit blob.
 
 ### Requirement: Product-owned import-linter config
 
-The repository MUST **not** sync an import-linter **config** file (no `.importlinter.global`). Product repos with a `middleware/` tree
-MUST own a root **`.importlinter`** that includes the fleet-required mechanical Import-policy settings documented in
-`docs/quality.md`:
+The repository MUST **not** sync an import-linter **config** file (no `.importlinter.global`). Product repos with a
+`middleware/` tree MUST own a root **`.importlinter`** that includes the fleet-required mechanical Import-policy
+settings documented in `docs/quality.md`:
 
 - `exclude_type_checking_imports = True`
 - an **acyclic_siblings** (or equivalent) contract with ancestor `middleware`
@@ -175,11 +175,10 @@ MUST own a root **`.importlinter`** that includes the fleet-required mechanical 
   `middleware/__init__.py`)
 
 Product-specific `layers` / `forbidden` / `independence` contracts MUST live in that same product `.importlinter`. Hooks
-and reusable CI MUST invoke
-`bash scripts/run-quality-cli.sh lint-imports --config .importlinter` (or an
-equivalent documented command using the same pin file and config path). Missing `.importlinter` in a product with
-`middleware/` MUST fail closed. Documentation MUST state that **pydeps** is optional/local visualization only and MUST
-NOT be a CI or pre-commit fail gate, and which Import-policy rules remain outside import-linter.
+and reusable CI MUST invoke `bash scripts/run-quality-cli.sh lint-imports --config .importlinter` (or an equivalent
+documented command using the same pin file and config path). Missing `.importlinter` in a product with `middleware/`
+MUST fail closed. Documentation MUST state that **pydeps** is optional/local visualization only and MUST NOT be a CI or
+pre-commit fail gate, and which Import-policy rules remain outside import-linter.
 
 #### Scenario: Docs list required product settings
 
