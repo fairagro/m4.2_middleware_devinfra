@@ -93,8 +93,13 @@ The skill MUST NOT auto-LGTM. One publish per run (no silent spam loops).
 
 Published report bodies (PR Review **and** `/tmp`) MUST start with the stable HTML comment marker
 `<!-- m42-ai:code-review -->` so `/review-fixer` / `review-open` can treat the submission as a finder summary source
-even under a human GitHub login. Findings MUST be expressed in a Markdown table whose header includes a `path` column
-(suggested columns: path, goal, severity, cost, note).
+even under a human GitHub login.
+
+Findings MUST use **numbered blocks** only (not a multi-column Markdown table, and not `###` headings per finding): each
+finding is `N. **Title**` followed by bullets that carry at least **severity**, **cost**, **goal**, **path**, and
+**note**. Empty findings MAY omit the list. The skill MUST NOT emit a separate “Findings index” (or equivalent) Markdown
+table for machine consumption — `/review-fixer` extracts paths from the numbered **Path** bullets. The skill MUST NOT
+rely on HTML `<table>` or images for the published review body.
 
 #### Scenario: Local review writes /tmp only
 
@@ -112,7 +117,8 @@ even under a human GitHub login. Findings MUST be expressed in a Markdown table 
 
 - **WHEN** the skill writes a `/tmp` report or publishes a COMMENT review
 - **THEN** the body begins with `<!-- m42-ai:code-review -->`
-- **AND** findings use a Markdown table with a `path` column so `review-open` can extract summary-only work
+- **AND** findings use numbered blocks with a **Path** bullet so `review-open` can extract summary-only work
+- **AND** the body does not include a Findings index Markdown table
 
 ### Requirement: Recurring steps use m42-ai
 
