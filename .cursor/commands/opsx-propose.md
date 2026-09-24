@@ -114,17 +114,33 @@ to build.
    - Ask the user to clarify
    - Then continue with creation
 
-5. **Show final status**
+5. **Format change Markdown (Prettier) — required before propose is complete**
+
+   Product-owned `openspec/changes/<name>/**` stays Prettier-checked (fleet `format:md:check` / commit-stage
+   `prettier-md`). After all required artifacts exist, run Prettier **write** scoped to that change directory — use
+   `changeRoot` from `openspec status --change "<name>" --json` when available:
+
+   ```bash
+   prettier --write "<changeRoot>/**/*.{md,mdc}"
+   ```
+
+   Equivalent when `changeRoot` is the usual repo path: `prettier --write "openspec/changes/<name>/**/*.{md,mdc}"`.
+   Prefer the repo Prettier binary / `npx prettier` so `.prettierrc.json` applies. Do **not** skip this step; do **not**
+   “fix” failures by ignoring `openspec/changes/**` in `.prettierignore`. Propose is incomplete until those files
+   would pass `npm run format:md:check`.
+
+6. **Show final status**
    ```bash
    openspec status --change "<name>"
    ```
 
 **Output**
 
-After completing all artifacts, summarize:
+After completing all artifacts **and** the Prettier step, summarize:
 
 - Change name and location
 - List of artifacts created with brief descriptions, plus any conditional artifact you skipped and why
+- Note that change Markdown was Prettier-formatted
 - What's ready: "All artifacts needed for implementation are ready."
 - Prompt: "Run `/opsx-apply` to start implementing."
 
@@ -149,3 +165,4 @@ After completing all artifacts, summarize:
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+- Always run the scoped Prettier write (step 5) before treating propose as complete
