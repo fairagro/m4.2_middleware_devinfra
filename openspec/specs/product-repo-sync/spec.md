@@ -16,7 +16,9 @@ to the default branch (`main`), when the run is not skipped, the workflow MUST a
 (issue #13 done-when). The workflow MUST also support `workflow_dispatch` with inputs to dry-run (no PR) and/or skip
 individual targets. Sync MUST authenticate with a repository Actions secret holding a bot token that has Contents and
 Pull requests access on the target repos (same bot identity MAY be shared with Renovate). The bot token MUST also be
-able to create issues on the product repos when follow-up creation runs.
+able to create issues on the product repos when follow-up creation runs. Each live sync that has allowlisted changes
+MUST open a **new** sync PR per target (SHA-scoped branch); it MUST NOT force-update a single rolling sync branch or
+reuse one open PR across runs (see also: one PR per run and supersede).
 
 On push-triggered live sync, the workflow MUST resolve the Devinfra pull request associated with source `HEAD` (when one
 exists), collect `SYNC-FOLLOWUP: <stable-id>` trailers from that PR’s body and comments, and for each distinct id ensure
@@ -27,9 +29,10 @@ requiring a merged PR trailer.
 #### Scenario: Push to main can open sync PRs
 
 - **WHEN** a commit lands on Devinfra `main` and sync is not skipped
-- **THEN** the sync workflow runs and can open (or update) a sync PR in each configured product repo when allowlisted
-  paths differ **or** allowlist orphans must be deleted
+- **THEN** the sync workflow runs and can open a **new** sync PR in each configured product repo when allowlisted paths
+  differ **or** allowlist orphans must be deleted
 - **AND** the job uses the documented bot token secret (not `GITHUB_TOKEN` alone for cross-repo PRs)
+- **AND** the job does not force-push an existing rolling sync branch to update a prior open PR
 
 #### Scenario: Maintainer dry-runs or skips a consumer
 
@@ -49,6 +52,29 @@ requiring a merged PR trailer.
 - **WHEN** a maintainer runs `workflow_dispatch` with a follow-up id input set
 - **THEN** each non-skipped product repo gets the same ensure-follow-up behavior as a trailer id
 - **AND** dry-run MUST NOT create issues
+
+### Requirement: Sync opens one PR per run and supersedes older open sync PRs
+
+Because each sync copies the full allowlist snapshot, a later sync fully replaces an earlier open sync for the same
+product. On a successful live sync that creates a new sync PR for a target, the implementation MUST use a branch name
+that includes the Devinfra source short SHA (prefix `chore/devinfra-sync-`). It MUST then identify other **open** sync
+PRs in that product repo whose head branch matches that sync prefix (including the legacy fixed branch
+`chore/devinfra-sync` when still open), comment that each is superseded by the new PR number, and **close** those PRs
+without merging. Sync MUST NOT auto-merge sync PRs as part of this behavior. Dry-run MUST NOT open, close, or comment on
+PRs.
+
+#### Scenario: New sync PR supersedes older open sync PRs
+
+- **WHEN** live sync creates a new sync PR for a product repo and another sync PR is still open for that repo (legacy
+  rolling branch or prior SHA-scoped sync branch)
+- **THEN** the implementation comments on the older PR that it is superseded by the new PR
+- **AND** closes the older PR without merging
+- **AND** leaves the new PR open for human review/merge
+
+#### Scenario: Dry-run does not supersede
+
+- **WHEN** sync runs in dry-run mode
+- **THEN** no sync PR is opened, closed, or commented for supersede
 
 ### Requirement: Sync copies only the allowlist SoT paths
 

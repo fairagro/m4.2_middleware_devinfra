@@ -230,6 +230,9 @@ when the tool does not auto-discover it, the analysis target path(s), documented
 shared confidence flag. They MUST NOT pass additional flags that restate or override policy already expressible in a
 shared config file. They MUST NOT require post-sync hand-edits of synced `.pre-commit-config.yaml` for those overlays.
 
+Mypy and Pylint MUST NOT be documented as hooks+CI-only while their extensions remain installed. When those extensions
+are recommended, synced workspace settings MUST point them at the same shared fragments and interpreter as hooks/CI.
+
 Documentation (`docs/quality.md` and/or Code Quality in `openspec/principles.global.md`) MUST state this three-
 environment parity rule, the minimal-CLI rule, and the Bandit/vulture/import-linter/uv-audit IDE exceptions. It MUST
 state that **pydeps** is not a fail gate. It MUST state that **uv audit** is the primary Python lockfile/env CVE gate
@@ -252,6 +255,12 @@ and **Trivy** remains the image/SBOM vulnerability gate (`reusable-check`). It M
 - **THEN** those invocations reference the shared config file path (when required) and target paths / allowed path
   overlays only
 - **AND** they do not add CLI or IDE flags that duplicate policy already defined in that config file
+
+#### Scenario: Quality docs list mypy and pylint as IDE surfaces
+
+- **WHEN** a contributor reads the environment parity table in `docs/quality.md`
+- **THEN** Mypy and Pylint are listed as IDE diagnostics using `mypy.ini` / `.pylintrc`, not as hooks+CI only
+- **AND** Bandit remains a named hooks+CI-only exception (alongside vulture / import-linter / uv audit)
 
 #### Scenario: Vulture gates hooks and CI without IDE
 
@@ -368,3 +377,25 @@ rebuild solely to refresh Compose `env_file`.
 
 - **WHEN** `MYPYPATH` is already set non-empty in the environment and the file defines a different value
 - **THEN** the runner leaves the process value unchanged
+
+### Requirement: OpenSpec propose formats change Markdown with Prettier
+
+The repository’s OpenSpec **propose** skill (and the matching `/opsx-propose` command text) MUST require that, after all
+required change artifacts for a new or continued propose run exist under `openspec/changes/<name>/`, the agent runs
+Prettier **write** scoped to that change directory using the repo’s shared Prettier config (same policy as
+`npm run format:md` / `format:md:check`). Propose MUST NOT be treated as complete while those Markdown files would fail
+`npm run format:md:check` solely due to Prettier wrap/format drift. Documentation MUST note that regenerating opsx
+skills via `openspec update` MAY overwrite the skill patch and MUST be re-applied or upstreamed. The repository MUST NOT
+solve this by ignoring `openspec/changes/**` in `.prettierignore`.
+
+#### Scenario: Propose ends with Prettier on the change tree
+
+- **WHEN** an agent finishes creating OpenSpec change artifacts via the propose skill / `/opsx-propose`
+- **THEN** the skill instructs a Prettier write scoped to `openspec/changes/<name>/` (or equivalent paths from
+  `changeRoot`) before claiming propose complete
+- **AND** those files pass fleet `format:md:check` without a separate manual format turn
+
+#### Scenario: Changes stay Prettier-checked
+
+- **WHEN** a contributor inspects `.prettierignore` for OpenSpec planning trees
+- **THEN** `openspec/changes/**` is not blanket-ignored to silence propose format failures
