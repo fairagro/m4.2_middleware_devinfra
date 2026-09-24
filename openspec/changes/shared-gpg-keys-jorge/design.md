@@ -7,11 +7,13 @@ See proposal.md — Why. postCreate already imports `public_gpg_keys/*.asc` inli
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Match the product root layout: `public_gpg_keys/*.asc` + `.sops.yaml` (two creation_rules) + shared import script.
 - Recipients: Carsten (`CC7B10CE…`) + Jorge-new (`A9069D1B…`) only.
 - postCreate calls the shared script (same behavior, clearer SoT for sync into products if allowlisted).
 
 **Non-Goals:**
+
 - Running `sops updatekeys` / decrypt in the agent or CI.
 - Shipping Jorge’s older key (`37D38A6C…`).
 - Syncing `.sops.yaml` / key **content** into products (still per-repo; only the import script may be shared tooling).

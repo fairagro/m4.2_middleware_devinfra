@@ -6,8 +6,8 @@ present, but the folder, `.sops.yaml`, and a shared import script are missing (#
 
 ## What Changes
 
-- Add repo-root `public_gpg_keys/` with Carsten’s and Jorge’s **new** (2026-09-23, `A9069D1B…`) armored public keys
-  (not Jorge’s older `37D38A6C…` key used in some products).
+- Add repo-root `public_gpg_keys/` with Carsten’s and Jorge’s **new** (2026-09-23, `A9069D1B…`) armored public keys (not
+  Jorge’s older `37D38A6C…` key used in some products).
 - Add repo-root `.sops.yaml` with two `creation_rules` (generic enc + dotenv), both listing Carsten + Jorge-new
   fingerprints.
 - Extract `scripts/import-public-gpg-keys.sh` (product-style); wire postCreate to call it instead of an inline loop.
