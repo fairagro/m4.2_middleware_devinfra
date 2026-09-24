@@ -49,9 +49,9 @@ paths are absent) so product repos can adopt `.pre-commit-config.yaml` verbatim 
 
 The commit-stage **vulture** hook MUST match the reusable code-quality vulture fail policy (minimum confidence 100; no
 synced whitelist file). The commit-stage **import-linter** hook MUST run against the product-owned **`.importlinter`**
-(fleet-required settings documented in `docs/quality.md`). The commit-stage **uv audit** hook MUST match the
-reusable code-quality uv-audit fail policy (audit the project lockfile with `--frozen` or equivalent; fail on any
-reported vulnerability / adverse status except IDs listed via the documented ignore mechanism).
+(fleet-required settings documented in `docs/quality.md`). The commit-stage **uv audit** hook MUST match the reusable
+code-quality uv-audit fail policy (audit the project lockfile with `--frozen` or equivalent; fail on any reported
+vulnerability / adverse status except IDs listed via the documented ignore mechanism).
 
 Commit-stage and reusable code-quality invocations of **ggshield**, **ruff**, **mypy**, **pylint**, **bandit**,
 **vulture**, and **import-linter** MUST obtain those CLIs via a synced fleet pin file (e.g.
@@ -93,7 +93,8 @@ optionally keep the same CLIs in the project env for IDE extensions.
 #### Scenario: Commit-stage includes import-linter
 
 - **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
-- **THEN** an import-linter hook is present that runs the documented runner (or equivalent) against product `.importlinter`
+- **THEN** an import-linter hook is present that runs the documented runner (or equivalent) against product
+  `.importlinter`
 - **AND** it fails closed when that config is missing in a product with `middleware/`
 
 #### Scenario: Commit-stage includes uv audit
