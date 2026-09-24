@@ -187,7 +187,9 @@ Examples already in the shared skeleton:
   trees) — safe when those paths are absent.
 - Commit-stage `prettier-md` (`npm run format:md:check`) and `markdownlint` (`npm run lint:md`) share the same `files` /
   `exclude` class for `*.md` / `*.mdc` (parity with reusable CI). Escape hatch only: `SKIP=prettier-md` or
-  `SKIP=markdownlint` (same class as other Node markdown hooks — not the normal workflow).
+  `SKIP=markdownlint` (same class as other Node markdown hooks — not the normal workflow). `./scripts/quality-fix.sh`
+  runs `npm run format:md` (write) after the mutating pre-commit hooks so the check hook and fix script stay aligned —
+  Prettier is check-only in `.pre-commit-config.yaml`, not a rewrite hook.
 - CST bake target / image tag come from env (`CST_BAKE_*`), not from a product-hardcoded hook entry.
 - pytest uses product `pyproject.toml` discovery; the shared pre-push hook runs
   `uv run pytest -m "not system_external and not system_local"` (see [Pre-push pytest scope](#pre-push-pytest-scope)).

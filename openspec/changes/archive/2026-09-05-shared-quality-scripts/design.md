@@ -23,34 +23,27 @@ this Devinfra tree has none.
 
 ## Decisions
 
-1. **Skeleton mirrors API commit/pre-push split**  
-   Commit-stage: formatting/lint/secret/static analysis. Pre-push: `pytest` + CST.  
-   **Why:** Matches what products already run; avoids surprising consumers.  
-   **Alt:** Single stage for everything — rejected (slow tests on every commit).
+1. **Skeleton mirrors API commit/pre-push split** Commit-stage: formatting/lint/secret/static analysis. Pre-push:
+   `pytest` + CST. **Why:** Matches what products already run; avoids surprising consumers. **Alt:** Single stage for
+   everything — rejected (slow tests on every commit).
 
-2. **`quality-check.sh` / `quality-fix.sh` invoke commit-stage only**  
-   Wrap `pre-commit run` (check vs fix) without `--hook-stage pre-push`.  
-   **Why:** Issue done-when and scripts stay fast; pre-push stays for push / explicit runs.
+2. **`quality-check.sh` / `quality-fix.sh` invoke commit-stage only** Wrap `pre-commit run` (check vs fix) without
+   `--hook-stage pre-push`. **Why:** Issue done-when and scripts stay fast; pre-push stays for push / explicit runs.
 
-3. **CST runner is a thin shared script with env/args for product params**  
-   Document required inputs: Dockerfile path, image tag, test YAML glob/dir. Defaults may match common `docker/` layout
-   but MUST be overridable.  
-   **Why:** One script to sync; products differ slightly.  
-   **Alt:** Hardcode API paths — rejected (breaks other products).
+3. **CST runner is a thin shared script with env/args for product params** Document required inputs: Dockerfile path,
+   image tag, test YAML glob/dir. Defaults may match common `docker/` layout but MUST be overridable. **Why:** One
+   script to sync; products differ slightly. **Alt:** Hardcode API paths — rejected (breaks other products).
 
-4. **`.bandit` at repo root; markdownlint configs already present**  
-   Add `.bandit` for `bandit -c`. Keep existing markdownlint files; only adjust if pre-commit needs the same vendor
-   excludes (already in ignore files).  
-   **Why:** Issue lists them; markdownlint work mostly done in #6.
+4. **`.bandit` at repo root; markdownlint configs already present** Add `.bandit` for `bandit -c`. Keep existing
+   markdownlint files; only adjust if pre-commit needs the same vendor excludes (already in ignore files). **Why:**
+   Issue lists them; markdownlint work mostly done in #6.
 
-5. **Pre-commit targets `middleware/` for Python tools; exclude vendor skill trees**  
-   Same excludes as markdownlint/Prettier for `.agents/skills/gh` and `scan-secrets`.  
-   **Why:** Path conventions + vendor pin contract.
+5. **Pre-commit targets `middleware/` for Python tools; exclude vendor skill trees** Same excludes as
+   markdownlint/Prettier for `.agents/skills/gh` and `scan-secrets`. **Why:** Path conventions + vendor pin contract.
 
-6. **Devinfra local use**  
-   Scripts and config live here for sync. Document that Python hooks expect consumer `middleware/`; in this repo,
-   commit-stage may still run non-Python hooks (whitespace, markdownlint, ggshield when keyed).  
-   **Why:** Avoid fake empty package trees.
+6. **Devinfra local use** Scripts and config live here for sync. Document that Python hooks expect consumer
+   `middleware/`; in this repo, commit-stage may still run non-Python hooks (whitespace, markdownlint, ggshield when
+   keyed). **Why:** Avoid fake empty package trees.
 
 ## Risks / Trade-offs
 
