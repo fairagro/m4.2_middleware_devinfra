@@ -150,17 +150,18 @@ jobs:
           MYPY_PATH_INPUT: ${{ inputs.mypy_path }}
           PYLINT_SOURCE_ROOTS: ${{ inputs.pylint_source_roots }}
         run: |
-          uv run ruff format --check --diff --config ruff.toml "${PKG}"
-          uv run ruff check --config ruff.toml "${PKG}"
+          # Fleet CLI via scripts/run-quality-cli.sh (same as commit-stage; no product dep required).
+          bash scripts/run-quality-cli.sh ruff format --check --diff --config ruff.toml "${PKG}"
+          bash scripts/run-quality-cli.sh ruff check --config ruff.toml "${PKG}"
           pylint_args=(--rcfile .pylintrc)
           if [[ -n "${PYLINT_SOURCE_ROOTS}" ]]; then
             pylint_args+=(--source-roots="${PYLINT_SOURCE_ROOTS}")
           fi
-          uv run pylint "${pylint_args[@]}" "${PKG}"
+          bash scripts/run-quality-cli.sh pylint "${pylint_args[@]}" "${PKG}"
           if [[ -n "${MYPY_PATH_INPUT}" ]]; then
             export MYPYPATH="${MYPY_PATH_INPUT}"
           fi
-          uv run mypy --config-file mypy.ini "${PKG}"
+          bash scripts/run-quality-cli.sh mypy --config-file mypy.ini "${PKG}"
 
       - name: Security check with bandit
         if: ${{ !inputs.skip }}
@@ -169,7 +170,7 @@ jobs:
         run: |
           # Log all severities; fail only on MEDIUM/HIGH (hooks use -ll for the same fail bar).
           # Severity gate is CLI: `.bandit` has no fail-on-severity key (see docs/quality.md).
-          uv run bandit -r "${PKG}" -c .bandit -f json -o bandit-report.json --exit-zero
+          bash scripts/run-quality-cli.sh bandit -r "${PKG}" -c .bandit -f json -o bandit-report.json --exit-zero
           python3 <<'PY'
           import json, sys
           with open("bandit-report.json") as f:
@@ -192,21 +193,11 @@ jobs:
           PKG: ${{ inputs.python_package_root }}
         run: |
           # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
-          uv run vulture "${PKG}" --min-confidence 100
-
-      - name: Unused code check with vulture
-        if: ${{ !inputs.skip }}
-        env:
-          PKG: ${{ inputs.python_package_root }}
-        run: |
-          # Same fail bar as commit-stage hook: confidence 100, no synced whitelist (docs/quality.md).
-          uv run vulture "${PKG}" --min-confidence 100
+          bash scripts/run-quality-cli.sh vulture "${PKG}" --min-confidence 100
 
       - name: Import contracts with import-linter
         if: ${{ !inputs.skip }}
-        run: |
-          # Same runner as commit-stage: baseline `.importlinter.global` + optional `.importlinter`.
-          bash scripts/run-import-linter.sh
+        run: bash scripts/run-import-linter.sh
 
       - name: Lockfile vulnerability audit (uv audit)
         if: ${{ !inputs.skip }}

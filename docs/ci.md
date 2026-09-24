@@ -339,13 +339,13 @@ custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm 
 
 ### `reusable-code-quality.yml`
 
-| Input                 | Default      | Purpose                                                                              |
-| --------------------- | ------------ | ------------------------------------------------------------------------------------ |
-| `python_package_root` | `middleware` | Path for ruff / pylint / mypy / bandit / vulture / pytest (import-linter via runner) |
-| `mypy_path`           | `""`         | Optional colon-separated `MYPYPATH` (stubs + src roots); empty = default             |
-| `pylint_source_roots` | `""`         | Optional comma-separated pylint `--source-roots`                                     |
-| `components`          | (optional)   | Accepted for caller compatibility; unused by this workflow                           |
-| `skip`                | `false`      | Successful no-op (keeps required check names green)                                  |
+| Input                 | Default      | Purpose                                                                                                |
+| --------------------- | ------------ | ------------------------------------------------------------------------------------------------------ |
+| `python_package_root` | `middleware` | Path for ruff / pylint / mypy / bandit / vulture / pytest (import-linter uses product `.importlinter`) |
+| `mypy_path`           | `""`         | Optional colon-separated `MYPYPATH` (stubs + src roots); empty = default                               |
+| `pylint_source_roots` | `""`         | Optional comma-separated pylint `--source-roots`                                                       |
+| `components`          | (optional)   | Accepted for caller compatibility; unused by this workflow                                             |
+| `skip`                | `false`      | Successful no-op (keeps required check names green)                                                    |
 
 **uv audit / malware check:** when `skip` is false, the job runs `uv sync` with `UV_MALWARE_CHECK=1` and
 `./scripts/run-uv-audit.sh` (frozen lockfile; optional caller `.uv-audit-ignore`). See

@@ -97,38 +97,44 @@ live in nested `.gitignore` files under product-owned trees. Sync MUST NOT overw
 - **THEN** docs direct placing that rule in a nested `.gitignore` (e.g. under `dev_environment/`)
 - **AND** the synced root `.gitignore` is left unchanged in the product checkout
 
-### Requirement: Import-linter baseline allowlisted; product overlay is an overlay
+### Requirement: Import-linter is product-owned; quality CLI pins are allowlisted
 
-`docs/synced-paths.yaml` MUST list the synced import-linter baseline **`.importlinter.global`** under `allow`. The
-product import-linter overlay **`.importlinter`** MUST be listed under `overlays` (and MUST NOT be wiped by sync).
-Documentation (`docs/sync.md` and/or `docs/quality.md`) MUST name both paths and MUST follow the fleet
-synced-`.global` + product-local naming pair.
+`docs/synced-paths.yaml` MUST **not** list `.importlinter.global` under `allow`.
+Product **`.importlinter`** MUST be listed under `exclude` and/or `overlays` so sync never copies or overwrites it.
+Documentation (`docs/quality.md`) MUST state the fleet-required settings every product `.importlinter` must adopt. The
+allowlist MUST include the fleet quality CLI pin file used by hooks/CI (`scripts/run-quality-cli.sh`, `scripts/quality-tools-pins.txt`) when
+that path is the documented SoT for spawn-safe gates.
 
-#### Scenario: Baseline on allowlist
+#### Scenario: No synced import-linter baseline
 
 - **WHEN** a contributor inspects the product sync path allowlist
-- **THEN** `.importlinter.global` appears under `allow`
+- **THEN** `.importlinter.global` does not appear under `allow`
+- **AND** a thin synced `scripts/run-import-linter.sh` MAY appear under `allow` (no config merge)
 
-#### Scenario: Overlay never overwritten
+#### Scenario: Quality CLI pin files on allowlist
 
-- **WHEN** a contributor inspects sync overlays documentation
-- **THEN** `.importlinter` is listed as a product-owned overlay
-- **AND** sync does not overwrite that path
+- **WHEN** a contributor inspects the product sync path allowlist for quality CLI spawn pins
+- **THEN** `scripts/run-quality-cli.sh` and `scripts/quality-tools-pins.txt` appear under `allow`
+
+#### Scenario: Product import-linter never overwritten
+
+- **WHEN** a contributor inspects sync overlays / exclude documentation
+- **THEN** `.importlinter` is listed so sync does not overwrite that path
 
 ### Requirement: Synced `.global` + product overlay naming
 
 When a shared Devinfra file has a product-specific companion that sync must not overwrite, the repository MUST use the
 pair **`*.global` / `*.global.*` (synced SoT on `allow`)** and **the same basename without `.global` (product overlay on
-`overlays`)**. Examples MUST include at least `openspec/principles.global.md` + `openspec/principles.md`,
-`docs/surface-quality-bar.global.md` + `docs/surface-quality-bar.md`, and `.importlinter.global` + `.importlinter`.
-Documentation in `openspec/principles.global.md` and `docs/sync.md` MUST state this naming rule. Alternate suffixes such
-as `.product` MUST NOT be used for this split.
+`overlays`)**. Examples MUST include at least `openspec/principles.global.md` + `openspec/principles.md` and
+`docs/surface-quality-bar.global.md` + `docs/surface-quality-bar.md`. Import-linter MUST NOT be cited as a `.global`
+pair (it is product-owned `.importlinter` only). Documentation in `openspec/principles.global.md` and `docs/sync.md`
+MUST state this naming rule. Alternate suffixes such as `.product` MUST NOT be used for this split.
 
 #### Scenario: Contributor looks up shared vs product file names
 
 - **WHEN** a contributor reads principles or sync docs for overlay naming
 - **THEN** they learn synced SoT files use a `.global` stem and product companions drop `.global`
-- **AND** they see import-linter cited as `.importlinter.global` + `.importlinter`
+- **AND** they do not see import-linter presented as a synced `.global` + overlay pair
 
 ### Requirement: uv-audit ignore overlay is product-owned
 
