@@ -412,6 +412,8 @@ jobs:
       - name: Upload SBOM assets when present
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No checkout in this job — gh must not infer the repo from a local .git remote.
+          GH_REPO: ${{ github.repository }}
         run: |
           shopt -s nullglob
           files=(sboms/*)
@@ -420,12 +422,13 @@ jobs:
             exit 0
           fi
           TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
-          gh release upload "$TAG" "${files[@]}" --clobber
+          gh release upload "$TAG" "${files[@]}" --clobber --repo "${{ github.repository }}"
           echo "Attached ${#files[@]} SBOM file(s) to $TAG"
 
       - name: Publish Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           TAG="${{ needs.create-release-tag.outputs.timestamp }}-${{ inputs.tag_prefix }}${{ inputs.version }}"
           echo "Finalizing release for tag: $TAG"
