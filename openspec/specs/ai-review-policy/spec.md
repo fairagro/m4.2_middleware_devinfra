@@ -15,20 +15,28 @@ guidance, nit-budget rules, type-widening bans, and follow-up issue rules. The m
 findings. **Risk** MUST mean fixer triage severity Blocker/High with practicality not Low/None — not finder summary
 banners and not a multiplicative severity×practicality score. The policy MUST define **Fixed non-nit this run** as the
 per-invocation count of `fix` actions that are not nits (Risk step-4 fixes and step-5 cheap + High practicality +
-Medium+ fixes; nit-budget fixes, dismissals, and follow-ups excluded). The policy MUST define a **review-cycle abort
-criterion**: when the latest `/review-fixer` run reports **Fixed non-nit this run: 0**, the cycle MUST stop (no further
-finder/`/review-fixer` loops solely for remaining comments, already-zero Remaining risk, or nit/dismiss-only outcomes);
-when Fixed non-nit this run is ≥ 1, another finder pass MAY follow after fixes land. At most one deliberate nit-only
-pass while nit-budget remains MAY run even when Fixed non-nit would be 0; afterward the same abort applies. Product-only
-API examples (specific routes, datastores, or config types that are not shared) MUST NOT appear as normative
-requirements; shared vocabulary MUST be used instead.
+Medium+ fixes; **additive** nit-budget fixes, dismissals, and follow-ups excluded). Size-neutral or size-reducing Low
+`fix` actions MUST NOT increment Fixed non-nit this run. The policy MUST define a **review-cycle abort criterion**: when
+the latest `/review-fixer` run reports **Fixed non-nit this run: 0**, the cycle MUST stop (no further
+finder/`/review-fixer` loops solely for remaining comments, already-zero Remaining risk, or nit/dismiss-only outcomes —
+including runs that only applied size-neutral/size-reducing Low fixes); when Fixed non-nit this run is ≥ 1, another
+finder pass MAY follow after fixes land. At most one deliberate nit-only pass while **additive** nit-budget remains MAY
+run even when Fixed non-nit would be 0; afterward the same abort applies. Product-only API examples (specific routes,
+datastores, or config types that are not shared) MUST NOT appear as normative requirements; shared vocabulary MUST be
+used instead.
 
-Nit-budget MUST be a **soft lifetime cap per PR** of approximately 15 new production lines for cheap nits (never a new
-abstraction). It MUST NOT reset on each `/review-fixer` run and MUST NOT be gated on Copilot/Bugbot review round number.
-Prior spend MUST be estimated by summing `nit-lines this run: N` markers already present in fixer replies on that PR.
-Cheap fixes for regressions on the previous fixer pass MAY be fixed but MUST count toward the same PR total. Risk and
-step-5 (cheap + High practicality + Medium+) findings MUST never be budgeted away and MUST NOT consume nit-line budget.
-Nit `fix` replies MUST include `nit-lines this run: N`.
+Nit-budget MUST be a **soft lifetime cap per PR** of approximately 15 **new** production lines for cheap **additive**
+nits (never a new abstraction). It MUST NOT reset on each `/review-fixer` run and MUST NOT be gated on Copilot/Bugbot
+review round number. Prior spend MUST be estimated by summing `nit-lines this run: N` markers already present in fixer
+replies on that PR (size-neutral/size-reducing replies that record `nit-lines this run: 0` MUST NOT inflate prior spend
+beyond zero contribution). Cheap fixes for regressions on the previous fixer pass MAY be fixed but MUST count toward the
+same PR total when they add production lines. Risk and step-5 (cheap + High practicality + Medium+) findings MUST never
+be budgeted away and MUST NOT consume nit-line budget.
+
+Correct, this-PR Low findings whose cheapest correct fix is **size-neutral or size-reducing** (net zero or fewer
+production lines: delete dead code, fold duplicates without a new abstraction, comment/docstring-only with no behaviour
+change) MUST always be `fix` and MUST NOT consume nit-budget, regardless of remaining budget or Low severity. Nit `fix`
+replies MUST include `nit-lines this run: N` (`0` when the fix added no production lines).
 
 The policy MUST require `dismiss` (practicality None) when a finding’s only realistic path is outside the supported
 Linux Dev Container environment (including BSD/non-GNU tool differences and host-only compatibility fallbacks), quoting
@@ -58,7 +66,9 @@ Docs, OpenSpec prose, and code-comment clarifications MUST be severity **Low** (
 Container / CI commands and pass/fail gates already work — including inaccurate explanations of _how_ a gate is
 implemented (e.g. Bandit `-ll` on hooks vs CI logging). Fixers MUST NOT treat “contributor might be confused” as Medium
 “misleads operators” and MUST NOT take step 5 / count **Fixed non-nit** for those. Escalation to Medium+ for docs is
-allowed only when the written instructions would make the supported path fail.
+allowed only when the written instructions would make the supported path fail. Size-neutral/size-reducing docs or
+comment cleanups that are correct and this-PR MUST still follow the size-neutral exemption (always `fix`, no budget
+spend) when they are not dismissed under the surface bar.
 
 #### Scenario: Contributor opens the shared policy
 
@@ -72,7 +82,10 @@ allowed only when the written instructions would make the supported path fail.
 - **THEN** the review cycle stops
 - **AND** Copilot/Bugbot banners, Remaining risk already 0, or remaining dismissed/nit comments alone do not require
   another pass
-- **AND** at most one deliberate nit-only pass remains allowed while nit-budget remains before the same abort applies
+- **AND** at most one deliberate nit-only pass remains allowed while additive nit-budget remains before the same abort
+  applies
+- **AND** a run that only fixed size-neutral or size-reducing Low findings still reports Fixed non-nit this run: 0 and
+  aborts
 
 #### Scenario: Non-nit fixes allow another finder pass
 
@@ -84,9 +97,19 @@ allowed only when the written instructions would make the supported path fail.
 
 - **WHEN** a fixer triages Low nits on a PR that already had earlier fixer nit fixes and a later Copilot/Bugbot review
   round
-- **THEN** cheap nits may still be fixed only while prior `nit-lines this run` sums plus this run stay within ~15
+- **THEN** cheap **additive** nits may still be fixed only while prior `nit-lines this run` sums plus this run stay
+  within ~15
 - **AND** a new `/review-fixer` invocation does not reset that budget to a fresh ~15
 - **AND** the policy does not require dismissing them solely because the review round is 2 or higher
+
+#### Scenario: Size-neutral Low fix ignores exhausted nit-budget
+
+- **WHEN** a correct this-PR Low finding’s cheapest fix deletes or relocates code with net zero or fewer production
+  lines and introduces no new abstraction
+- **AND** the PR’s additive nit-budget is already exhausted
+- **THEN** the fixer still chooses `fix`
+- **AND** the reply records `nit-lines this run: 0` (or omits additive spend)
+- **AND** Fixed non-nit this run is not incremented for that fix
 
 #### Scenario: Host-only fallback finding is dismissed
 
