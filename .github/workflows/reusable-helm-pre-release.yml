@@ -6,7 +6,7 @@
 name: Reusable Helm Pre Release
 
 concurrency:
-  group: ${{ github.repository }}-reusable-helm-pre-release-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.repository }}-reusable-helm-pre-release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 permissions:

@@ -345,10 +345,12 @@ The repository’s outer `workflow_call` reusables used directly by product call
 `reusable-code-quality.yml`, `reusable-build.yml`, `reusable-check.yml`, `reusable-release.yml`,
 `reusable-helm-release.yml`, `reusable-helm-pre-release.yml`, and `reusable-registry-retry.yml` — MUST declare a
 workflow-level `concurrency` group that includes the caller `github.repository`, a stable reusable identity (e.g.
-workflow file name), and the pull request number when present otherwise the git ref. Feature-oriented reusables
-(code-quality, build, check) MUST set `cancel-in-progress: true`. Publish-oriented reusables (Docker release, Helm
-final/pre-release, registry-retry) MUST set `cancel-in-progress: false` so overlapping runs of the same reusable for the
-same repository+ref serialize instead of aborting a half-finished publish.
+workflow file name), the **caller** `github.workflow` (so distinct product workflows on the same ref — e.g. Main Docker
+Check vs Docker Release — do not share one cancel group), and the pull request number when present otherwise the git
+ref. Feature-oriented reusables (code-quality, build, check) MUST set `cancel-in-progress: true`. Publish-oriented
+reusables (Docker release, Helm final/pre-release, registry-retry) MUST set `cancel-in-progress: false` so overlapping
+runs of the same reusable for the same repository+caller-workflow+ref serialize instead of aborting a half-finished
+publish.
 
 This complementary concurrency MUST NOT be documented or treated as a substitute for caller-level concurrency that
 cancels an entire product Feature-PR pipeline. Nested helper reusables invoked only from other Devinfra reusables (e.g.
@@ -356,13 +358,21 @@ Bake / registry push / Helm OCI push) MAY omit their own concurrency in this cha
 
 #### Scenario: Feature-oriented reusable cancels duplicate runs
 
-- **WHEN** two concurrent calls of the same outer feature-oriented reusable target the same repository and the same PR
-  number (or ref)
+- **WHEN** two concurrent calls of the same outer feature-oriented reusable target the same repository, the same caller
+  `github.workflow`, and the same PR number (or ref)
 - **THEN** the reusable’s concurrency group cancels the in-progress run (`cancel-in-progress: true`)
+
+#### Scenario: Distinct callers on main do not cancel each other
+
+- **WHEN** one product workflow (e.g. Main Docker Check) and another (e.g. Docker Release) both call
+  `reusable-build.yml` or `reusable-check.yml` for the same repository and `refs/heads/main`
+- **THEN** their concurrency groups differ by caller `github.workflow`
+- **AND** neither run cancels the other via the feature-oriented reusable concurrency
 
 #### Scenario: Publish-oriented reusable serializes without cancel
 
-- **WHEN** two concurrent calls of the same outer publish-oriented reusable target the same repository and ref
+- **WHEN** two concurrent calls of the same outer publish-oriented reusable target the same repository, caller workflow,
+  and ref
 - **THEN** the reusable’s concurrency group serializes them with `cancel-in-progress: false`
 
 ### Requirement: Feature-PR and release concurrency caller documentation
@@ -391,6 +401,40 @@ replace caller-level cancel for the full PR pipeline, and that `skip` remains a 
 - **WHEN** a product maintainer reads the release / Helm caller guidance after this change
 - **THEN** they learn to serialize with `cancel-in-progress: false`
 - **AND** they learn `detect-changes` is not required for those dispatch callers
+
+### Requirement: Post-merge main Docker check caller for Code Scanning
+
+Documentation in this repository (at least `docs/ci.md`) MUST provide a **complete recommended thin product caller** for
+refreshing GitHub Code Scanning on the **default branch** after merge:
+
+1. Trigger on `push` to `main` (or the repo default branch name when documented as such).
+2. Call `reusable-build.yml` then `reusable-check.yml` only (same artifact contract as Feature PR Docker check) — MUST
+   NOT include reusable code-quality or reusable Docker/Helm release / registry publish in this recommended snippet.
+3. Grant top-level permissions that allow SARIF upload (`security-events: write`) and pass the usual product inputs
+   (`components`, `image_base_name`, `version` from build outputs, `secrets: inherit` as needed).
+4. Recommend caller-level concurrency for the workflow+ref (cancel-in-progress MAY be true) so overlapping main pushes
+   do not pile up unbounded.
+
+Documentation MUST state that this path exists so Default-Branch Trivy/Code Scanning alerts can auto-close when a clean
+SARIF is uploaded for `main`, because Feature PR and Pre Release analyses are not attributed as default-branch closures.
+Documentation MUST state that **Release keeps its own** `reusable-check` security gate and MUST NOT be documented as
+consuming SARIF from this main-push run. Path filters MAY be mentioned as an optional later optimization and MUST NOT be
+required for the v1 recommended snippet.
+
+#### Scenario: Maintainer reads post-merge main check guidance
+
+- **WHEN** a product maintainer opens `docs/ci.md` for post-merge / default-branch Trivy or Code Scanning alert hygiene
+- **THEN** they find a complete thin caller snippet with `push` to `main`, `reusable-build`, and `reusable-check`
+- **AND** the snippet does not add code-quality or Release/publish jobs
+- **AND** they learn `security-events: write` is required for SARIF upload
+- **AND** they learn Release still runs its own check and does not rely on this SARIF
+
+#### Scenario: Feature PR template remains PR-oriented
+
+- **WHEN** a contributor reads the recommended Feature PR caller after this change
+- **THEN** Feature PR remains the `pull_request` quality/build/check path
+- **AND** post-merge default-branch SARIF refresh is documented as a separate thin caller (not by requiring Feature PR
+  to add `push: main` with the full job set)
 
 ### Requirement: Code-quality path overlays from product env file
 

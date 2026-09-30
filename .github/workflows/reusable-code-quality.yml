@@ -3,7 +3,7 @@
 name: Reusable Code Quality
 
 concurrency:
-  group: ${{ github.repository }}-reusable-code-quality-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.repository }}-reusable-code-quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:

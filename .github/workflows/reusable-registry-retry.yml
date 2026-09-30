@@ -8,7 +8,7 @@
 name: Reusable Registry Retry
 
 concurrency:
-  group: ${{ github.repository }}-reusable-registry-retry-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.repository }}-reusable-registry-retry-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 permissions:
