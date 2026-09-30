@@ -242,6 +242,10 @@ intersects permissions down the `workflow_call` chain — see [Permissions](#per
 Path filters that skip rebuilds when image-irrelevant paths change are an optional later optimization; they are **not**
 required for this v1 snippet.
 
+Feature-oriented reusables (`reusable-build` / `reusable-check`) key concurrency with the **caller** `github.workflow`
+as well as repository + ref, so this Main Docker Check does **not** cancel an overlapping Docker Release’s build/check
+on `main` (caller-level groups alone would not separate nested reusable runs).
+
 ```yaml
 name: Main Docker Check
 

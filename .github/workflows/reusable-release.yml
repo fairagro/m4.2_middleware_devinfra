@@ -7,7 +7,7 @@
 name: Reusable Release
 
 concurrency:
-  group: ${{ github.repository }}-reusable-release-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.repository }}-reusable-release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 permissions:

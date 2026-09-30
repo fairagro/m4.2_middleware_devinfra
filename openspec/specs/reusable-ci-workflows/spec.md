@@ -345,10 +345,12 @@ The repository’s outer `workflow_call` reusables used directly by product call
 `reusable-code-quality.yml`, `reusable-build.yml`, `reusable-check.yml`, `reusable-release.yml`,
 `reusable-helm-release.yml`, `reusable-helm-pre-release.yml`, and `reusable-registry-retry.yml` — MUST declare a
 workflow-level `concurrency` group that includes the caller `github.repository`, a stable reusable identity (e.g.
-workflow file name), and the pull request number when present otherwise the git ref. Feature-oriented reusables
-(code-quality, build, check) MUST set `cancel-in-progress: true`. Publish-oriented reusables (Docker release, Helm
-final/pre-release, registry-retry) MUST set `cancel-in-progress: false` so overlapping runs of the same reusable for the
-same repository+ref serialize instead of aborting a half-finished publish.
+workflow file name), the **caller** `github.workflow` (so distinct product workflows on the same ref — e.g. Main Docker
+Check vs Docker Release — do not share one cancel group), and the pull request number when present otherwise the git
+ref. Feature-oriented reusables (code-quality, build, check) MUST set `cancel-in-progress: true`. Publish-oriented
+reusables (Docker release, Helm final/pre-release, registry-retry) MUST set `cancel-in-progress: false` so overlapping
+runs of the same reusable for the same repository+caller-workflow+ref serialize instead of aborting a half-finished
+publish.
 
 This complementary concurrency MUST NOT be documented or treated as a substitute for caller-level concurrency that
 cancels an entire product Feature-PR pipeline. Nested helper reusables invoked only from other Devinfra reusables (e.g.
@@ -356,13 +358,21 @@ Bake / registry push / Helm OCI push) MAY omit their own concurrency in this cha
 
 #### Scenario: Feature-oriented reusable cancels duplicate runs
 
-- **WHEN** two concurrent calls of the same outer feature-oriented reusable target the same repository and the same PR
-  number (or ref)
+- **WHEN** two concurrent calls of the same outer feature-oriented reusable target the same repository, the same caller
+  `github.workflow`, and the same PR number (or ref)
 - **THEN** the reusable’s concurrency group cancels the in-progress run (`cancel-in-progress: true`)
+
+#### Scenario: Distinct callers on main do not cancel each other
+
+- **WHEN** one product workflow (e.g. Main Docker Check) and another (e.g. Docker Release) both call
+  `reusable-build.yml` or `reusable-check.yml` for the same repository and `refs/heads/main`
+- **THEN** their concurrency groups differ by caller `github.workflow`
+- **AND** neither run cancels the other via the feature-oriented reusable concurrency
 
 #### Scenario: Publish-oriented reusable serializes without cancel
 
-- **WHEN** two concurrent calls of the same outer publish-oriented reusable target the same repository and ref
+- **WHEN** two concurrent calls of the same outer publish-oriented reusable target the same repository, caller workflow,
+  and ref
 - **THEN** the reusable’s concurrency group serializes them with `cancel-in-progress: false`
 
 ### Requirement: Feature-PR and release concurrency caller documentation
