@@ -181,8 +181,10 @@ m42-ai issue-start --issue <issue_number> [--slug <slug>]
 ```
 
 `issue-start` ensures branch `{channel}/issue-<issue_number>-<slug>` (checkout/create from `main` if needed), refuses
-when there are no commits ahead of the base, pushes, and opens a **draft** PR with `Fixes #<issue_number>`. It does
-**not** create empty commits. See [`scripts/ai/README.md`](../../../scripts/ai/README.md).
+when there are no commits ahead of the base, pushes, and opens a **draft** PR with `Fixes #<issue_number>`. Default body
+Summary bullets come from the issue title + commit subjects vs the base (never `MVP scope: (fill in)`). Prefer passing a
+crafted Summary with `--body-file` / `--body` (Fixes appended if missing). It does **not** create empty commits. See
+[`scripts/ai/README.md`](../../../scripts/ai/README.md).
 
 If a draft PR already exists, skip create. Always prefer `m42-ai pr-strip-footer --pr <n>` after create (or when a
 footer may have been injected) instead of hand-editing with ad-hoc `gh` regexes.
@@ -191,8 +193,23 @@ If the tip still equals `main`, do **not** open a PR and do **not** create an em
 first. For OpenSpec types, archive is still the last `go` after this step (working-tree archive, then pause for commit).
 
 **PR body hygiene:** Do **not** append tool marketing footers (e.g. `Made with Cursor`, `Made with [Cursor](…)`). Body
-is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). If a footer appears after create, remove it
-immediately with:
+is Summary + `Fixes #<issue_number>` (+ deferred issue links when needed). Prefer:
+
+```bash
+m42-ai issue-start --issue <issue_number> --channel <build|ci|docs> [--slug <slug>] --body-file /tmp/pr-body.md
+```
+
+with `/tmp/pr-body.md` like:
+
+```markdown
+## Summary
+- <what changed and why>
+
+Fixes #<issue_number>
+```
+
+If `--body-file` is omitted, the CLI default (title + commit subjects) is acceptable. Do **not** leave a
+`MVP scope: (fill in)` stub. If a footer appears after create, remove it immediately with:
 
 ```bash
 m42-ai pr-strip-footer --pr <pr_number>
@@ -207,7 +224,7 @@ Manual equivalent if the CLI is unavailable:
    ```bash
    gh pr create --draft --base main --title "..." --body "$(cat <<'EOF'
    ## Summary
-   - MVP scope: …
+   - <what changed and why>
 
    Fixes #<issue_number>
    EOF
