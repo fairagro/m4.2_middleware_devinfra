@@ -207,6 +207,10 @@ NOT create fix commits. If the tip still equals `main`, the skill MUST stop and 
 MUST NOT include tool marketing footers such as “Made with Cursor”; if injected, the skill MUST strip them before
 continuing.
 
+When calling `issue-start`, the skill SHOULD pass a crafted Summary via `--body-file` (or `--body`) with 1–3 bullets
+describing the change; if omitted, the CLI default (issue title / commit subjects) is acceptable. The skill MUST NOT
+document or rely on a `MVP scope: (fill in)` stub as the intended PR body.
+
 #### Scenario: Draft PR requires commits ahead of main
 
 - **WHEN** the agent is ready to open the PR after implement and user confirmation
@@ -221,6 +225,12 @@ continuing.
 - **WHEN** the agent would open a draft PR but the issue branch tip equals `main`
 - **THEN** it does not create an empty commit
 - **AND** it asks the user to commit real work first
+
+#### Scenario: Skill prefers real Summary over fill-in stub
+
+- **WHEN** a contributor or agent follows `/issue-fixer` draft-PR guidance for `issue-start`
+- **THEN** the skill documents passing a crafted Summary (`--body-file` / `--body`) or accepting the CLI default
+- **AND** it does not present `MVP scope: (fill in)` as the intended body template
 
 ### Requirement: Thin docs and entrypoints
 
