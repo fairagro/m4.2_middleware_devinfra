@@ -37,6 +37,23 @@ def _print_json(data: Any) -> None:
     sys.stdout.write("\n")
 
 
+def _attach_json_argparse_error(parser: argparse.ArgumentParser) -> None:
+    """Make argparse ``error()`` emit fail-closed JSON then exit 2."""
+
+    def error(message: str) -> None:
+        _print_json(
+            {
+                "ok": False,
+                "error_code": "invalid_args",
+                "error": message,
+                "agent_action": "stop",
+            }
+        )
+        parser.exit(2)
+
+    parser.error = error  # type: ignore[method-assign]
+
+
 def _read_body(args: argparse.Namespace) -> str:
     body_file = getattr(args, "body_file", None)
     if body_file:
@@ -495,6 +512,7 @@ def build_parser() -> argparse.ArgumentParser:
     osi.add_argument("--change", required=True, help="OpenSpec change name")
     osi.add_argument("--cwd", help="OpenSpec / git repo root (default: cwd)")
     osi.set_defaults(func=cmd_openspec_instructions)
+    _attach_json_argparse_error(osi)
 
     return p
 

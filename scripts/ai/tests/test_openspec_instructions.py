@@ -187,6 +187,17 @@ def test_cli_openspec_instructions_unexpected_error_still_json(capsys: pytest.Ca
     assert "boom" in out["error"]
 
 
+def test_cli_missing_required_arg_emits_json(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as ei:
+        main(["openspec-instructions", "--change", "demo"])
+    assert ei.value.code == 2
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] is False
+    assert out["agent_action"] == "stop"
+    assert out["error_code"] == "invalid_args"
+    assert "artifact" in out["error"].lower()
+
+
 def test_cli_help_lists_openspec_instructions() -> None:
     with pytest.raises(SystemExit) as ei:
         main(["openspec-instructions", "--help"])
