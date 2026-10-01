@@ -176,6 +176,17 @@ def test_cli_openspec_instructions_error_json(capsys: pytest.CaptureFixture[str]
     }
 
 
+def test_cli_openspec_instructions_unexpected_error_still_json(capsys: pytest.CaptureFixture[str]) -> None:
+    with patch("m42_ai.cli.fetch_openspec_instructions", side_effect=OSError("boom")):
+        code = main(["openspec-instructions", "--artifact", "proposal", "--change", "demo"])
+    assert code == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] is False
+    assert out["agent_action"] == "stop"
+    assert out["error_code"] == "unexpected_error"
+    assert "boom" in out["error"]
+
+
 def test_cli_help_lists_openspec_instructions() -> None:
     with pytest.raises(SystemExit) as ei:
         main(["openspec-instructions", "--help"])

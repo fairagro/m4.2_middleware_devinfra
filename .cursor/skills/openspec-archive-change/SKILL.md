@@ -49,15 +49,11 @@ or ambiguous you MUST prompt for available changes.
    `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact archive --change "<name>"`).
    MUST NOT use brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path. Run the
    helper from the selected root (or `--cwd`); only a raw `openspec …` fallback may carry OpenSpec store/root flags.
-   This lookup is advisory and optional for **archive
-   context/guidance only**: it only supplies extra prompt inputs, so it must never block archiving. If it exits
-   non-zero or returns invalid JSON — for example on an older CLI that does not support this command yet — continue the
-   archive workflow with no context and no operation guidance. Do not report an error and do not stop.
-
-   A successful response may omit both optional fields. Treat `context` as a required prompt-level input: read and
-   consider it, and apply relevant project facts, conventions, and constraints. Treat `operationGuidance` as optional
-   additive advice: read and consider every entry, and follow entries that are applicable and compatible with the
-   built-in archive workflow.
+   On helper / OpenSpec failure (`ok: false`, non-zero exit, or invalid JSON): **stop and report** — do not invent
+   archive context or approximate guidance (same fail-closed rule as other OpenSpec skills). A successful response may
+   omit optional `context` / `operationGuidance` fields; when present, treat `context` as a required prompt-level input
+   and `operationGuidance` as optional additive advice, and apply them only when compatible with the built-in archive
+   workflow.
 
    Keep both fields separate from built-in steps, explicit user choices, resolved paths, CLI checks, and command
    contracts. If context conflicts with one of those controlling inputs, report the conflict and preserve the

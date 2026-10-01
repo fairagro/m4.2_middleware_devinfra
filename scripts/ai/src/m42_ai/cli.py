@@ -58,6 +58,12 @@ def cmd_openspec_instructions(args: argparse.Namespace) -> int:
     except OpenspecInstructionsError as exc:
         _print_json(exc.as_json())
         return 1
+    except (GhError, ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
+        # Always emit structured JSON on failure (stderr-only breaks agent parsers).
+        _print_json(
+            OpenspecInstructionsError(str(exc), error_code="unexpected_error").as_json()
+        )
+        return 1
     _print_json(data)
     return 0
 
