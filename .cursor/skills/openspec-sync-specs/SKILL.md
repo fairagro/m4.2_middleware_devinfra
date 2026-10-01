@@ -75,12 +75,17 @@ or ambiguous you MUST prompt for available changes.
 
 4. **For each delta spec, apply changes to main specs**
 
-   Before the first main-spec write, obtain one current specs-rule snapshot:
+   Before the first main-spec write, obtain one current specs-rule snapshot (fail-closed):
    - If archive invoked this workflow inline and supplied a valid snapshot from
-     `openspec instructions specs --change "<name>" --json`, reuse it and do not fetch the same instructions again.
-   - Otherwise run that command once now with the same selected-root flags.
-   - If the direct lookup exits non-zero or returns invalid artifact-instruction JSON, report the error and stop before
-     writing any main spec. Do not treat the failure as an absent rule set.
+     `m42-ai openspec-instructions --artifact specs --change "<name>"`, reuse it and do not fetch the same instructions
+     again.
+   - Otherwise run that helper once now from the selected OpenSpec / git root (or `--cwd <planningHome.root>`; portable:
+     `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact specs --change "<name>"`).
+     The helper only accepts `--cwd` — do not pass OpenSpec root-selection flags through it.
+   - If the direct lookup exits non-zero, returns `ok: false` / `agent_action: "stop"`, or returns invalid
+     artifact-instruction JSON, report the error and stop before writing any main spec. Do not invent rules or treat the
+     failure as an absent rule set. MUST NOT use brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as
+     the primary parse path.
    - A valid response with omitted `rules` means no artifact rules are configured and the existing semantic merge
      continues.
 
