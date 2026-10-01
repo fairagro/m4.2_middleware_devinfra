@@ -53,9 +53,11 @@ def test_fetch_change_error_status_fails_closed() -> None:
     def runner(argv: list[str], cwd: object) -> SimpleNamespace:
         return _proc(stdout=json.dumps(payload), returncode=1)
 
-    with patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"):
-        with pytest.raises(OpenspecInstructionsError) as ei:
-            fetch_openspec_instructions("proposal", "missing", runner=runner)
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "missing", runner=runner)
     err = ei.value
     assert err.error_code == "change_error"
     data = err.as_json()
@@ -65,13 +67,38 @@ def test_fetch_change_error_status_fails_closed() -> None:
     assert "resolvedOutputPath" not in data
 
 
+def test_fetch_nonzero_exit_with_valid_json_fails_closed() -> None:
+    """Non-zero openspec exit + valid JSON object + no status error → openspec_exit_nonzero."""
+    payload = {
+        "resolvedOutputPath": "/tmp/proposal.md",
+        "instruction": "write proposal",
+        "template": "## Why\n",
+    }
+
+    def runner(argv: list[str], cwd: object) -> SimpleNamespace:
+        return _proc(stdout=json.dumps(payload), stderr="openspec warn", returncode=1)
+
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "demo-change", runner=runner)
+    assert ei.value.error_code == "openspec_exit_nonzero"
+    data = ei.value.as_json()
+    assert data["ok"] is False
+    assert data["agent_action"] == "stop"
+    assert "template" not in data
+
+
 def test_fetch_empty_stdout_fails_closed() -> None:
     def runner(argv: list[str], cwd: object) -> SimpleNamespace:
         return _proc(stdout="", stderr="boom", returncode=1)
 
-    with patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"):
-        with pytest.raises(OpenspecInstructionsError) as ei:
-            fetch_openspec_instructions("proposal", "x", runner=runner)
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "x", runner=runner)
     assert ei.value.error_code == "empty_output"
     assert ei.value.as_json()["agent_action"] == "stop"
 
@@ -80,16 +107,20 @@ def test_fetch_non_json_fails_closed() -> None:
     def runner(argv: list[str], cwd: object) -> SimpleNamespace:
         return _proc(stdout="not-json <<<", returncode=0)
 
-    with patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"):
-        with pytest.raises(OpenspecInstructionsError) as ei:
-            fetch_openspec_instructions("proposal", "x", runner=runner)
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "x", runner=runner)
     assert ei.value.error_code == "invalid_json"
 
 
 def test_fetch_openspec_missing_on_path() -> None:
-    with patch("m42_ai.openspec_instructions.shutil.which", return_value=None):
-        with pytest.raises(OpenspecInstructionsError) as ei:
-            fetch_openspec_instructions("proposal", "x")
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value=None),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "x")
     assert ei.value.error_code == "openspec_not_found"
 
 
