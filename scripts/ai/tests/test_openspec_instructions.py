@@ -67,6 +67,29 @@ def test_fetch_change_error_status_fails_closed() -> None:
     assert "resolvedOutputPath" not in data
 
 
+def test_fetch_artifact_error_status_preserves_code() -> None:
+    payload = {
+        "status": [
+            {
+                "severity": "error",
+                "code": "artifact_error",
+                "message": "Artifact blocked.",
+            }
+        ]
+    }
+
+    def runner(argv: list[str], cwd: object) -> SimpleNamespace:
+        return _proc(stdout=json.dumps(payload), returncode=1)
+
+    with (
+        patch("m42_ai.openspec_instructions.shutil.which", return_value="/usr/bin/openspec"),
+        pytest.raises(OpenspecInstructionsError) as ei,
+    ):
+        fetch_openspec_instructions("proposal", "demo", runner=runner)
+    assert ei.value.error_code == "artifact_error"
+    assert "Artifact blocked" in str(ei.value)
+
+
 def test_fetch_nonzero_exit_with_valid_json_fails_closed() -> None:
     """Non-zero openspec exit + valid JSON object + no status error → openspec_exit_nonzero."""
     payload = {

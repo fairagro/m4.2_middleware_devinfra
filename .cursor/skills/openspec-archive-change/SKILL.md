@@ -47,8 +47,9 @@ or ambiguous you MUST prompt for available changes.
 
    Prefer this fail-closed helper (portable:
    `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact archive --change "<name>"`).
-   MUST NOT use brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path. Keep the
-   same selected-root flags on any raw OpenSpec fallback. This lookup is advisory and optional for **archive
+   MUST NOT use brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path. Run the
+   helper from the selected root (or `--cwd`); only a raw `openspec …` fallback may carry OpenSpec store/root flags.
+   This lookup is advisory and optional for **archive
    context/guidance only**: it only supplies extra prompt inputs, so it must never block archiving. If it exits
    non-zero or returns invalid JSON — for example on an older CLI that does not support this command yet — continue the
    archive workflow with no context and no operation guidance. Do not report an error and do not stop.
@@ -117,9 +118,11 @@ or ambiguous you MUST prompt for available changes.
    - Anything else — ask again rather than archiving
 
    Before a selected sync writes any main spec, run
-   `m42-ai openspec-instructions --artifact specs --change "<name>"` once with the
-   same selected-root flags (portable: `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions …`).
-   Require a zero exit status and valid artifact-instruction JSON (`ok` not false). If the lookup fails or
+   `m42-ai openspec-instructions --artifact specs --change "<name>"` once from the selected OpenSpec / git root (or pass
+   `--cwd <planningHome.root>`; portable:
+   `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions …`). The helper only accepts `--cwd` —
+   do not invent OpenSpec root-selection flags on it. Require a zero exit status and valid artifact-instruction JSON
+   (`ok` not false). If the lookup fails or
    returns invalid JSON / `agent_action: "stop"`, report the error and stop before writing any main spec or moving the
    change. MUST NOT invent specs rules or approximate the merge. A valid response
    with omitted `rules` is the no-rules case. Apply returned `rules` only to the content and form of main specs produced

@@ -66,7 +66,7 @@ or ambiguous you MUST prompt for available changes.
 
    **Handle states:**
    - If `state: "blocked"` (missing artifacts): show message, suggest using openspec-continue-change (if it is not
-     installed, run      `openspec status --change "<name>" --json` to see the next artifact and
+     installed, run `openspec status --change "<name>" --json` to see the next artifact and
      `m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"` for how to create it)
    - If `state: "all_done"`: congratulate, suggest archive
    - Otherwise: proceed to implementation

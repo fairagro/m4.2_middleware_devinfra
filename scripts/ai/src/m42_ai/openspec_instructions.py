@@ -29,23 +29,28 @@ class OpenspecInstructionsError(RuntimeError):
         }
 
 
-def _status_blocking_error(payload: dict[str, Any]) -> str | None:
-    """Return a human message if OpenSpec JSON reports a blocking status error."""
+def _status_blocking_error(payload: dict[str, Any]) -> tuple[str, str] | None:
+    """Return ``(message, error_code)`` if OpenSpec JSON reports a blocking status error."""
     status = payload.get("status")
     if not isinstance(status, list):
         return None
     messages: list[str] = []
+    codes: list[str] = []
     for item in status:
         if not isinstance(item, dict):
             continue
         severity = str(item.get("severity") or "").lower()
-        code = str(item.get("code") or "")
+        code = str(item.get("code") or "").strip()
         if severity == "error" or code.endswith("_error") or code == "change_error":
             msg = str(item.get("message") or code or "openspec status error").strip()
             messages.append(msg)
+            if code:
+                codes.append(code)
     if not messages:
         return None
-    return "; ".join(messages)
+    # Prefer the first concrete status code; fall back to a generic label when absent.
+    error_code = codes[0] if codes else "openspec_status_error"
+    return "; ".join(messages), error_code
 
 
 def fetch_openspec_instructions(
@@ -78,10 +83,7 @@ def fetch_openspec_instructions(
         )
 
     argv = [openspec_bin, "instructions", art, "--change", ch, "--json"]
-    if runner is not None:
-        proc = runner(argv, root)
-    else:
-        proc = run_cmd(argv, cwd=root, check=False)
+    proc = runner(argv, root) if runner is not None else run_cmd(argv, cwd=root, check=False)
 
     stdout = (getattr(proc, "stdout", None) or "") if proc is not None else ""
     stderr = (getattr(proc, "stderr", None) or "") if proc is not None else ""
@@ -108,7 +110,8 @@ def fetch_openspec_instructions(
 
     blocking = _status_blocking_error(payload)
     if blocking:
-        raise OpenspecInstructionsError(blocking, error_code="change_error")
+        message, error_code = blocking
+        raise OpenspecInstructionsError(message, error_code=error_code)
 
     # Non-zero exit without a status error still fail-closed.
     if returncode != 0:

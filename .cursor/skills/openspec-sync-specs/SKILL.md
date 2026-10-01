@@ -79,9 +79,9 @@ or ambiguous you MUST prompt for available changes.
    - If archive invoked this workflow inline and supplied a valid snapshot from
      `m42-ai openspec-instructions --artifact specs --change "<name>"`, reuse it and do not fetch the same instructions
      again.
-   - Otherwise run that helper once now (portable:
-     `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact specs --change "<name>"`)
-     with the same selected-root flags.
+   - Otherwise run that helper once now from the selected OpenSpec / git root (or `--cwd <planningHome.root>`; portable:
+     `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact specs --change "<name>"`).
+     The helper only accepts `--cwd` — do not pass OpenSpec root-selection flags through it.
    - If the direct lookup exits non-zero, returns `ok: false` / `agent_action: "stop"`, or returns invalid
      artifact-instruction JSON, report the error and stop before writing any main spec. Do not invent rules or treat the
      failure as an absent rule set. MUST NOT use brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as
