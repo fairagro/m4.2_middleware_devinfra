@@ -81,11 +81,13 @@ or ambiguous you MUST prompt for available changes.
 5. **Confirm and apply, one artifact at a time**
    - Show each proposed revision and why. Write only after the user confirms.
    - If the user rejects a revision, do not write it - leave that artifact unchanged.
-   - When a substantial rewrite is needed, get that artifact's rules and template first:
+   - When a substantial rewrite is needed, get that artifact's rules and template first (fail-closed):
      ```bash
-     openspec instructions <artifact-id> --change "<name>" --json
+     m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"
      ```
-
+     Portable: `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"`.
+     On failure: **stop and report** — do not invent `template` / `resolvedOutputPath`. MUST NOT use brittle
+     `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path.
 6. **Point to the next step (guidance only - NEVER act on it)**
    - Artifacts still missing -> suggest `/opsx-continue` to create them.
    - Change already implemented (tasks checked off / already applied) -> the code may no longer match the revised plan;
@@ -113,4 +115,4 @@ After each invocation, show:
   "Update vs. Start Fresh" heuristic).
 - `/opsx-continue` and `/opsx-new` may not be installed (core profile). When suggesting one that is unavailable, point
   to the CLI instead: `openspec status --change "<name>" --json` shows the next artifact and
-  `openspec instructions <artifact-id> --change "<name>" --json` explains how to create it.
+  `m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"` explains how to create it.

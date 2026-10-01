@@ -73,10 +73,17 @@ the flag; keep it on follow-ups. Without a store, commands act on the nearest lo
    Loop through artifacts in dependency order (artifacts with no pending dependencies first):
 
    a. **For each artifact that is `ready` (dependencies satisfied)**:
-   - Get instructions:
+   - Get instructions (fail-closed):
      ```bash
-     openspec instructions <artifact-id> --change "<name>" --json
+     m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"
      ```
+     Portable without the wrapper:
+     `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"`.
+     On non-zero exit or JSON with `ok: false` / `agent_action: "stop"`: **stop and report** (fix change name or
+     cwd). MUST NOT invent `template` or `resolvedOutputPath`, and MUST NOT approximate the artifact. MUST NOT use
+     brittle `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path. Fallback only if
+     `m42-ai` is unavailable: write `openspec instructions <artifact-id> --change "<name>" --json` to a temp file,
+     check exit code, then parse that file — same fail-closed rules.
    - The instructions JSON includes:
      - `context`: Project background (constraints for you - do NOT include in output)
      - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
@@ -107,7 +114,8 @@ the flag; keep it on follow-ups. Without a store, commands act on the nearest lo
      so its files must NOT exist. Never try to create one
    - Create every artifact in the required set that is missing, then re-check - creating one can unblock others
    - Skip one only when `status` already reports it `skipped`, or when its own `instruction` says it is conditional: run
-     `openspec instructions <artifact-id> --change "<name>" --json` and skip only if its `instruction` field marks it
+     `m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"` (same fail-closed rules as above) and
+     skip only if its `instruction` field marks it
      optional (e.g. "create only if..."). Spec-driven's `design.md` qualifies; `specs` qualifies only via the `skipped`
      status above, never by your own judgment. Tell the user, and do not reconsider it
    - Dependencies are enablers, not gates: if a required artifact is still `blocked` only because you skipped a
@@ -150,8 +158,10 @@ After completing all artifacts **and** the Prettier step, summarize:
 
 **Artifact Creation Guidelines**
 
-- Follow the `instruction` field from `openspec instructions` for each artifact type - it is the authoritative guidance,
+- Follow the `instruction` field from `m42-ai openspec-instructions` (or the documented OpenSpec fallback) for each
+  artifact type - it is the authoritative guidance,
   even for familiar artifact names
+- If instructions cannot be loaded, stop and report — do not invent templates or paths
 - If the `instruction` field directs you to use a specific skill or command to create the artifact, invoke it instead of
   writing the artifact directly
 - The schema defines what each artifact should contain - follow it

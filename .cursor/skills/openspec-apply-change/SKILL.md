@@ -45,11 +45,15 @@ or ambiguous you MUST prompt for available changes.
    - `planningHome`, `changeRoot`, and `actionContext`: planning scope and edit constraints
    - Which artifact contains the tasks (typically "tasks" for spec-driven, check status for others)
 
-3. **Get apply instructions**
+3. **Get apply instructions** (fail-closed)
 
    ```bash
-   openspec instructions apply --change "<name>" --json
+   m42-ai openspec-instructions --artifact apply --change "<name>"
    ```
+
+   Portable: `env -u VIRTUAL_ENV uv run --project scripts/ai m42-ai openspec-instructions --artifact apply --change "<name>"`.
+   On failure (`ok: false` / non-zero): **stop and report** — do not invent tasks or skip the instructions contract.
+   MUST NOT use `openspec … --json 2>&1 | python -c 'json.load(sys.stdin)'` as the primary parse path.
 
    This returns:
    - `contextFiles`: artifact ID -> array of concrete file paths (varies by schema - could be
@@ -62,8 +66,8 @@ or ambiguous you MUST prompt for available changes.
 
    **Handle states:**
    - If `state: "blocked"` (missing artifacts): show message, suggest using openspec-continue-change (if it is not
-     installed, run `openspec status --change "<name>" --json` to see the next artifact and
-     `openspec instructions <artifact-id> --change "<name>" --json` for how to create it)
+     installed, run      `openspec status --change "<name>" --json` to see the next artifact and
+     `m42-ai openspec-instructions --artifact <artifact-id> --change "<name>"` for how to create it)
    - If `state: "all_done"`: congratulate, suggest archive
    - Otherwise: proceed to implementation
 
