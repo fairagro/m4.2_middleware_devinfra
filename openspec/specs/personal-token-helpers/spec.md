@@ -84,11 +84,12 @@ value.
 - **THEN** `GH_TOKEN` remains the non-empty process value
 - **AND** the helper does not prompt when that value is already set (non-forced)
 
-#### Scenario: Non-empty process env skips prompt
+#### Scenario: Non-empty process env skips gh prompt
 
 - **WHEN** after store apply `GH_TOKEN` is non-empty
-- **AND** `DEV_TOKENS_FORCE` / `DEV_TOKENS_PROMPT` would otherwise ask
+- **AND** `DEV_TOKENS_PROMPT=1` (gh wrapper ask path) and `DEV_TOKENS_FORCE` is unset
 - **THEN** the ask path does not prompt for `GH_TOKEN`
+- **AND** `DEV_TOKENS_FORCE=1` still prompts even when `GH_TOKEN` is already non-empty (set-dev-tokens override)
 
 #### Scenario: Default source is load-only
 
