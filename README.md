@@ -79,13 +79,15 @@ Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/convent
 
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
 - **Precedence:** non-empty store wins over process/host env; otherwise a non-empty process value is kept (e.g. host
-  tokens via `remoteEnv` `${localEnv:GH_TOKEN}` / `${localEnv:GITGUARDIAN_API_KEY}`). Prompt only when still empty on a
-  TTY. Override host by writing the store: `source ./scripts/set-dev-tokens.sh`.
+  tokens via `remoteEnv` `${localEnv:GH_TOKEN}` / `${localEnv:GITGUARDIAN_API_KEY}`). Default loads do **not** prompt.
+  Interactive prompt only from `scripts/bin/gh` (TTY, still empty) or `source ./scripts/set-dev-tokens.sh` (force /
+  override host by writing the store).
 - **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv` uses literal
-  `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh`. No `~/.bashrc` patch. Tokens
-  are **not** injected into agent process env — wrappers load them per invoke. The project `.venv` is activated via
+  `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh`. `git` is load-only (Cursor
+  SCM polls must not steal the TTY); `gh` may prompt. No `~/.bashrc` patch. Tokens are **not** injected into agent
+  process env — wrappers load them per invoke. The project `.venv` is activated via
   `remoteEnv.VIRTUAL_ENV=/workspace/.venv` (not only PATH).
-- **Empty prompt** is not persisted (no skip marker); a later load may use host env or ask again.
+- **Empty prompt** is not persisted (no skip marker); a later `gh` / `set-dev-tokens` may use host env or ask again.
 - Do **not** put tokens in the git worktree.
 - If agents report `GH_TOKEN` missing while the store is set, check `command -v gh` — `/usr/bin/gh` means PATH wrappers
   are missing (rebuild after sync of `remoteEnv.PATH`), not a bad store.
@@ -169,7 +171,7 @@ steps.
 | `.github/prompts/`                        | Copilot prompts (review-fixer, create-issue, code-review, issue-fixer)              |
 | `.cursor/`                                | Shared Cursor config (incl. `BUGBOT.md`)                                            |
 | `.github/`                                | Shared workflows / prompts (incl. `copilot-instructions.md`)                        |
-| `scripts/dev-tokens.sh`                   | Personal token load / prompt                                                        |
+| `scripts/dev-tokens.sh`                   | Personal token load (prompt only via `gh` / `set-dev-tokens`)                       |
 | `scripts/bin/`                            | `gh` / `git` PATH wrappers                                                          |
 | `scripts/`                                | Shared scripts                                                                      |
 | `.devcontainer/`                          | Dev Container definition                                                            |

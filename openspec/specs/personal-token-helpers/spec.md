@@ -62,7 +62,7 @@ precedence for each known key (`GH_TOKEN`, `GITGUARDIAN_API_KEY`):
 2. Else if the process environment already has a **non-empty** value (e.g. host pass-through via Dev Container
    `remoteEnv` `${localEnv:…}`), **keep** it — do not unset solely because the store is missing that key or the store
    file is absent.
-3. Else leave the variable unset until prompting (when a TTY is available) or until the caller fails closed.
+3. Else leave the variable unset. Default sourcing MUST NOT prompt; prompting is opt-in (see prompting requirement).
 
 A differing non-empty process value MUST NOT override a non-empty store value. Empty skip markers MUST NOT be written.
 Intentional override of host env is via `scripts/set-dev-tokens.sh` / `DEV_TOKENS_FORCE=1` writing a non-empty store
@@ -84,25 +84,35 @@ value.
 - **THEN** `GH_TOKEN` remains the non-empty process value
 - **AND** the helper does not prompt when that value is already set (non-forced)
 
-#### Scenario: Non-empty process env skips prompt
+#### Scenario: Non-empty process env skips gh prompt
 
 - **WHEN** after store apply `GH_TOKEN` is non-empty
-- **AND** `DEV_TOKENS_FORCE` is unset
-- **THEN** sourcing `scripts/dev-tokens.sh` does not prompt for `GH_TOKEN`
+- **AND** `DEV_TOKENS_PROMPT=1` (gh wrapper ask path) and `DEV_TOKENS_FORCE` is unset
+- **THEN** the ask path does not prompt for `GH_TOKEN`
+- **AND** `DEV_TOKENS_FORCE=1` still prompts even when `GH_TOKEN` is already non-empty (set-dev-tokens override)
 
-### Requirement: Prompting without empty skip markers
+#### Scenario: Default source is load-only
 
-When prompting on a TTY for `GH_TOKEN` or `GITGUARDIAN_API_KEY`, an empty answer MUST **not** persist a skip marker. The
-variable may remain unset for that shell; a later non-forced load MAY use host/process env if present, or prompt again
-if still empty. `scripts/set-dev-tokens.sh` MUST force a new prompt and persist **non-empty** values to the store
-(override path for host env). Without a TTY, helpers MUST NOT hang; wrappers that need a token MUST fail with a message
-pointing at `set-dev-tokens.sh` when neither store nor process env provides a non-empty token.
+- **WHEN** `DEV_TOKENS_FORCE` and `DEV_TOKENS_PROMPT` are unset
+- **AND** after store apply `GH_TOKEN` is empty
+- **AND** a TTY is available
+- **THEN** sourcing `scripts/dev-tokens.sh` does not prompt
+- **AND** `GH_TOKEN` remains unset
+
+### Requirement: Prompting is opt-in (gh / set-dev-tokens only)
+
+`scripts/dev-tokens.sh` MUST NOT prompt on a default source (including via `scripts/bin/git`, quality scripts, or
+postCreate). Prompting on a TTY is allowed only when `DEV_TOKENS_FORCE=1` (`scripts/set-dev-tokens.sh`) or
+`DEV_TOKENS_PROMPT=1` (`scripts/bin/gh` before sourcing). An empty answer MUST **not** persist a skip marker. The
+variable may remain unset for that shell; a later forced/prompted load MAY use host/process env if present, or prompt
+again if still empty. Without a TTY, helpers MUST NOT hang; wrappers that need a token MUST fail with a message pointing
+at `set-dev-tokens.sh` when neither store nor process env provides a non-empty token.
 
 #### Scenario: Empty TTY answer does not write skip marker
 
-- **WHEN** the user submits an empty answer at the `GH_TOKEN` prompt
+- **WHEN** the user submits an empty answer at the `GH_TOKEN` prompt (forced or gh-prompted)
 - **THEN** no empty skip marker is stored for that variable
-- **AND** a later load may use host/process env or prompt again if still empty
+- **AND** a later load may use host/process env, or a later forced/gh-prompted load may ask again if still empty
 
 #### Scenario: User overrides host via set-dev-tokens
 
@@ -111,12 +121,20 @@ pointing at `set-dev-tokens.sh` when neither store nor process env provides a no
 - **THEN** that value is exported and stored
 - **AND** later loads prefer the store over the host env
 
+#### Scenario: git wrapper never prompts
+
+- **WHEN** Cursor SCM (or any caller) invokes `git` via `scripts/bin/git`
+- **AND** neither store nor process env has a non-empty `GH_TOKEN`
+- **AND** a TTY is available
+- **THEN** the wrapper sources the helper without prompting
+- **AND** the user's terminal does not receive a token prompt
+
 ### Requirement: gh wrapper loads token then execs real gh
 
-`scripts/bin/gh` MUST source the shared token helper, require a non-empty `GH_TOKEN`, and exec the real system `gh`
-binary (not itself). Real-binary discovery MUST prefer `command -v -p gh` (excluding the wrapper) and MAY fall back to
-`/usr/bin/gh`. It MUST NOT read tokens from the git worktree. It MUST NOT treat `GITHUB_TOKEN` as a local
-developer-token fallback.
+`scripts/bin/gh` MUST source the shared token helper with prompting enabled (`DEV_TOKENS_PROMPT=1`), require a non-empty
+`GH_TOKEN`, and exec the real system `gh` binary (not itself). Real-binary discovery MUST prefer `command -v -p gh`
+(excluding the wrapper) and MAY fall back to `/usr/bin/gh`. It MUST NOT read tokens from the git worktree. It MUST NOT
+treat `GITHUB_TOKEN` as a local developer-token fallback.
 
 #### Scenario: gh succeeds with stored token
 
@@ -133,7 +151,7 @@ developer-token fallback.
 ### Requirement: git wrapper preserves hooks under Cursor SCM
 
 `scripts/bin/git` MUST strip Cursor-injected `core.hooksPath=/dev/null` from `GIT_CONFIG_*` environment entries, source
-the token helper, and exec the real `git` binary (not itself).
+the token helper in **load-only** mode (no TTY prompt), and exec the real `git` binary (not itself).
 
 #### Scenario: Cursor SCM does not disable hooks via null hooksPath
 
@@ -169,8 +187,8 @@ This repository's Dev Container configuration MUST put the repo's `scripts/bin` 
 into the remote environment via `remoteEnv` using `${localEnv:GH_TOKEN}` and `${localEnv:GITGUARDIAN_API_KEY}` (empty
 when unset on the host). postCreate MAY source the token helper once into the postCreate environment (non-prompting).
 The helpers MUST NOT patch `~/.bashrc` or other shell profiles. Documentation MUST describe store-vs-host precedence,
-that empty prompts do not persist skip markers, that `set-dev-tokens.sh` is the override path, wrapper-based load, and
-`/commandhistory/tokens.env`.
+that default loads do not prompt, that `gh` / `set-dev-tokens.sh` are the interactive prompt paths, that empty prompts
+do not persist skip markers, wrapper-based load, and `/commandhistory/tokens.env`.
 
 #### Scenario: Contributor looks up token setup
 
@@ -178,6 +196,7 @@ that empty prompts do not persist skip markers, that `set-dev-tokens.sh` is the 
 - **THEN** they learn store non-empty wins over host env, host/process fills gaps, and `set-dev-tokens.sh` overrides
 - **AND** they are directed to `/commandhistory/tokens.env` in the Dev Container
 - **AND** they learn that `gh` / `git` on `PATH` load tokens via the wrappers (no `.bashrc` patch)
+- **AND** they learn that `git` loads silently while `gh` may prompt on a TTY when `GH_TOKEN` is still empty
 - **AND** they learn host tokens can arrive via Dev Container `remoteEnv` / `localEnv`
 
 #### Scenario: Stored tokens available via wrappers
