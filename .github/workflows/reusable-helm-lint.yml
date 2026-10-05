@@ -1,0 +1,86 @@
+# Canonical reusable Helm chart lint for m4.2 product Feature PRs (issue #288).
+# Call from the product repo: uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@<ref>
+# Path-gate with a *separate* detect-changes output for chart roots — do not rely on Docker `code` alone.
+name: Reusable Helm Lint
+
+concurrency:
+  group: ${{ github.repository }}-reusable-helm-lint-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      chart_dir:
+        description: "Path to the chart directory in the caller checkout"
+        required: true
+        type: string
+      skip:
+        description: "Exit successfully without linting (PRs with no chart changes)"
+        required: false
+        type: boolean
+        default: false
+      run_template:
+        description: "Also run helm template smoke render (chart defaults)"
+        required: false
+        type: boolean
+        default: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: No chart changes — skipping lint
+        if: ${{ inputs.skip }}
+        run: echo "No chart files changed. Exiting with success."
+
+      - name: Checkout code
+        if: ${{ !inputs.skip }}
+        uses: actions/checkout@v7
+
+      - name: Assert chart directory exists
+        if: ${{ !inputs.skip }}
+        run: |
+          if [[ ! -d "${{ inputs.chart_dir }}" ]]; then
+            echo "::error::chart_dir '${{ inputs.chart_dir }}' does not exist in the caller checkout"
+            exit 1
+          fi
+          if [[ ! -f "${{ inputs.chart_dir }}/Chart.yaml" ]]; then
+            echo "::error::chart_dir '${{ inputs.chart_dir }}' has no Chart.yaml"
+            exit 1
+          fi
+
+      - name: Load HELM_VERSION from versions.env
+        if: ${{ !inputs.skip }}
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          HELM_PIN="${HELM_VERSION#v}"
+          if [[ -z "$HELM_PIN" ]]; then
+            echo "::error::HELM_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-helm@v5
+        if: ${{ !inputs.skip }}
+        with:
+          version: ${{ steps.versions.outputs.helm }}
+
+      - name: Helm lint
+        if: ${{ !inputs.skip }}
+        run: helm lint "./${{ inputs.chart_dir }}"
+
+      - name: Helm template smoke
+        if: ${{ !inputs.skip && inputs.run_template }}
+        run: helm template ci-smoke "./${{ inputs.chart_dir }}" >/dev/null
