@@ -25,7 +25,6 @@ fi
 
 helm_pin=""
 if [[ -f "${REPO_ROOT}/versions.env" ]]; then
-  # shellcheck disable=SC1091
   helm_pin="$(grep -E '^HELM_VERSION=' "${REPO_ROOT}/versions.env" | tail -n1 | cut -d= -f2- || true)"
 fi
 
