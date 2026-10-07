@@ -23,10 +23,15 @@ on:
         type: boolean
         default: false
       run_template:
-        description: "Also run helm template smoke render (chart defaults)"
+        description: "Also run helm template smoke render (chart defaults, or values_file when set)"
         required: false
         type: boolean
         default: true
+      values_file:
+        description: "Optional values overlay path relative to caller checkout (empty = bare chart)"
+        required: false
+        type: string
+        default: ""
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -77,10 +82,28 @@ jobs:
         with:
           version: ${{ steps.versions.outputs.helm }}
 
+      - name: Assert values_file exists
+        if: ${{ !inputs.skip && inputs.values_file != '' }}
+        run: |
+          if [[ ! -f "${{ inputs.values_file }}" ]]; then
+            echo "::error::values_file '${{ inputs.values_file }}' does not exist in the caller checkout"
+            exit 1
+          fi
+
       - name: Helm lint
         if: ${{ !inputs.skip }}
-        run: helm lint "./${{ inputs.chart_dir }}"
+        run: |
+          if [[ -n "${{ inputs.values_file }}" ]]; then
+            helm lint "./${{ inputs.chart_dir }}" -f "${{ inputs.values_file }}"
+          else
+            helm lint "./${{ inputs.chart_dir }}"
+          fi
 
       - name: Helm template smoke
         if: ${{ !inputs.skip && inputs.run_template }}
-        run: helm template ci-smoke "./${{ inputs.chart_dir }}" >/dev/null
+        run: |
+          if [[ -n "${{ inputs.values_file }}" ]]; then
+            helm template ci-smoke "./${{ inputs.chart_dir }}" -f "${{ inputs.values_file }}" >/dev/null
+          else
+            helm template ci-smoke "./${{ inputs.chart_dir }}" >/dev/null
+          fi
