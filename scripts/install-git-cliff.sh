@@ -28,7 +28,12 @@ DEST="${GIT_CLIFF_INSTALL_DIR:-/usr/local/bin}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
-curl -fsSL "https://github.com/orhun/git-cliff/releases/download/${PIN}/git-cliff-${VER}-x86_64-unknown-linux-gnu.tar.gz" \
-  | tar -xz -C "${TMP}"
+ASSET="git-cliff-${VER}-x86_64-unknown-linux-gnu.tar.gz"
+BASE_URL="https://github.com/orhun/git-cliff/releases/download/${PIN}"
+curl -fsSL "${BASE_URL}/${ASSET}" -o "${TMP}/${ASSET}"
+curl -fsSL "${BASE_URL}/${ASSET}.sha512" -o "${TMP}/${ASSET}.sha512"
+# Published release checksum (same channel as the tarball; catches corrupt/partial downloads).
+(cd "${TMP}" && sha512sum -c "${ASSET}.sha512")
+tar -xz -C "${TMP}" -f "${TMP}/${ASSET}"
 install -m 0755 "${TMP}/git-cliff-${VER}/git-cliff" "${DEST}/git-cliff"
 git-cliff --version
