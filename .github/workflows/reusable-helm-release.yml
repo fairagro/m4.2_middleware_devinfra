@@ -16,10 +16,10 @@ on:
   workflow_call:
     inputs:
       version_bump:
-        description: "Chart version bump: major, minor, or patch"
+        description: "Chart version bump: auto (Conventional Commits via git-cliff), major, minor, or patch"
         required: false
         type: string
-        default: "patch"
+        default: "auto"
       chart_dir:
         description: "Path to the chart directory in the caller checkout"
         required: true
@@ -93,27 +93,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install git-cliff (auto bump)
+        if: ${{ inputs.version_bump == 'auto' }}
+        run: sudo bash scripts/install-git-cliff.sh
+
       - name: Calculate next chart version
         id: calc-version
         run: |
-          LATEST_CHART_VERSION=$(git tag --list '*-chart-v*' \
-            | grep -E '^[0-9]+-chart-v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sed 's/^[0-9]*-chart-v//' \
-            | sort -V \
-            | tail -1 || true)
-          if [ -z "$LATEST_CHART_VERSION" ]; then LATEST_CHART_VERSION="0.0.0"; fi
-
-          MAJOR=$(echo "$LATEST_CHART_VERSION" | cut -d. -f1)
-          MINOR=$(echo "$LATEST_CHART_VERSION" | cut -d. -f2)
-          PATCH=$(echo "$LATEST_CHART_VERSION" | cut -d. -f3)
-
-          case "${{ inputs.version_bump }}" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            *)     PATCH=$((PATCH + 1)) ;;
+          BUMP="${{ inputs.version_bump }}"
+          case "${BUMP}" in
+            auto|major|minor|patch) ;;
+            *)
+              echo "::error::version_bump must be auto|major|minor|patch (got '${BUMP}')"
+              exit 1
+              ;;
           esac
 
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          NEW_VERSION="$(bash scripts/detect-version-bump.sh --surface helm --bump "${BUMP}")"
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Report version to summary

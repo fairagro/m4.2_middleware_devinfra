@@ -87,6 +87,7 @@ npm --version
 sops --version
 trivy --version
 renovate --version
+git-cliff --version
 ```
 
 ## Tools in the image (shared)
@@ -94,6 +95,7 @@ renovate --version
 | Area            | Tools                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------- |
 | GitHub / Node   | `gh`, Node, pinned `npm`, OpenSpec, Prettier, markdownlint-cli2, Renovate                      |
+| Release bump    | `git-cliff` (`GIT_CLIFF_VERSION`; `scripts/detect-version-bump.sh` for `version_bump=auto`)    |
 | Python          | `uv` + pinned Python; quality CLIs via `uv sync` / pre-commit (ruff, …)                        |
 | Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`                                                        |
 | K8s             | `kubectl`, `helm`, `minikube`                                                                  |

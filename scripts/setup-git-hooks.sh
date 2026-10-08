@@ -53,4 +53,4 @@ echo "Project git hooks setup complete."
 echo "Installed:"
 ls -la "${HOOKS_TARGET_DIR}/pre-push" "${HOOKS_TARGET_DIR}/pre-push.d/${QUALITY_NAME}" 2>/dev/null || true
 echo ""
-echo "Commit-stage hooks remain: uv run pre-commit install --hook-type pre-commit"
+echo "Commit-stage hooks remain: uv run pre-commit install --hook-type pre-commit --hook-type commit-msg"

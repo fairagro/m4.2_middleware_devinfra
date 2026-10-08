@@ -25,10 +25,10 @@ on:
   workflow_call:
     inputs:
       version_bump:
-        description: "Version bump type: major, minor, or patch"
+        description: "Version bump: auto (Conventional Commits via git-cliff), major, minor, or patch"
         required: false
         type: string
-        default: "patch"
+        default: "auto"
       components:
         description: "JSON array of components to build (required; no product default)"
         required: true
@@ -73,6 +73,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install git-cliff (auto bump)
+        if: ${{ !inputs.skip && inputs.version_bump == 'auto' }}
+        run: sudo bash scripts/install-git-cliff.sh
+
       - name: Calculate next version
         id: calc-version
         run: |
@@ -83,25 +87,16 @@ jobs:
             exit 0
           fi
 
-          # grep exits 1 on no match; with Actions pipefail that aborts before 0.0.0 fallback
-          LATEST_TAG=$(git tag --list '*-docker-v*' \
-            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sed 's/^[0-9]*-docker-v//' \
-            | sort -V \
-            | tail -1 || true)
-          if [ -z "$LATEST_TAG" ]; then LATEST_TAG="0.0.0"; fi
-
-          MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
-          MINOR=$(echo "$LATEST_TAG" | cut -d. -f2)
-          PATCH=$(echo "$LATEST_TAG" | cut -d. -f3)
-
-          case "${{ inputs.version_bump }}" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            *)     PATCH=$((PATCH + 1)) ;;
+          BUMP="${{ inputs.version_bump }}"
+          case "${BUMP}" in
+            auto|major|minor|patch) ;;
+            *)
+              echo "::error::version_bump must be auto|major|minor|patch (got '${BUMP}')"
+              exit 1
+              ;;
           esac
 
-          BASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          BASE_VERSION="$(bash scripts/detect-version-bump.sh --surface docker --bump "${BUMP}")"
 
           # RC only on build/* (fleet CI channel — hard cut; not feature/*)
           if [[ "$GITHUB_REF_NAME" == build/* ]]; then

@@ -85,6 +85,7 @@ echo "==> Install pre-commit hook (commit-stage)"
 if command -v pre-commit >/dev/null 2>&1 || uv run pre-commit --version >/dev/null 2>&1; then
   if [ ! -f "${repo_root}/.git/hooks/pre-commit" ]; then
     uv run pre-commit install --hook-type pre-commit
+    uv run pre-commit install --hook-type commit-msg
   else
     echo "pre-commit hook already installed"
   fi
