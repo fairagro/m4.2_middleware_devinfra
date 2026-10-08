@@ -9,11 +9,12 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) for every commi
 Release `version_bump: auto`). Shape: `type(optional-scope): subject`. Types include `feat`, `fix`, `docs`, `style`,
 `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, and `deps` (Renovate). Pick `type` and subject from the
 **full staged diff** (every intentional path), not from OpenSpec change names or only the last hunk: do not omit
-secondary fixes in the same commit (prefer a theme subject, or a short body with one bullet per fix). `feat` / `fix`
-only for shipped behaviour; `/opsx-archive` and opsx housekeeping alone (archive move, main-spec sync) → `chore`
-(optional scope `openspec`), never `feat` (false minor bumps). Breaking changes use `feat!:` / `fix!:` or a
-`BREAKING CHANGE:` footer. Same convention for Cursor sparkle (`.cursorrules`) and VS Code Copilot commit generation
-(`.vscode/settings.json`).
+secondary fixes in the same commit (prefer a theme subject, or a short body with one bullet per fix). **Prefer a short
+scope** for the primary component/area when clear from staged paths (e.g. `fix(payload): …`); scope is encouraged for
+Release changelogs but optional — no fleet commitlint `scope-enum`. `feat` / `fix` only for shipped behaviour;
+`/opsx-archive` and opsx housekeeping alone (archive move, main-spec sync) → `chore` (optional scope `openspec`), never
+`feat` (false minor bumps). Breaking changes use `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer. Same convention for
+Cursor sparkle (`.cursorrules`) and VS Code Copilot commit generation (`.vscode/settings.json`).
 
 ## Code review (Finder)
 

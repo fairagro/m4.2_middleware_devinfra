@@ -8,6 +8,9 @@ When generating a Git commit message for this repository:
 - Use Conventional Commits only: `type(optional-scope): subject`
 - Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, deps
 - Choose `type` from the **full staged diff**, not from OpenSpec change names, folder titles, or only the last hunk
+- **Prefer a short scope** naming the primary component or area when one is clear from the staged paths (e.g.
+  `fix(payload): …`, `feat(api): …`). Scope is encouraged for Release changelogs, but optional — there is no fleet
+  commitlint `scope-enum`; omit the scope when nothing clear fits
 - **Cover every intentional change in the commit.** Scan all touched paths; do not write a subject that only
   describes one file when others also change behaviour (e.g. cliff + commit-msg hook, or archive move + main-spec sync
   + editor guidance). Prefer one subject that names the shared theme; if two+ independent fixes share the commit, add a
