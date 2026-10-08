@@ -52,6 +52,11 @@ last or largest file.
 `fix(payload): …`, `feat(api): …`). Scope is encouraged for readable git-cliff Release changelogs, but **not**
 allowlist-enforced — commitlint has no fleet `scope-enum` (products differ; missing scope remains valid).
 
+**/opsx-archive commits are always `chore` (optional scope `openspec`), never `feat`.** Moving a change under
+`openspec/changes/archive/` and syncing deltas into `openspec/specs/` is opsx cleanup — even if main specs gain new
+requirements. Sparkle/Copilot MUST NOT treat those ADDED requirements as a product `feat` (false minor bump for
+`version_bump: auto`). Example: `chore(openspec): archive <change-name> and sync specs`.
+
 **Enforcement:** commitlint (`commitlint.config.cjs`) on the **commit-msg** hook (`npx commitlint --edit`). Install with
 `uv run pre-commit install --hook-type pre-commit --hook-type commit-msg` (Dev Container postCreate does both). Type
 `deps` is allowed for Renovate’s `deps:` prefix.
