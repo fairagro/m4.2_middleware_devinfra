@@ -129,7 +129,18 @@ fi
 # release boundary, so --unreleased + .[0] would only see commits after the newest tag of
 # *any* surface (R1 Docker/Helm tags interleave) and silently under-bump. Classify the full
 # RANGE_FROM..HEAD by aggregating commits across all cliff segments.
-CTX="$(git cliff "${RANGE_ARGS[@]}" --context --config "${CLIFF_CONFIG}" 2>/dev/null || true)"
+CLIFF_ERR="$(mktemp)"
+set +e
+CTX="$(git cliff "${RANGE_ARGS[@]}" --context --config "${CLIFF_CONFIG}" 2>"${CLIFF_ERR}")"
+CLIFF_EC=$?
+set -e
+if [[ "${CLIFF_EC}" -ne 0 ]]; then
+  echo "detect-version-bump: auto failed — git-cliff exited ${CLIFF_EC} (surface=${SURFACE}, since=${LATEST_FULL:-<root>})" >&2
+  cat "${CLIFF_ERR}" >&2 || true
+  rm -f "${CLIFF_ERR}"
+  exit 1
+fi
+rm -f "${CLIFF_ERR}"
 if [[ -z "${CTX}" || "${CTX}" == "[]" ]]; then
   echo "detect-version-bump: auto failed — no commit context since '${LATEST_FULL:-<none>}' (surface=${SURFACE})" >&2
   exit 1
