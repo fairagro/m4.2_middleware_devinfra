@@ -242,6 +242,13 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff (changelog)
+        run: sudo bash scripts/install-git-cliff.sh
+
       - name: Download SBOM artifacts
         continue-on-error: true
         uses: actions/download-artifact@v8
@@ -267,6 +274,8 @@ jobs:
           path: license-md
 
       - name: Generate release body
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           COMPONENTS_JSON='${{ inputs.components }}'
           COMPONENT=$(echo "$COMPONENTS_JSON" | jq -r '.[0] // empty')
@@ -378,6 +387,8 @@ jobs:
             echo "and product-local \`docker/Dockerfile.${COMPONENT}\` (Bake base + last stage; see Devinfra docs/ci.md)."
             echo ""
 
+            bash scripts/generate-release-changelog.sh --surface docker --new-tag "${TAG}" --repo "${GITHUB_REPOSITORY}"
+
             echo "## Image licenses (Trivy)"
             echo ""
             echo "Informational only — license findings do **not** fail release or PR check. Vulnerability gates remain in"
@@ -407,12 +418,12 @@ jobs:
           body_path: release-body.md
           draft: true
           prerelease: ${{ inputs.release_type == 'feature' }}
-          generate_release_notes: true
+          generate_release_notes: false
 
       - name: Upload SBOM assets when present
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No checkout in this job — gh must not infer the repo from a local .git remote.
+          # Prefer GH_REPO over inferring from checkout (job now checkouts for git-cliff changelog).
           GH_REPO: ${{ github.repository }}
         run: |
           shopt -s nullglob

@@ -242,6 +242,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff (changelog)
+        run: sudo bash scripts/install-git-cliff.sh
+
       - name: Download chart package
         uses: actions/download-artifact@v8
         with:
@@ -259,6 +266,8 @@ jobs:
           DOCKERHUB_NAMESPACE: ${{ inputs.dockerhub_namespace }}
           CHART_NAME: ${{ inputs.chart_name }}
           GHCR_OWNER: ${{ needs.helm-push.outputs.ghcr_ns }}
+          RELEASE_TAG: ${{ needs.helm-release.outputs.timestamp }}-chart-v${{ needs.version.outputs.version }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           {
             echo "## Helm Chart Release v${CHART_VERSION}"
@@ -307,6 +316,8 @@ jobs:
             echo "helm upgrade --install ${HELM_INSTALL_NAME} \\"
             echo "  ${CHART_NAME}-${CHART_VERSION}.tgz"
             echo '```'
+            echo ""
+            bash scripts/generate-release-changelog.sh --surface helm --new-tag "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}"
           } > release-body.md
 
       - name: Create GitHub Release (Draft)
@@ -319,7 +330,7 @@ jobs:
           files: ${{ needs.helm-release.outputs.chart_package }}
           draft: true
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
           make_latest: true
 
       - name: Publish Release
