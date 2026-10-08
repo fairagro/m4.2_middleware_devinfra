@@ -125,7 +125,11 @@ else
 fi
 
 # Fleet tags are not plain semver; use cliff only to classify Conventional Commits.
-CTX="$(git cliff "${RANGE_ARGS[@]}" --unreleased --context --config "${CLIFF_CONFIG}" 2>/dev/null || true)"
+# Do not pass --unreleased: without a surface tag_pattern, cliff treats every tag as a
+# release boundary, so --unreleased + .[0] would only see commits after the newest tag of
+# *any* surface (R1 Docker/Helm tags interleave) and silently under-bump. Classify the full
+# RANGE_FROM..HEAD by aggregating commits across all cliff segments.
+CTX="$(git cliff "${RANGE_ARGS[@]}" --context --config "${CLIFF_CONFIG}" 2>/dev/null || true)"
 if [[ -z "${CTX}" || "${CTX}" == "[]" ]]; then
   echo "detect-version-bump: auto failed — no commit context since '${LATEST_FULL:-<none>}' (surface=${SURFACE})" >&2
   exit 1
@@ -133,7 +137,7 @@ fi
 
 # shellcheck disable=SC2016
 CLASS="$(echo "${CTX}" | jq -r '
-  .[0].commits as $c
+  [.[].commits[]] as $c
   | if ($c | length) == 0 then "empty"
     elif ($c | map(select(.breaking == true)) | length) > 0 then "major"
     elif ($c | map(select(.group != null and (.group | test("Features")))) | length) > 0 then "minor"
