@@ -7,9 +7,11 @@ When writing or reviewing code, follow Type Safety and Supported development env
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) for every commit (enforced by commitlint; required for
 Release `version_bump: auto`). Shape: `type(optional-scope): subject`. Types include `feat`, `fix`, `docs`, `style`,
-`refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, and `deps` (Renovate). Breaking changes use `feat!:` /
-`fix!:` or a `BREAKING CHANGE:` footer. The same convention applies to Cursor generate-commit-message and VS Code
-Copilot commit generation (see synced `.vscode/settings.json`).
+`refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, and `deps` (Renovate). Pick `type` from the **diff**, not
+from OpenSpec change names: `feat` / `fix` only for shipped behaviour; `/opsx-archive` and opsx housekeeping alone
+(archive move, main-spec sync) → `chore` (optional scope `openspec`), never `feat` (false minor bumps). Breaking changes
+use `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer. Same convention for Cursor sparkle (`.cursorrules`) and VS Code
+Copilot commit generation (`.vscode/settings.json`).
 
 ## Code review (Finder)
 

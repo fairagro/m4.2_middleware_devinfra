@@ -181,6 +181,10 @@ or ambiguous you MUST prompt for available changes.
 **Specs:** <"✓ Synced to main specs" only if the step 4 verification passed; otherwise "No delta specs" or "Sync skipped">
 
 <"All artifacts complete. All tasks complete." — or, if archived with warnings, list them instead (e.g. "Archived with 2 incomplete tasks")>
+
+If the user will commit the archive (and any main-spec sync) separately: remind that Conventional Commits type is
+**`chore`** (optional scope `openspec`), not `feat` — archive/opsx cleanup must not minor-bump Release
+`version_bump: auto`. Example subject: `chore(openspec): archive <change-name> and sync specs`.
 ```
 
 **Guardrails**

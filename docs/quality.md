@@ -40,6 +40,11 @@ Fleet commits MUST follow [Conventional Commits](https://www.conventionalcommits
 | `feat:`                                            | minor |
 | `fix:` / other conventional types (incl. `deps:`)  | patch |
 
+**Pick `type` from the diff, not from OpenSpec change titles.** `/opsx-archive` (move under `openspec/changes/archive/`,
+sync deltas into `openspec/specs/`) and other opsx housekeeping alone are **`chore`** (optional scope `openspec`), never
+`feat` — a mistaken `feat:` would falsely minor-bump Release `version_bump: auto`. Use `feat` / `fix` only when the
+commit changes shipped behaviour.
+
 **Enforcement:** commitlint (`commitlint.config.cjs`) on the **commit-msg** hook (`npx commitlint --edit`). Install with
 `uv run pre-commit install --hook-type pre-commit --hook-type commit-msg` (Dev Container postCreate does both). Type
 `deps` is allowed for Renovate’s `deps:` prefix.
