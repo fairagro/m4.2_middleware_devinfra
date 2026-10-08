@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Emit a ## Changelog section for Final GitHub Releases via git-cliff (R1 surface tags).
-# Soft-fail: always exit 0 with markdown on stdout (placeholder on empty / cliff error).
+# Soft-fail (exit 0 + placeholder markdown): empty cliff output or git-cliff process failure.
+# Usage/arg errors still exit non-zero so the caller fails closed on bad invocation.
 #
 # Usage:
 #   scripts/generate-release-changelog.sh --surface docker|helm [--new-tag TAG] [--repo owner/name]

@@ -423,7 +423,7 @@ jobs:
       - name: Upload SBOM assets when present
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No checkout in this job — gh must not infer the repo from a local .git remote.
+          # Prefer GH_REPO over inferring from checkout (job now checkouts for git-cliff changelog).
           GH_REPO: ${{ github.repository }}
         run: |
           shopt -s nullglob
