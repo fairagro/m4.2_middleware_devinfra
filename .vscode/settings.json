@@ -111,7 +111,7 @@
   // Cursor SCM sparkle uses repo-root `.cursorrules` (not this key). See docs/quality.md.
   "github.copilot.chat.commitMessageGeneration.instructions": [
     {
-      "text": "Use Conventional Commits: type(optional-scope): subject. Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, deps. Pick type from the diff, not from OpenSpec change names. feat/fix only for shipped behaviour changes. OpenSpec /opsx-archive and opsx housekeeping alone (archive move, sync deltas into openspec/specs/) → chore (optional scope openspec), never feat (avoids false minor bumps for version_bump=auto). Docs-only → docs; CI wiring → ci; Renovate bumps → deps. Breaking: feat!: or BREAKING CHANGE: in body. Subject imperative, no trailing period."
+      "text": "Use Conventional Commits: type(optional-scope): subject. Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, deps. Base type and subject on the FULL staged diff (all paths), not only the last hunk or one file. Cover every intentional change; if several independent fixes share the commit, use a theme subject plus a short body with one bullet each. feat/fix only for shipped behaviour. OpenSpec /opsx-archive and opsx housekeeping alone → chore (optional scope openspec), never feat. Docs-only → docs; CI → ci; Renovate → deps. Breaking: feat!: or BREAKING CHANGE:. Subject imperative, no trailing period; accuracy over brevity."
     }
   ]
 }
