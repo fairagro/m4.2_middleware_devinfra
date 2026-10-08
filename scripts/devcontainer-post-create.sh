@@ -80,6 +80,15 @@ if [ -f "${repo_root}/pyproject.toml" ]; then
   fi
 fi
 
+# ── Node deps (commitlint via npx --no; local prettier/markdownlint scripts) ─
+# Image globals cover Prettier/markdownlint CLIs; commitlint is package.json-only and the
+# commit-msg hook uses `npx --no`, which requires workspace node_modules (bind-mount hides
+# any image-local install under /workspace).
+if [ -f "${repo_root}/package-lock.json" ]; then
+  echo "==> npm ci (lockfile Node deps)"
+  npm ci
+fi
+
 # ── pre-commit commit-stage + commit-msg hooks ───────────────────────────────
 # Install each hook-type on its own guard: .git persists across Dev Container rebuilds,
 # so a pre-existing pre-commit hook must not skip commit-msg (commitlint) install.

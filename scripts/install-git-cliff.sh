@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 # Install pinned git-cliff onto PATH (CI / host). Pin from versions.env GIT_CLIFF_VERSION.
+# Load versions.env directly — do not source load-versions-env.sh (that rewrites
+# .python-version; CI invokes this script with sudo and would leave .python-version root-owned).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# shellcheck source=scripts/load-versions-env.sh
-source "${REPO_ROOT}/scripts/load-versions-env.sh"
+VERSIONS_ENV="${REPO_ROOT}/versions.env"
+if [[ ! -f "${VERSIONS_ENV}" ]]; then
+  echo "install-git-cliff: versions.env not found: ${VERSIONS_ENV}" >&2
+  exit 1
+fi
+set -a
+# shellcheck source=/dev/null
+source "${VERSIONS_ENV}"
+set +a
 
 PIN="${GIT_CLIFF_VERSION:-}"
 if [[ -z "${PIN}" ]]; then

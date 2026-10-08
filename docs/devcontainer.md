@@ -262,7 +262,9 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
 - load stored tokens into the postCreate environment (no hang without TTY; no `~/.bashrc` patch)
 - `uv sync --dev --all-packages` when `pyproject.toml` exists (dev dependency group + all uv workspace members; same
   flags as reusable code-quality CI). Stale `.venv` with a broken interpreter is removed first when detected.
-- `pre-commit install --hook-type pre-commit`
+- `npm ci` when `package-lock.json` exists (workspace Node deps for commitlint / local npm scripts; image globals still
+  cover Prettier/markdownlint CLIs)
+- `pre-commit install` for `pre-commit` and `commit-msg` hook types (each on its own guard)
 - `./scripts/setup-git-hooks.sh` (dispatcher + `pre-push.d/50-quality`; does not manage Git LFS or hard-code product
   scripts)
 - import public GPG keys via `scripts/import-public-gpg-keys.sh` when present (`public_gpg_keys/*.asc`; skip if absent)
