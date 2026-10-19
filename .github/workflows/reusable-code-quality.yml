@@ -159,8 +159,9 @@ jobs:
           QUALITY_ENV_FILE: ${{ inputs.quality_env_file }}
         run: |
           # Fleet CLI via scripts/run-quality-cli.sh (same as commit-stage; no product dep required).
-          # Path overlays: non-empty workflow inputs win; else MYPYPATH / PYLINT_SOURCE_ROOTS from
-          # quality_env_file (default .devcontainer/product.env). Helper soft-skips missing file.
+          # Path overlays: load quality_env_file first (file wins over stale process env), then
+          # non-empty workflow inputs override. QUALITY_PATH_LOADED=1 stops run-quality-cli from
+          # re-loading the file and clobbering those overrides.
           # shellcheck source=scripts/load-quality-path-env.sh
           source scripts/load-quality-path-env.sh "${QUALITY_ENV_FILE}"
           if [[ -n "${MYPY_PATH_INPUT}" ]]; then
@@ -169,6 +170,7 @@ jobs:
           if [[ -n "${PYLINT_SOURCE_ROOTS_INPUT}" ]]; then
             export PYLINT_SOURCE_ROOTS="${PYLINT_SOURCE_ROOTS_INPUT}"
           fi
+          export QUALITY_PATH_LOADED=1
           bash scripts/run-quality-cli.sh ruff format --check --diff --config ruff.toml "${PKG}"
           bash scripts/run-quality-cli.sh ruff check --config ruff.toml "${PKG}"
           pylint_args=(--rcfile .pylintrc)
