@@ -422,21 +422,22 @@ custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm 
 
 ### `reusable-code-quality.yml`
 
-| Input                 | Default                     | Purpose                                                                                                                     |
-| --------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `python_package_root` | `middleware`                | Path for ruff / pylint / mypy / bandit / vulture / pytest (import-linter uses product `.importlinter`)                      |
-| `mypy_path`           | `""`                        | Optional colon-separated `MYPYPATH`; empty → load `MYPYPATH=` from `quality_env_file` when present                          |
-| `pylint_source_roots` | `""`                        | Optional comma-separated pylint `--source-roots`; empty → load `PYLINT_SOURCE_ROOTS=` from `quality_env_file` when present  |
-| `quality_env_file`    | `.devcontainer/product.env` | Product-owned env file for those keys (soft-skip if missing). Prefer this over duplicating literals in every caller `with:` |
-| `components`          | (optional)                  | Accepted for caller compatibility; unused by this workflow                                                                  |
-| `skip`                | `false`                     | Successful no-op (keeps required check names green)                                                                         |
+| Input                 | Default                     | Purpose                                                                                                                  |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `python_package_root` | `middleware`                | Path for ruff / pylint / mypy / bandit / vulture / pytest (import-linter uses product `.importlinter`)                   |
+| `mypy_path`           | `""`                        | Optional colon-separated `MYPYPATH`; empty → use file value from `quality_env_file`; non-empty overrides the file        |
+| `pylint_source_roots` | `""`                        | Optional comma-separated pylint `--source-roots`; empty → use file; non-empty overrides the file                         |
+| `quality_env_file`    | `.devcontainer/product.env` | Preferred SoT for those keys (soft-load always re-applies; soft-skip if missing). Prefer over duplicating caller `with:` |
+| `components`          | (optional)                  | Accepted for caller compatibility; unused by this workflow                                                               |
+| `skip`                | `false`                     | Successful no-op (keeps required check names green)                                                                      |
 
 **Single-source path overlays:** put `MYPYPATH=` and optionally `PYLINT_SOURCE_ROOTS=` in `.devcontainer/product.env`
-(product overlay — not synced). Omit empty `mypy_path` / `pylint_source_roots` from caller workflows so CI and local
-hooks share one file. Non-empty workflow inputs still override the file. Synced
-[`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) re-reads the same file on each invoke when those vars are
-unset (Compose `env_file` alone only applies at container create — see [devcontainer.md](devcontainer.md)). Product
-adopter follow-up: [harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
+(product overlay — not synced). Prefer `quality_env_file` as the SoT; omit empty `mypy_path` / `pylint_source_roots`
+from caller workflows so CI and local hooks share one file. Soft-load always re-applies those keys from the file (**file
+wins** over process/container env); non-empty workflow inputs still override afterward. Synced
+[`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) uses the same helper on each invoke (Compose `env_file`
+alone only applies at container create — see [devcontainer.md](devcontainer.md)). Product adopter follow-up:
+[harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
 
 **uv audit / malware check:** when `skip` is false, the job runs `uv sync` with `UV_MALWARE_CHECK=1` and
 `./scripts/run-uv-audit.sh` (frozen lockfile; optional caller `.uv-audit-ignore`). See

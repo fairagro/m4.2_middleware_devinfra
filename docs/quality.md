@@ -264,10 +264,11 @@ MYPYPATH=middleware/foo/src:middleware/bar/src
 PYLINT_SOURCE_ROOTS=middleware/foo/tests/unit,middleware/bar/tests/unit
 ```
 
-Reusable CI loads those keys when `mypy_path` / `pylint_source_roots` inputs are empty ([`docs/ci.md`](ci.md)). Synced
-[`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) applies the same file on each invoke when the vars are
-unset (so edits apply without a Dev Container rebuild). Non-empty process env or workflow inputs win. Do **not** put
-path lists in synced `mypy.ini` / `.pre-commit-config.yaml`. Adopter follow-up:
+Reusable CI prefers those keys from `quality_env_file` ([`docs/ci.md`](ci.md)); non-empty `mypy_path` /
+`pylint_source_roots` inputs still override **after** soft-load. Synced
+[`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) re-applies the same file on each invoke (**file wins**
+over a stale Compose `env_file` snapshot), so path edits apply without a Dev Container rebuild. Do **not** put path
+lists in synced `mypy.ini` / `.pre-commit-config.yaml`. Adopter follow-up:
 [harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
 
 **Pylint `--source-roots`:** when `PYLINT_SOURCE_ROOTS` is set (file or env), `run-quality-cli.sh pylint` injects

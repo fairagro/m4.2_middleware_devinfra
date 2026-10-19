@@ -24,21 +24,25 @@ on:
       mypy_path:
         description: >-
           Optional MYPYPATH (colon-separated), e.g. stubs + package src roots.
-          Empty: load MYPYPATH from quality_env_file when present; else default mypy discovery.
+          Empty: use MYPYPATH from quality_env_file when present (file wins over process);
+          else default mypy discovery. Non-empty input overrides the file.
         required: false
         type: string
         default: ""
       pylint_source_roots:
         description: >-
           Optional comma-separated --source-roots for pylint (same-dir test helpers).
-          Empty: load PYLINT_SOURCE_ROOTS from quality_env_file when present; else omit the flag.
+          Empty: use PYLINT_SOURCE_ROOTS from quality_env_file when present (file wins over
+          process); else omit the flag. Non-empty input overrides the file.
         required: false
         type: string
         default: ""
       quality_env_file:
         description: >-
-          Product-owned env file for MYPYPATH= and PYLINT_SOURCE_ROOTS= when the matching
-          workflow inputs are empty (default .devcontainer/product.env). Missing file is soft-skip.
+          Product-owned env file for MYPYPATH= and PYLINT_SOURCE_ROOTS= (preferred SoT;
+          default .devcontainer/product.env). Soft-load always re-applies those keys from the
+          file; non-empty mypy_path / pylint_source_roots inputs override afterward. Missing
+          file is soft-skip.
         required: false
         type: string
         default: ".devcontainer/product.env"
@@ -159,8 +163,8 @@ jobs:
           QUALITY_ENV_FILE: ${{ inputs.quality_env_file }}
         run: |
           # Fleet CLI via scripts/run-quality-cli.sh (same as commit-stage; no product dep required).
-          # Path overlays: non-empty workflow inputs win; else MYPYPATH / PYLINT_SOURCE_ROOTS from
-          # quality_env_file (default .devcontainer/product.env). Helper soft-skips missing file.
+          # Path overlays: soft-load quality_env_file first (file wins over process), then
+          # non-empty workflow inputs override. Helper soft-skips missing file.
           # shellcheck source=scripts/load-quality-path-env.sh
           source scripts/load-quality-path-env.sh "${QUALITY_ENV_FILE}"
           if [[ -n "${MYPY_PATH_INPUT}" ]]; then
