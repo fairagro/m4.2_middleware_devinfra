@@ -436,23 +436,34 @@ MUST NOT present “commit-stage / docs scripts only” as a substitute for CI f
 - **THEN** Prettier / markdownlint list GitHub CI as a real gate (not only commit-stage)
 - **AND** the same shared config files are cited for IDE, hooks, and CI
 
-### Requirement: Quality CLI loads product path overlays when unset
+### Requirement: Quality CLI re-applies product path overlays from file
 
-`scripts/run-quality-cli.sh` (or a helper it sources) MUST, on each invoke, attempt to load `MYPYPATH` and
-`PYLINT_SOURCE_ROOTS` from `.devcontainer/product.env` when those variables are unset or empty in the process
-environment, using the same allowed-key parse as reusable CI. Non-empty existing env MUST NOT be overwritten. A missing
-file MUST soft-skip. This MUST apply so commit-stage mypy/pylint see path-file edits without requiring a Dev Container
-rebuild solely to refresh Compose `env_file`.
+`scripts/run-quality-cli.sh` (or a helper it sources) MUST, on each invoke unless `QUALITY_PATH_LOADED` is set non-empty
+in the process environment, load `MYPYPATH` and `PYLINT_SOURCE_ROOTS` from `.devcontainer/product.env` when those keys
+are present in the file, using the same allowed-key parse as reusable CI. Values from the file MUST overwrite non-empty
+process/container environment for those keys (file wins over a stale Compose `env_file` snapshot). When
+`QUALITY_PATH_LOADED` is set non-empty, the runner MUST NOT re-load those keys from the file (so callers that
+soft-loaded and then applied one-shot overrides keep them). A missing file MUST soft-skip. This MUST apply so
+commit-stage mypy/pylint see path-file edits without requiring a Dev Container rebuild solely to refresh Compose
+`env_file`. Documentation for operators MUST describe this precedence (including the CI override guard).
 
 #### Scenario: Unset MYPYPATH filled from product.env
 
-- **WHEN** `run-quality-cli.sh mypy …` runs with `MYPYPATH` unset and `.devcontainer/product.env` defines `MYPYPATH=a:b`
+- **WHEN** `run-quality-cli.sh mypy …` runs with `MYPYPATH` unset, `QUALITY_PATH_LOADED` unset, and
+  `.devcontainer/product.env` defines `MYPYPATH=a:b`
 - **THEN** the mypy process sees `MYPYPATH=a:b`
 
-#### Scenario: Existing MYPYPATH wins
+#### Scenario: File wins over stale process MYPYPATH
 
-- **WHEN** `MYPYPATH` is already set non-empty in the environment and the file defines a different value
-- **THEN** the runner leaves the process value unchanged
+- **WHEN** `MYPYPATH` is already set non-empty in the environment, `QUALITY_PATH_LOADED` is unset, and the file defines
+  a different value
+- **THEN** the runner exports the file value
+
+#### Scenario: QUALITY_PATH_LOADED skips reload
+
+- **WHEN** `QUALITY_PATH_LOADED` is set non-empty and `MYPYPATH` already holds a workflow override
+- **AND** `.devcontainer/product.env` defines a different `MYPYPATH`
+- **THEN** `run-quality-cli.sh` leaves the process `MYPYPATH` unchanged
 
 ### Requirement: OpenSpec propose formats change Markdown with Prettier
 

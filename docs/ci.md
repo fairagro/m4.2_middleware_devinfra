@@ -434,9 +434,10 @@ custom `tag_prefix` breaks Helm `appVersion` lookup unless you also change Helm 
 **Single-source path overlays:** put `MYPYPATH=` and optionally `PYLINT_SOURCE_ROOTS=` in `.devcontainer/product.env`
 (product overlay — not synced). Omit empty `mypy_path` / `pylint_source_roots` from caller workflows so CI and local
 hooks share one file. Non-empty workflow inputs still override the file (reusable job soft-loads, applies inputs, then
-sets `QUALITY_PATH_LOADED=1` so later `run-quality-cli` calls do not re-load and clobber). Local hooks soft-load on
-each invoke with **file wins** over a stale Compose `env_file` snapshot (see [devcontainer.md](devcontainer.md)).
-Product adopter follow-up: [harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
+sets `QUALITY_PATH_LOADED=1` so later `run-quality-cli` calls do not re-load and clobber). Local hooks soft-load on each
+invoke (**file wins** over a stale Compose `env_file` snapshot) unless `QUALITY_PATH_LOADED` is already set (see
+[devcontainer.md](devcontainer.md)). Product adopter follow-up:
+[harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
 
 **uv audit / malware check:** when `skip` is false, the job runs `uv sync` with `UV_MALWARE_CHECK=1` and
 `./scripts/run-uv-audit.sh` (frozen lockfile; optional caller `.uv-audit-ignore`). See
