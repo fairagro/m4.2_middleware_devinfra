@@ -415,7 +415,8 @@
       "recreateWhen": "always"
     },
     {
-      "description": "Isolate uv pin so vulnerabilityAlerts / security bumps do not share a mega-branch with other versions.env pins (#316).",
+      "description": "Isolate UV_VERSION pin in versions.env so vulnerabilityAlerts / security bumps do not share a mega-branch with other versions.env pins (#316).",
+      "matchFileNames": ["versions.env"],
       "matchPackageNames": ["uv"],
       "groupName": "versions.env uv pin",
       "separateMinorPatch": false,
