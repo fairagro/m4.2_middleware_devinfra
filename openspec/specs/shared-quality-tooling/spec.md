@@ -518,8 +518,10 @@ sparkle MUST be steered via synced root `.cursorrules` when that is the supporte
 commits in these repos MUST follow the same convention. Guidance MUST **prefer** an optional Conventional Commits
 **scope** naming the primary component or area when one is clear from the staged diff (e.g. `fix(payload): …`), while
 keeping scope optional — commitlint MUST NOT gain a fleet `scope-enum` solely for this preference. Documentation MUST
-point operators at those settings, state that the sparkle / auto-generate buttons remain the supported UX, and note that
-scopes are encouraged but not allowlist-enforced.
+point operators at those settings. Documentation MUST **discourage** Cursor Source Control sparkle for release-bearing
+commits when the staged diff is load-bearing for `version_bump: auto` (prefer agent handoff subjects from `/issue-fixer`
+/ `/review-fixer`, or a future fleet `m42-ai` suggest-commit helper). VS Code Copilot generation MAY remain configured.
+Docs MUST note that scopes are encouraged but not allowlist-enforced.
 
 #### Scenario: Maintainer finds dual-editor Conventional Commit guidance
 
@@ -527,6 +529,7 @@ scopes are encouraged but not allowlist-enforced.
 - **THEN** they learn commit messages must be Conventional Commits for `version_bump: auto`
 - **AND** they learn Cursor sparkle and VS Code Copilot commit generation are both configured toward that convention
 - **AND** they learn commitlint enforces the convention at commit-stage
+- **AND** they learn sparkle is discouraged for release-bearing commits in favour of agent handoff / diff-aware drafts
 
 #### Scenario: Editor guidance prefers optional component scope
 

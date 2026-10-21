@@ -30,6 +30,20 @@ only after the user has committed.
 - **AND** posts dismiss/follow-up replies in that first phase
 - **AND** waits for a user-created commit SHA before posting `Fixed in <sha>.` and resolving those threads
 
+### Requirement: review-fixer suggests a Conventional Commits message at handoff
+
+Whenever `/review-fixer` Phase 1 pauses after applying local `fix` edits (dirty working tree or index), the skill MUST
+include a ready-to-use Conventional Commits subject in that pause message (optional short body only when needed). The
+subject MUST follow fleet Conventional Commits hard overrides. The skill MUST NOT auto-commit and MUST NOT steer the
+user to Cursor Source Control sparkle for that handoff. Dismiss/follow-up-only runs with no local edits MUST omit the
+commit-message block.
+
+#### Scenario: Phase 1 fix pause includes a suggested subject
+
+- **WHEN** Phase 1 applies at least one local `fix` and pauses for the user to commit
+- **THEN** the user-visible pause includes a Conventional Commits subject for the dirty/staged diff
+- **AND** the skill still waits for a user-created SHA before `Fixed in …` replies
+
 ### Requirement: Auth uses shared gh wrapper and conventions
 
 The skill's Auth section MUST direct agents to `scripts/bin/gh` (on `PATH` in the Dev Container) and personal-token

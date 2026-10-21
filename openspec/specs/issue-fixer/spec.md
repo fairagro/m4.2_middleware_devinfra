@@ -30,6 +30,27 @@ comments). When comments contradict each other or the issue body, the **newer** 
 - **WHEN** triage finds an issue body (or older comment) that conflicts with a later comment
 - **THEN** the skill treats the newer comment as authoritative for problem statement / done-when / lock-ins
 
+### Requirement: issue-fixer suggests a Conventional Commits message at handoff
+
+Whenever `/issue-fixer` pauses and returns control to the user after leaving **uncommitted** changes in the working tree
+or index (including OpenSpec propose/apply/archive artifacts and Task/Bug implement edits), the skill MUST include a
+ready-to-use Conventional Commits subject in that pause message (optional short body only when multiple independent
+themes share one commit). The subject MUST follow fleet hard overrides (OpenSpec archive / planning-only → `chore` /
+`docs`, never false `feat` for `version_bump: auto`). The skill MUST NOT auto-commit and MUST NOT steer the user to
+Cursor Source Control sparkle for that handoff. Explore-only or Discussion pauses with a clean tree MUST omit the
+commit-message block.
+
+#### Scenario: Pause after implement includes a suggested subject
+
+- **WHEN** `/issue-fixer` finishes a Bug/Task implement (or OpenSpec apply/archive) with a dirty working tree and pauses
+- **THEN** the user-visible pause includes a Conventional Commits subject matching the full dirty/staged diff
+- **AND** the skill still does not create the git commit itself
+
+#### Scenario: Explore-only pause omits commit message
+
+- **WHEN** `/issue-fixer` pauses only for explore lock-in and the working tree has no skill-authored uncommitted changes
+- **THEN** the pause does not require a Suggested commit message block
+
 ### Requirement: issue-fixer does not run OpenSpec
 
 `/issue-fixer` MUST route OpenSpec by org issue type:
