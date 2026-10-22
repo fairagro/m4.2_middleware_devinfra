@@ -520,8 +520,8 @@ commits in these repos MUST follow the same convention. Guidance MUST **prefer**
 keeping scope optional — commitlint MUST NOT gain a fleet `scope-enum` solely for this preference. Documentation MUST
 point operators at those settings. Documentation MUST **discourage** Cursor Source Control sparkle for release-bearing
 commits when the staged diff is load-bearing for `version_bump: auto` (prefer agent handoff subjects from `/issue-fixer`
-/ `/review-fixer`, or a future fleet `m42-ai` suggest-commit helper). VS Code Copilot generation MAY remain configured.
-Docs MUST note that scopes are encouraged but not allowlist-enforced.
+and `/review-fixer`, or a future fleet `m42-ai` suggest-commit helper). VS Code Copilot generation MAY remain
+configured. Docs MUST note that scopes are encouraged but not allowlist-enforced.
 
 #### Scenario: Maintainer finds dual-editor Conventional Commit guidance
 

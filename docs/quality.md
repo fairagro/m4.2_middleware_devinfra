@@ -72,7 +72,7 @@ requirements. Sparkle/Copilot MUST NOT treat those ADDED requirements as a produ
 
 Sparkle often misses the staged diff (planning-only/`feat`, archive not `chore(openspec)`). Prefer the agent handoff
 subject (or a future `m42-ai suggest-commit`). commitlint still rejects non-conventional messages on commit; a future
-path-check hook will reject `feat`/`fix` on OpenSpec-only / test-only indexes (#319).
+path-check hook will reject `feat`/`fix` on OpenSpec-only / test-only indexes (#320).
 
 ## Environment parity (IDE, hooks, CI)
 
