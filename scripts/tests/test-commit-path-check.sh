@@ -67,5 +67,22 @@ run_case deps-ok ok \
   "deps: Update npm toolchain" \
   "package-lock.json"
 
+# Missing --staged-from path must be a usage error (not soft-pass as empty index)
+{
+  msg="${TMP}/msg-missing-staged"
+  printf '%s\n' "feat: anything" >"${msg}"
+  set +e
+  out="$("${CHECK}" --staged-from "${TMP}/does-not-exist" "${msg}" 2>&1)"
+  code=$?
+  set -e
+  if [[ "${code}" -ne 0 ]]; then
+    pass=$((pass + 1))
+  else
+    echo "FAIL missing-staged-from: expected fail, got exit 0" >&2
+    echo "${out}" >&2
+    fail=$((fail + 1))
+  fi
+}
+
 echo "commit-path-check fixtures: ${pass} passed, ${fail} failed"
 [[ "${fail}" -eq 0 ]]

@@ -58,6 +58,11 @@ if [[ -z "${ctype}" ]]; then
   exit 0
 fi
 
+if [[ -n "${STAGED_FROM}" && ! -f "${STAGED_FROM}" ]]; then
+  echo "commit-path-check: --staged-from file not found: ${STAGED_FROM}" >&2
+  exit 2
+fi
+
 mapfile -t staged < <(
   if [[ -n "${STAGED_FROM}" ]]; then
     grep -v '^[[:space:]]*$' "${STAGED_FROM}" || true
