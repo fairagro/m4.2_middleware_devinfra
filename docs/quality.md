@@ -57,9 +57,18 @@ allowlist-enforced — commitlint has no fleet `scope-enum` (products differ; mi
 requirements. Sparkle/Copilot MUST NOT treat those ADDED requirements as a product `feat` (false minor bump for
 `version_bump: auto`). Example: `chore(openspec): archive <change-name> and sync specs`.
 
-**Enforcement:** commitlint (`commitlint.config.cjs`) on the **commit-msg** hook (`npx commitlint --edit`). Install with
-`uv run pre-commit install --hook-type pre-commit --hook-type commit-msg` (Dev Container postCreate does both). Type
-`deps` is allowed for Renovate’s `deps:` prefix.
+**Enforcement:**
+
+1. **commitlint** (`commitlint.config.cjs`) on the **commit-msg** hook — type-enum / Conventional Commits shape
+   (`npx commitlint --edit`).
+2. **commit path check** (`scripts/commit-path-check.sh`) on the same **commit-msg** stage — rejects `feat` / `fix` when
+   the staged index is only OpenSpec planning (`openspec/changes/**` non-archive), only archive and/or
+   `openspec/specs/**` sync, or only tests; rejects `docs` when the index is archive-only (optionally plus specs)
+   **and** the subject indicates archive (word `archive`, not merely `archived`) — use `chore(openspec)`. Type `deps` is
+   not gated by the path matrix.
+
+Install with `uv run pre-commit install --hook-type pre-commit --hook-type commit-msg` (Dev Container postCreate does
+both). Escape hatch: `git commit --no-verify` (not a control). Fixtures: `bash scripts/tests/test-commit-path-check.sh`.
 
 **Editor / agent generation:**
 
@@ -71,8 +80,9 @@ requirements. Sparkle/Copilot MUST NOT treat those ADDED requirements as a produ
 | **Agents (other)**                               | `.github/copilot-instructions.md` + commitlint                                                                                  |
 
 Sparkle often misses the staged diff (planning-only/`feat`, archive not `chore(openspec)`). Prefer the agent handoff
-subject (or a future `m42-ai suggest-commit`). commitlint still rejects non-conventional messages on commit; a future
-path-check hook will reject `feat`/`fix` on OpenSpec-only / test-only indexes (#320).
+subject (or a future `m42-ai suggest-commit`). commitlint rejects non-conventional messages; the commit path check
+(#320) rejects `feat`/`fix` on OpenSpec-only / test-only indexes and `docs` on archive commits whose subject indicates
+archive — independent of who drafted the subject.
 
 ## Environment parity (IDE, hooks, CI)
 
