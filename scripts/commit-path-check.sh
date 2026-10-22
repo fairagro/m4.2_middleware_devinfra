@@ -67,7 +67,9 @@ mapfile -t staged < <(
   if [[ -n "${STAGED_FROM}" ]]; then
     grep -v '^[[:space:]]*$' "${STAGED_FROM}" || true
   else
-    git diff --cached --name-only --diff-filter=ACMR || true
+    # Include deletions (D): delete-only OpenSpec/test indexes must still hit the type gate.
+    # Spec: git diff --cached --name-only (no ACMR-only filter).
+    git diff --cached --name-only || true
   fi
 )
 
