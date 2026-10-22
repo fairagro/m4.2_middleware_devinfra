@@ -114,10 +114,15 @@ fail() {
   exit 1
 }
 
-# docs on archive (+ optional specs) → require chore(openspec)
+# docs on archive (+ optional specs) only when the subject indicates archive → chore(openspec)
+# Subject gate avoids rejecting routine docs edits under openspec/changes/archive/**
+# Match "archive" as a word (not "archived").
 if [[ "${ctype}" == "docs" && "${has_archive}" -eq 1 && "${has_planning}" -eq 0 && "${has_test}" -eq 0 &&
   "${has_other}" -eq 0 ]]; then
-  fail "OpenSpec archive commits must use type 'chore' (optional scope openspec), not 'docs'"
+  subject_lc="$(printf '%s\n' "${subject}" | tr '[:upper:]' '[:lower:]')"
+  if printf '%s\n' "${subject_lc}" | grep -Eq '(^|[^a-z])archive([^a-z]|$)'; then
+    fail "OpenSpec archive commits must use type 'chore' (optional scope openspec), not 'docs'"
+  fi
 fi
 
 if [[ "${ctype}" != "feat" && "${ctype}" != "fix" ]]; then

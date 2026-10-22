@@ -59,6 +59,10 @@ run_case docs-archive fail \
   "docs(openspec): archive foo" \
   "openspec/changes/archive/2026-10-01-foo/tasks.md"
 
+run_case docs-archive-typo ok \
+  "docs: fix typo in archived proposal" \
+  "openspec/changes/archive/2026-10-01-foo/proposal.md"
+
 run_case deps-ok ok \
   "deps: Update npm toolchain" \
   "package-lock.json"

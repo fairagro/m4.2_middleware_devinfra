@@ -63,8 +63,9 @@ requirements. Sparkle/Copilot MUST NOT treat those ADDED requirements as a produ
    (`npx commitlint --edit`).
 2. **commit path check** (`scripts/commit-path-check.sh`) on the same **commit-msg** stage — rejects `feat` / `fix` when
    the staged index is only OpenSpec planning (`openspec/changes/**` non-archive), only archive and/or
-   `openspec/specs/**` sync, or only tests; rejects `docs` for OpenSpec archive commits (use `chore(openspec)`). Type
-   `deps` is not gated by the path matrix.
+   `openspec/specs/**` sync, or only tests; rejects `docs` when the index is archive-only (optionally plus specs)
+   **and** the subject indicates archive (word `archive`, not merely `archived`) — use `chore(openspec)`. Type `deps` is
+   not gated by the path matrix.
 
 Install with `uv run pre-commit install --hook-type pre-commit --hook-type commit-msg` (Dev Container postCreate does
 both). Escape hatch: `git commit --no-verify` (not a control). Fixtures: `bash scripts/tests/test-commit-path-check.sh`.
@@ -80,8 +81,8 @@ both). Escape hatch: `git commit --no-verify` (not a control). Fixtures: `bash s
 
 Sparkle often misses the staged diff (planning-only/`feat`, archive not `chore(openspec)`). Prefer the agent handoff
 subject (or a future `m42-ai suggest-commit`). commitlint rejects non-conventional messages; the commit path check
-(#320) rejects `feat`/`fix` on OpenSpec-only / test-only indexes and `docs` on archive commits — independent of who
-drafted the subject.
+(#320) rejects `feat`/`fix` on OpenSpec-only / test-only indexes and `docs` on archive commits whose subject indicates
+archive — independent of who drafted the subject.
 
 ## Environment parity (IDE, hooks, CI)
 
