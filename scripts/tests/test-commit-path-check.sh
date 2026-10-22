@@ -84,5 +84,22 @@ run_case deps-ok ok \
   fi
 }
 
+# --staged-from without a value must be a clear usage error (not shift failure)
+{
+  msg="${TMP}/msg-staged-no-value"
+  printf '%s\n' "feat: anything" >"${msg}"
+  set +e
+  out="$("${CHECK}" --staged-from 2>&1)"
+  code=$?
+  set -e
+  if [[ "${code}" -ne 0 && "${out}" == *"--staged-from requires a file path"* ]]; then
+    pass=$((pass + 1))
+  else
+    echo "FAIL staged-from-no-value: expected usage exit, got ${code}" >&2
+    echo "${out}" >&2
+    fail=$((fail + 1))
+  fi
+}
+
 echo "commit-path-check fixtures: ${pass} passed, ${fail} failed"
 [[ "${fail}" -eq 0 ]]

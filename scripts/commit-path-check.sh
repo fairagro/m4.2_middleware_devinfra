@@ -13,7 +13,11 @@ MSG_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --staged-from)
-      STAGED_FROM="${2:-}"
+      if [[ $# -lt 2 || -z "${2}" ]]; then
+        echo "commit-path-check: --staged-from requires a file path" >&2
+        exit 2
+      fi
+      STAGED_FROM="$2"
       shift 2
       ;;
     -h | --help)
