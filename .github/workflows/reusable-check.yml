@@ -232,9 +232,13 @@ jobs:
         # stdin load (not -i): Docker accepts gzipped archives from the documented *.tar.gz contract
         run: docker load < "docker-image-${{ matrix.component }}.tar.gz"
 
+      - name: Install container-structure-test (CST_VERSION)
+        if: ${{ !inputs.skip }}
+        run: sudo bash scripts/install-cst.sh
+
       - name: Run Container Structure Tests
         if: ${{ !inputs.skip }}
-        uses: plexsystems/container-structure-test-action@v0.3.0
-        with:
-          image: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
-          config: docker/container-structure-tests/${{ matrix.component }}.yaml
+        run: |
+          container-structure-test test \
+            --image "local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}" \
+            --config "docker/container-structure-tests/${{ matrix.component }}.yaml"
