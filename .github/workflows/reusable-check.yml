@@ -68,6 +68,21 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout code
+        if: ${{ !inputs.skip }}
+        uses: actions/checkout@v7
+
+      - name: Read TRIVY_VERSION from versions.env
+        if: ${{ !inputs.skip }}
+        id: trivy-version
+        run: |
+          trivy_version="$(awk -F= '/^TRIVY_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          if [[ -z "$trivy_version" ]]; then
+            echo "ERROR: TRIVY_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$trivy_version" >> "$GITHUB_OUTPUT"
+
       - name: Download Docker image artifact
         if: ${{ !inputs.skip }}
         uses: actions/download-artifact@v8
@@ -83,6 +98,7 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          version: ${{ steps.trivy-version.outputs.version }}
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
           format: "table"
           scan-type: "image"
@@ -95,6 +111,7 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          version: ${{ steps.trivy-version.outputs.version }}
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
           format: "json"
           output: "trivy-license-${{ matrix.component }}.json"
@@ -136,6 +153,21 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout code
+        if: ${{ !inputs.skip }}
+        uses: actions/checkout@v7
+
+      - name: Read TRIVY_VERSION from versions.env
+        if: ${{ !inputs.skip }}
+        id: trivy-version
+        run: |
+          trivy_version="$(awk -F= '/^TRIVY_VERSION=/ {print $2; exit}' versions.env | tr -d '[:space:]')"
+          if [[ -z "$trivy_version" ]]; then
+            echo "ERROR: TRIVY_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "version=$trivy_version" >> "$GITHUB_OUTPUT"
+
       - name: Download Docker image artifact
         if: ${{ !inputs.skip }}
         uses: actions/download-artifact@v8
@@ -157,6 +189,7 @@ jobs:
         if: ${{ !inputs.skip }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          version: ${{ steps.trivy-version.outputs.version }}
           image-ref: local/${{ inputs.image_base_name }}-${{ matrix.component }}:${{ inputs.version }}
           format: "sarif"
           output: "trivy-image-results.sarif"
@@ -171,6 +204,7 @@ jobs:
         if: ${{ !inputs.skip && (success() || failure()) }}
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          version: ${{ steps.trivy-version.outputs.version }}
           scan-ref: "sbom-${{ matrix.component }}.spdx.json"
           scan-type: "sbom"
           format: "sarif"
