@@ -155,11 +155,9 @@ resolve_apk_pkg() {
   return 1
 }
 
-TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
-
 declare -A PKG_VERSIONS=()
 LOADED_ALPINE_MINOR=""
+TMP_DIR=""
 
 parse_apkindex() {
   local index_file="$1"
@@ -293,17 +291,27 @@ update_one_dockerfile() {
   echo "Done: ${dockerfile} (no .bak; roll back with git if needed)"
 }
 
-LIST_FILE="${TMP_DIR}/dockerfiles.txt"
-resolve_dockerfiles "$@" >"$LIST_FILE"
-mapfile -t DOCKERFILES <"$LIST_FILE"
-if ((${#DOCKERFILES[@]} == 0)); then
-  echo "ERROR: no Dockerfiles to update" >&2
-  exit 1
-fi
-OVERALL=0
-for DOCKERFILE in "${DOCKERFILES[@]}"; do
-  if ! update_one_dockerfile "$DOCKERFILE"; then
-    OVERALL=1
+main() {
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TMP_DIR"' EXIT
+
+  local list_file="${TMP_DIR}/dockerfiles.txt"
+  resolve_dockerfiles "$@" >"$list_file"
+  local dockerfiles=()
+  mapfile -t dockerfiles <"$list_file"
+  if ((${#dockerfiles[@]} == 0)); then
+    echo "ERROR: no Dockerfiles to update" >&2
+    exit 1
   fi
-done
-exit "$OVERALL"
+  local overall=0 dockerfile
+  for dockerfile in "${dockerfiles[@]}"; do
+    if ! update_one_dockerfile "$dockerfile"; then
+      overall=1
+    fi
+  done
+  exit "$overall"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
