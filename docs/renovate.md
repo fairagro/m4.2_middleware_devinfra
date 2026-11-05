@@ -84,8 +84,13 @@ can mark commits **Unverified** under Vigilant Mode
 
 Shared [`renovate.json`](../renovate.json) sets `gitAuthor` to the GitHub user that owns `DEVINFRA_BOT_TOKEN`, using
 that user’s noreply address (`Name <id+login@users.noreply.github.com>`). Today that is
-`Carsten Scharfenberg <138563220+Zalfsten@users.noreply.github.com>`. If the PAT owner changes, update `gitAuthor` to
-match (or set `RENOVATE_GIT_AUTHOR` in the workflow instead).
+`Carsten Scharfenberg <138563220+Zalfsten@users.noreply.github.com>`.
+
+Without a global bot config file, Renovate may still **WARN at process start** about Mend’s
+`renovate@whitesourcesoftware.com` before it loads the repo’s `renovate.json`. The workflow therefore also sets
+`RENOVATE_GIT_AUTHOR` to the same string so the warning does not appear; commits already used the repo `gitAuthor` (see
+lock-file PR authorship). If the PAT owner changes, update **both** `renovate.json` `gitAuthor` and the workflow env
+value.
 
 ## Local CLI dry-run
 
