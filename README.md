@@ -75,13 +75,14 @@ caller snippets, and the build→check artifact contract. PyPI and ns-pages stay
 
 ## Personal tokens
 
-Personal `GH_TOKEN` / `GITGUARDIAN_API_KEY` (see [path conventions](docs/conventions.md)):
+Personal `GH_TOKEN` (see [path conventions](docs/conventions.md)):
 
 - **Dev Container only:** `/commandhistory/tokens.env` (volume-backed). No host `~/.config/…` store.
 - **Precedence:** non-empty store wins over process/host env; otherwise a non-empty process value is kept (e.g. host
-  tokens via `remoteEnv` `${localEnv:GH_TOKEN}` / `${localEnv:GITGUARDIAN_API_KEY}`). Default loads do **not** prompt.
-  Interactive prompt only from `scripts/bin/gh` (TTY, still empty) or `source ./scripts/set-dev-tokens.sh` (force /
-  override host by writing the store).
+  tokens via `remoteEnv` `${localEnv:GH_TOKEN}`). Default loads do **not** prompt. Interactive prompt only from
+  `scripts/bin/gh` (TTY, still empty) or `source ./scripts/set-dev-tokens.sh` (force / override host by writing the
+  store). Legacy `GITGUARDIAN_API_KEY` may still load from the store if present; fleet secret scan is **gitleaks** and
+  does not prompt for GitGuardian.
 - **Load path:** `scripts/bin/gh` and `scripts/bin/git` are first on `PATH` (`remoteEnv` uses literal
   `/workspace/…/scripts/bin`, not `${workspaceFolder}`) and source `scripts/dev-tokens.sh`. `git` is load-only (Cursor
   SCM polls must not steal the TTY); `gh` may prompt. No `~/.bashrc` patch. Tokens are **not** injected into agent

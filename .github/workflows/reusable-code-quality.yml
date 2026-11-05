@@ -222,6 +222,17 @@ jobs:
           # Same fail bar as commit-stage hook: frozen lockfile + optional `.uv-audit-ignore` (docs/quality.md).
           ./scripts/run-uv-audit.sh
 
+      - name: Install gitleaks (GITLEAKS_VERSION)
+        if: ${{ !inputs.skip }}
+        run: sudo bash scripts/install-gitleaks.sh
+
+      - name: Secret scan with gitleaks
+        if: ${{ !inputs.skip }}
+        run: |
+          # Fail closed on findings; honor repo `.gitleaksignore` when present (docs/quality.md).
+          # Filesystem detect on the PR tip checkout (no SaaS API key).
+          gitleaks detect --source . --verbose
+
       - name: Run tests
         if: ${{ !inputs.skip }}
         env:
