@@ -29,9 +29,9 @@ auto-fixes where hooks support them.
 
 The repository MUST provide a root `.pre-commit-config.yaml` that defines:
 
-- **Commit-stage** hooks covering at least: trailing-whitespace / YAML or TOML hygiene, ggshield, ruff, mypy, bandit,
-  pylint, **vulture**, **import-linter**, **uv audit** (Python lockfile CVE gate), and markdownlint (aligned with the
-  product API pattern).
+- **Commit-stage** hooks covering at least: trailing-whitespace / YAML or TOML hygiene, **gitleaks** (secret scan),
+  ruff, mypy, bandit, pylint, **vulture**, **import-linter**, **uv audit** (Python lockfile CVE gate), and markdownlint
+  (aligned with the product API pattern).
 - **Pre-push stage** hooks for `pytest` and container-structure-test that invoke
   `scripts/run-container-structure-test.sh`.
 
@@ -53,12 +53,18 @@ synced whitelist file). The commit-stage **import-linter** hook MUST run against
 code-quality uv-audit fail policy (audit the project lockfile with `--frozen` or equivalent; fail on any reported
 vulnerability / adverse status except IDs listed via the documented ignore mechanism).
 
-Commit-stage and reusable code-quality invocations of **ggshield**, **ruff**, **mypy**, **pylint**, **bandit**,
-**vulture**, and **import-linter** MUST obtain those CLIs via a synced fleet pin file (e.g.
-`scripts/quality-tools-pins.txt` via `scripts/run-quality-cli.sh`) so a product that has not listed the tool in
-`pyproject.toml` still runs the gate instead of failing with a missing-binary / `Failed to spawn` error. **pytest** and
-application/runtime dependencies MAY remain product-owned project deps. Documentation MUST state that products MAY
-optionally keep the same CLIs in the project env for IDE extensions.
+The commit-stage **gitleaks** hook MUST fail closed on findings for the staged change set (pre-commit / protect mode or
+equivalent). It MUST NOT require a GitGuardian or other SaaS API key. Allowlisted false positives MUST be expressible
+via a repo-owned allowlist file (e.g. `.gitleaksignore`) documented in quality docs.
+
+Commit-stage and reusable code-quality invocations of **ruff**, **mypy**, **pylint**, **bandit**, **vulture**, and
+**import-linter** MUST obtain those CLIs via a synced fleet pin file (e.g. `scripts/quality-tools-pins.txt` via
+`scripts/run-quality-cli.sh`) so a product that has not listed the tool in `pyproject.toml` still runs the gate instead
+of failing with a missing-binary / `Failed to spawn` error. **gitleaks** MUST NOT be listed in that Python pin file; it
+MUST be installed from the `versions.env` pin (same pattern as other release CLIs). **pytest** and application/runtime
+dependencies MAY remain product-owned project deps. Documentation MUST state that products MAY optionally keep the
+Python quality CLIs in the project env for IDE extensions. Documentation MUST NOT require `GITGUARDIAN_API_KEY` for the
+fleet secret-scan gate.
 
 #### Scenario: Pre-commit config lists both stages
 
@@ -103,9 +109,16 @@ optionally keep the same CLIs in the project env for IDE extensions.
 - **THEN** a uv-audit lockfile vulnerability hook is present
 - **AND** it fails closed on findings except documented ignored advisory IDs
 
+#### Scenario: Commit-stage includes gitleaks
+
+- **WHEN** a consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
+- **THEN** a gitleaks secret-scan hook is present
+- **AND** there is no ggshield secret-scan hook
+- **AND** the gitleaks hook does not require `GITGUARDIAN_API_KEY`
+
 #### Scenario: Missing product quality dep does not spawn-fail the gate
 
-- **WHEN** a product checkout runs a synced vulture (or ruff/mypy/pylint/bandit/ggshield/import-linter) hook or reusable
+- **WHEN** a product checkout runs a synced vulture (or ruff/mypy/pylint/bandit/import-linter) hook or reusable
   code-quality step without that package in its `pyproject.toml`
 - **THEN** the invocation still resolves the CLI from the fleet requirements pin
 - **AND** it does not fail solely because the tool binary is absent from the project environment
@@ -586,3 +599,21 @@ configured. Docs MUST note that scopes are encouraged but not allowlist-enforced
 - **WHEN** a contributor uses Cursor sparkle or VS Code Copilot commit-message generation after this change
 - **THEN** the synced instructions ask for an optional `type(scope):` component/area scope when clear from the diff
 - **AND** the fleet commitlint config does not require a fixed `scope-enum` for that preference
+
+### Requirement: Gitleaks CLI pin and install
+
+The repository MUST pin gitleaks via `GITLEAKS_VERSION` in `versions.env` (Renovate-managed) and MUST provide an install
+helper (e.g. `scripts/install-gitleaks.sh`) that places the pinned binary on `PATH` for Dev Container post-create and
+CI. Commit-stage and reusable code-quality MUST use that installed binary (or an equivalent install-then-run path). The
+install helper MUST fail closed when the pin is missing.
+
+#### Scenario: Contributor has gitleaks after Dev Container create
+
+- **WHEN** Dev Container post-create runs with a valid `GITLEAKS_VERSION` pin
+- **THEN** `gitleaks` is on `PATH` at that pin
+- **AND** the commit-stage gitleaks hook can invoke it without a SaaS API key
+
+#### Scenario: Missing gitleaks pin fails install
+
+- **WHEN** the install helper runs without `GITLEAKS_VERSION` set
+- **THEN** it exits non-zero with a clear error

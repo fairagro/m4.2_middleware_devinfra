@@ -38,8 +38,8 @@ beyond what vulture already gates**, OpenSpec↔code drift **only where specs ex
 docs↔code drift (weaker severity than spec drift), and test adequacy for new risks.
 
 The skill MUST NOT restate findings that the quality toolchain already owns: Ruff, mypy, pylint, Bandit, markdownlint,
-Prettier, ggshield, CodeQL, Trivy, **vulture**, and **import-linter**. Format, import sort, line-length, and type noise
-that CI already fails MUST be out of scope. Mechanical unused-definition hits that vulture reports at the fleet
+Prettier, **gitleaks**, CodeQL, Trivy, **vulture**, and **import-linter**. Format, import sort, line-length, and type
+noise that CI already fails MUST be out of scope. Mechanical unused-definition hits that vulture reports at the fleet
 confidence gate MUST NOT be re-reported as review findings. Mechanical cycle/layer/forbidden violations that
 import-linter reports MUST NOT be re-reported as review findings. Judgment MAY still cover Import-policy rules outside
 the linter (module-level placement, relative imports, `sys.path` mutation, lazy imports used only to break cycles).
