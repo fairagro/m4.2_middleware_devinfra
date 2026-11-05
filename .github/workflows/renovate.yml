@@ -45,4 +45,8 @@ jobs:
           # Scope the bot token to this step only (not checkout).
           GITHUB_COM_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # Set at process start so Renovate does not WARN about Mend's default
+          # renovate@whitesourcesoftware.com before it loads repo renovate.json
+          # (gitAuthor there still applies to commits; keep both in sync).
+          RENOVATE_GIT_AUTHOR: "Carsten Scharfenberg <138563220+Zalfsten@users.noreply.github.com>"
           LOG_LEVEL: ${{ github.event.inputs.log_level || 'info' }}
