@@ -117,6 +117,11 @@ group so Prettier / markdownlint SoT cannot diverge from the lockfile. `NPM_VERS
 **Symlink:** `.devcontainer/.env` → `versions.env` is Compose SoT only. It is listed in Renovate `ignorePaths` so the
 regex managers do not scan the same pin file twice via the symlink (duplicate Detection / double apply).
 
+**`v`-prefixed pins:** For `NODE_VERSION` / GitHub-release CLIs, capture the version **without** the leading `v`
+(`NODE_VERSION=v(?<currentValue>…)` + `autoReplaceStringTemplate` `…=v{{newValue}}`). Capturing `v1.2.3` while
+`extractVersionTemplate` strips `v` for lookup makes `newValue` (`1.2.3`) disagree with the re-extracted `currentValue`
+(`v1.2.3`) → silent `Value is not updated` / `Error updating branch: update failure` (#80).
+
 Other managers (Actions, Dockerfiles outside those files) keep their own groups. Product Renovate still has those synced
 files **disabled** (bump in Devinfra, then sync).
 

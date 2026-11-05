@@ -5,6 +5,15 @@ name: Renovate
 
 on:
   workflow_dispatch:
+    inputs:
+      log_level:
+        description: "Renovate LOG_LEVEL (info or debug)"
+        required: false
+        default: "info"
+        type: choice
+        options:
+          - info
+          - debug
   schedule:
     - cron: "0 3 * * *"
   push:
@@ -36,4 +45,4 @@ jobs:
           # Scope the bot token to this step only (not checkout).
           GITHUB_COM_TOKEN: ${{ secrets.DEVINFRA_BOT_TOKEN }}
           RENOVATE_REPOSITORIES: ${{ github.repository }}
-          LOG_LEVEL: info
+          LOG_LEVEL: ${{ github.event.inputs.log_level || 'info' }}
