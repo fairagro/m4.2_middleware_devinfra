@@ -62,13 +62,16 @@ The repository MUST provide `.github/workflows/renovate.yml` that runs self-host
 official Renovate GitHub Action (pinned) and MUST pass a repository Actions secret named `DEVINFRA_BOT_TOKEN` (not
 `GITHUB_TOKEN` alone as the sole bot credential; the same secret is used by product-repo sync). The job MUST target the
 current repository (not a multi-repo bot list in this change). The repository MUST NOT introduce `reusable-renovate.yml`
-in this change.
+in this change. The workflow MUST NOT pass `configurationFile: renovate.json` (or any repository config filename) to the
+Action: that path becomes global `RENOVATE_CONFIG_FILE` and merges with the cloned repo’s `renovate.json`, duplicating
+mergeable `customManagers` and causing `Cannot find replaceString` / branch update failures.
 
 #### Scenario: Maintainer opens the Renovate workflow
 
 - **WHEN** a maintainer opens `.github/workflows/renovate.yml`
 - **THEN** they find schedule, workflow_dispatch, and config-path push triggers
 - **AND** the Renovate Action receives `secrets.DEVINFRA_BOT_TOKEN`
+- **AND** the Action does not set `configurationFile` to a repository Renovate config filename
 - **AND** there is no `reusable-renovate.yml` required to run Renovate in this repo
 
 ### Requirement: Renovate documentation covers token, dry-run, and Dependabot migration
