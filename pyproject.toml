@@ -12,7 +12,6 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pre-commit>=4.0.0",
-  "ggshield>=1.43.0",
   "ruff>=0.15.0",
   "pytest>=8.0",
   "vulture>=2.14",
