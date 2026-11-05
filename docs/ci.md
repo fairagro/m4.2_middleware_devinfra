@@ -458,8 +458,10 @@ invoke (**file wins** over a stale Compose `env_file` snapshot) unless `QUALITY_
 [quality.md](quality.md#lockfile-cves-vs-trivy-vs-malware-check).
 
 **gitleaks (secret scan):** when `skip` is false, the job installs the caller’s `GITLEAKS_VERSION` via
-`scripts/install-gitleaks.sh` and runs `gitleaks detect` (fail closed; honors synced `.gitleaksignore`). No GitGuardian
-API key. Same tool as the commit-stage `gitleaks protect --staged` hook — see [quality.md](quality.md).
+`scripts/install-gitleaks.sh` and runs `gitleaks detect --source . --no-git --verbose --redact` (fail closed; honors
+synced `.gitleaksignore`). `--no-git` scans the PR tip tree (avoids empty scans on shallow merge checkouts); `--redact`
+keeps secret values out of Actions logs. No GitGuardian API key. Same tool as the commit-stage
+`gitleaks protect --staged` hook — see [quality.md](quality.md).
 
 **pytest vs pre-push:** this workflow runs `uv run pytest "${PKG}" …` **without** the synced pre-push marker filter
 (`-m "not system_external and not system_local"`). CI stays the broader gate; local push excludes `system_*` by default

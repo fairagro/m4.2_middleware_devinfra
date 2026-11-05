@@ -133,9 +133,11 @@ product `pyproject.toml`. Gates must not fail with `Failed to spawn` when a prod
 product-owned (`uv run pytest`).
 
 **gitleaks (secret scan):** commit-stage hook (`gitleaks protect --staged`) and reusable code-quality
-(`gitleaks detect`) use the binary pinned as `GITLEAKS_VERSION` in `versions.env` (Dev Container image +
-`scripts/install-gitleaks.sh` in CI). No GitGuardian / SaaS API key. False positives: add a documented entry to synced
-[`.gitleaksignore`](../.gitleaksignore) (prefer fixing real leaks). Escape hatch for local hooks only: `SKIP=gitleaks`.
+(`gitleaks detect --source . --no-git --verbose --redact`) use the binary pinned as `GITLEAKS_VERSION` in `versions.env`
+(Dev Container image + `scripts/install-gitleaks.sh` in CI). CI uses `--no-git` so the PR tip tree is scanned even on
+shallow/merge checkouts, and `--redact` so findings do not print secret values into Actions logs. No GitGuardian / SaaS
+API key. False positives: add a documented entry to synced [`.gitleaksignore`](../.gitleaksignore) (prefer fixing real
+leaks). Escape hatch for local hooks only: `SKIP=gitleaks`.
 
 **Vulture (named IDE exception):** unused-definition gate for `middleware/` (or reusable `python_package_root`). Hooks
 and CI both run `bash scripts/run-quality-cli.sh vulture <root> --min-confidence 100` with **no** synced whitelist file.

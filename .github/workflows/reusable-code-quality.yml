@@ -230,8 +230,9 @@ jobs:
         if: ${{ !inputs.skip }}
         run: |
           # Fail closed on findings; honor repo `.gitleaksignore` when present (docs/quality.md).
-          # Filesystem detect on the PR tip checkout (no SaaS API key).
-          gitleaks detect --source . --verbose
+          # --no-git: scan the checked-out tree (default shallow PR checkout / merge commit has no
+          # useful git log -p). --redact: never print secret values into Actions logs.
+          gitleaks detect --source . --no-git --verbose --redact
 
       - name: Run tests
         if: ${{ !inputs.skip }}
