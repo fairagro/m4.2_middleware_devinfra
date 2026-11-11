@@ -253,6 +253,10 @@ jobs:
       # values_file: path/to/ci-values.yaml
 ```
 
+Update `chart_dir` / the `helm` path filter to `charts/` **only after** the product renames its chart root (e.g.
+[api#653](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/653)); until then keep the existing
+`helmchart/` or `helm/` paths so CI does not fail closed on a missing directory.
+
 `detect-changes` / `skip` stay a **caller** responsibility. Suggested `code` paths above are a fleet default — extend
 for product-only trees (e.g. `stubs/`, `dev_environment/**`). Chart-only PRs should skip Docker build/check via `code`
 while still running `helm-lint` when the `helm` filter matches. Fleet chart root is **`charts/`** (see #349); do not
@@ -425,6 +429,8 @@ jobs:
       ghcr_namespace: fairagro
     secrets: inherit
 ```
+
+Same rename caveat as Feature PR: keep legacy `chart_dir` until the product chart root is actually `charts/`.
 
 Order: publish a **Docker** release (so a `*-docker-v*` tag exists) before Helm final/pre-release. Helm sets chart
 `appVersion` from the latest Docker tag.
