@@ -71,14 +71,15 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
-install/ignore, **actionlint install**, and the Node markdown / commitlint manifests used by those hooks). The
-`foundation` profile MUST also allow Renovate config/workflow (`renovate.json`, `.github/workflows/renovate.yml`),
-Renovate docs (`docs/renovate.md`), and the pin file `versions.env`. The `foundation` profile MUST NOT include
-`.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as `infra-consumer`),
-`.python-version`, `.devcontainer/**`, the **python-product** `.pre-commit-config.yaml`, or other python-product-only
-quality/CI surfaces. Documentation (`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only
-profiles as wired), including Renovate + `versions.env`, that unused pins do not install tools by themselves, and that
-product `.devcontainer/**` is never part of the Infra sync set (Infra owns its GitOps image until adoption).
+install/ignore, **actionlint install**, **kubeconform install and runner**, and the Node markdown / commitlint manifests
+used by those hooks). The `foundation` profile MUST also allow Renovate config/workflow (`renovate.json`,
+`.github/workflows/renovate.yml`), Renovate docs (`docs/renovate.md`), and the pin file `versions.env`. The `foundation`
+profile MUST NOT include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
+`infra-consumer`), `.python-version`, `.devcontainer/**`, the **python-product** `.pre-commit-config.yaml`, or other
+python-product-only quality/CI surfaces. Documentation (`docs/sync.md`) MUST state that Infra receives foundation (+
+`gitops` / Infra-only profiles as wired), including Renovate + `versions.env`, that unused pins do not install tools by
+themselves, and that product `.devcontainer/**` is never part of the Infra sync set (Infra owns its GitOps image until
+adoption).
 
 #### Scenario: Foundation includes skills and m42-ai plumbing
 
@@ -104,6 +105,12 @@ product `.devcontainer/**` is never part of the Infra sync set (Infra owns its G
 - **WHEN** sync or a test resolves the effective allow for the `infrastructure` target
 - **THEN** `renovate.json`, `.github/workflows/renovate.yml`, and `versions.env` are included
 - **AND** `.python-version` and `.devcontainer/**` paths are not included
+
+#### Scenario: Foundation allowlists kubeconform install and runner
+
+- **WHEN** a contributor inspects the `foundation` profile allow list for quality helpers
+- **THEN** `scripts/install-kubeconform.sh` and `scripts/run-kubeconform.sh` are listed
+- **AND** product helm-lint hooks are not required to call that runner
 
 ### Requirement: Dev Container paths stay on python-product only
 

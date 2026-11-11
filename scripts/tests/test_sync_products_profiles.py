@@ -48,6 +48,8 @@ def test_foundation_includes_renovate_and_versions_env(sync) -> None:
     assert "scripts/bin/m42-ai" in foundation
     assert "scripts/install-gitleaks.sh" in foundation
     assert "scripts/install-actionlint.sh" in foundation
+    assert "scripts/install-kubeconform.sh" in foundation
+    assert "scripts/run-kubeconform.sh" in foundation
     assert ".pre-commit-config.infrastructure.yaml" not in foundation
     assert "renovate.json" in foundation
     assert ".github/workflows/renovate.yml" in foundation
