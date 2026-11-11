@@ -44,9 +44,9 @@ YAML. Sync of this allowlist MUST NOT overwrite product-local overlay files.
 
 #### Scenario: Renovate artifacts are on the allowlist
 
-- **WHEN** a contributor checks whether Renovate config or workflow may be hand-edited in a product repo after sync
-- **THEN** `renovate.json` and `.github/workflows/renovate.yml` appear under a profile used by python-product targets
-  (not required on foundation-only Infra)
+- **WHEN** a contributor checks whether Renovate config or workflow may be hand-edited in a consumer after sync
+- **THEN** `renovate.json` and `.github/workflows/renovate.yml` appear under the `foundation` profile (reachable by
+  python-product targets and by `infrastructure`)
 - **AND** they learn shared Renovate changes land in Devinfra first
 
 #### Scenario: CodeQL workflow is on the allowlist
@@ -71,20 +71,23 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
-install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST NOT
-include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
-`infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
+install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST also
+allow Renovate config/workflow (`renovate.json`, `.github/workflows/renovate.yml`), Renovate docs (`docs/renovate.md`),
+and the pin file `versions.env`. The `foundation` profile MUST NOT include `.pre-commit-config.infrastructure.yaml`
+(that path MUST live on an Infra-only profile such as `infra-consumer`), `.python-version`, `.devcontainer/**`, the
 **python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
-(`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired), that Renovate on
-Infra is a later slice, and that product `.devcontainer/**` is never part of the Infra sync set (Infra owns its GitOps
-image until adoption).
+(`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired), including
+Renovate + `versions.env`, that unused pins do not install tools by themselves, and that product `.devcontainer/**` is
+never part of the Infra sync set (Infra owns its GitOps image until adoption).
 
 #### Scenario: Foundation includes skills and m42-ai plumbing
 
 - **WHEN** a contributor inspects the `foundation` profile allow list
 - **THEN** agent skills (including `uv`), matching commands/prompts, skill docs, `scripts/ai/**`, and `m42-ai` / token
   helpers are listed
-- **AND** Renovate / `versions.env` / Dev Container / python-product `.pre-commit-config.yaml` are not listed under
+- **AND** `renovate.json`, `.github/workflows/renovate.yml`, `docs/renovate.md`, and `versions.env` are listed under
+  `foundation`
+- **AND** `.python-version`, Dev Container paths, and python-product `.pre-commit-config.yaml` are not listed under
   `foundation`
 
 #### Scenario: Infra target is foundation-only
@@ -95,6 +98,12 @@ image until adoption).
 - **AND** python-product repos list `foundation`, `python-product`, and `gitops` (or equivalent union that preserves
   today’s product hook set including helm-lint)
 - **AND** no `.devcontainer/**` path appears on any profile used by the `infrastructure` target
+
+#### Scenario: Infra effective allow includes Renovate and versions.env
+
+- **WHEN** sync or a test resolves the effective allow for the `infrastructure` target
+- **THEN** `renovate.json`, `.github/workflows/renovate.yml`, and `versions.env` are included
+- **AND** `.python-version` and `.devcontainer/**` paths are not included
 
 ### Requirement: Dev Container paths stay on python-product only
 
