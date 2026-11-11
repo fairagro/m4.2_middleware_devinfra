@@ -6,9 +6,10 @@
 # use absolute Devinfra URLs (blob/main) or plain non-linked names — see docs/sync.md.
 #
 # Profiles (#350 / #351): effective allow = union of the target's profiles.
-# foundation = skills/AI plumbing + Infra pre-commit config + shared hook helpers
+# foundation = skills/AI plumbing + shared hook helpers (not Infra-only pre-commit root)
 # python-product = Python quality / Dev Container / product pre-commit root
 # gitops = Helm lint runner (shared by product + Infra configs)
+# infra-consumer = Infra-only paths (e.g. `.pre-commit-config.infrastructure.yaml`)
 
 profiles:
   foundation:
@@ -45,7 +46,6 @@ profiles:
       - scripts/bin/gh
       - scripts/bin/git
       - scripts/bin/m42-ai
-      - .pre-commit-config.infrastructure.yaml
       - scripts/commit-path-check.sh
       - scripts/install-gitleaks.sh
       - .gitleaksignore
@@ -114,6 +114,10 @@ profiles:
     allow:
       - scripts/run-helm-lint.sh
 
+  infra-consumer:
+    allow:
+      - .pre-commit-config.infrastructure.yaml
+
 targets:
   api:
     repo: fairagro/m4.2_advanced_middleware_api
@@ -126,7 +130,7 @@ targets:
     profiles: [foundation, python-product, gitops]
   infrastructure:
     repo: fairagro/m4.2_infrastructure
-    profiles: [foundation, gitops]
+    profiles: [foundation, gitops, infra-consumer]
 
 # Never copy — even if mis-listed under allow.
 exclude:

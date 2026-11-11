@@ -118,7 +118,7 @@ Helm excludes or the locked hook map.
 - **THEN** they still use the project environment (`uv run pytest` or equivalent)
 - **AND** pytest is not required to be listed in the fleet quality-tools requirements file
 
-#### Scenario: Infra composed config omits python-product hooks
+#### Scenario: Infra config omits python-product hooks
 
 - **WHEN** a contributor inspects `.pre-commit-config.infrastructure.yaml`
 - **THEN** the file has no `middleware/`-scoped ruff/mypy/bandit/pylint/vulture/import-linter hooks and no pre-push

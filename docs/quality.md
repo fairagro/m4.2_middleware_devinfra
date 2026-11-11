@@ -252,10 +252,10 @@ skills/commands and wipe the skill patch — re-apply or upstream after update.
 
 Devinfra keeps **two** hand-maintained pre-commit roots (no fragment merge script):
 
-| Consumer                        | File                                                                                  | Hook set                                                |
-| ------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Devinfra + python-product repos | [`.pre-commit-config.yaml`](../.pre-commit-config.yaml)                               | foundation + python-product + gitops (full product)     |
-| `m4.2_infrastructure`           | [`.pre-commit-config.infrastructure.yaml`](../.pre-commit-config.infrastructure.yaml) | foundation + gitops only — copy/symlink to root locally |
+| Consumer                        | File                                                                                  | Hook set                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Devinfra + python-product repos | [`.pre-commit-config.yaml`](../.pre-commit-config.yaml)                               | foundation + python-product + gitops (full product)                                          |
+| `m4.2_infrastructure`           | [`.pre-commit-config.infrastructure.yaml`](../.pre-commit-config.infrastructure.yaml) | foundation + gitops hooks; sync profile `infra-consumer` only — copy/symlink to root locally |
 
 Shared foundation hooks (hygiene, gitleaks, markdown, commitlint, commit-path-check) and gitops `helm-lint` are
 **duplicated** across both files when they apply — edit both when changing shared policy. Products MUST adopt the synced

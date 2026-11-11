@@ -18,10 +18,10 @@ follow-up ensure while it is foundation-only.
 `gitops`), **`targets`** (repo + profile list), and the hard denylist (`exclude` / `overlays`). There is no top-level
 flat `allow`. The workflow does **not** maintain a second path list (no `paths:` filter).
 
-**Foundation / Infra:** skills, commands, prompts, skill docs, `scripts/ai/**`, `m42-ai`, token helpers, Infra
-pre-commit root (`.pre-commit-config.infrastructure.yaml`) + helpers; with **`gitops`**, also `scripts/run-helm-lint.sh`
-— **not** Renovate/`versions.env`, `.devcontainer/*`, or the python-product `.pre-commit-config.yaml` (Renovate on Infra
-is #354).
+**Foundation / Infra:** skills, commands, prompts, skill docs, `scripts/ai/**`, `m42-ai`, token helpers + hook helpers;
+Infra pre-commit root via **`infra-consumer`** (`.pre-commit-config.infrastructure.yaml`); with **`gitops`**, also
+`scripts/run-helm-lint.sh` — **not** Renovate/`versions.env`, `.devcontainer/*`, or the python-product
+`.pre-commit-config.yaml` (Renovate on Infra is #354).
 
 **Consumer-safe links (synced Markdown):** after sync, relative links only resolve for paths that also ship in the
 product checkout. Synced docs MUST NOT use in-repo relative links (`../…`) to targets outside `allow` (minus `exclude`).
@@ -73,7 +73,7 @@ the YAML, the YAML wins.
 | Quality / CI / Dev Container docs | `python-product` | `docs/quality.md`, `docs/devcontainer.md`, `docs/ci.md`, `docs/renovate.md`, …                                                                                                                                                                                                                                                                               |
 | Shell wrappers `k`/`d`            | `python-product` | `scripts/bin/{k,d}`                                                                                                                                                                                                                                                                                                                                          |
 | Quality scripts / hooks           | `python-product` | `scripts/quality-{check,fix}.sh`, `scripts/setup-git-hooks.sh`, `scripts/git-hooks/**`, `scripts/update-dockerfile-pins.sh`, `scripts/prune-merged-branches.sh`, `scripts/devcontainer-post-create.sh`, `scripts/import-public-gpg-keys.sh`, `scripts/detect-version-bump.sh`, `scripts/generate-release-changelog.sh`, `scripts/install-{git-cliff,cst}.sh` |
-| Pre-commit configs                | split            | product `.pre-commit-config.yaml` (`python-product`); Infra `.pre-commit-config.infrastructure.yaml` (`foundation`); helpers on `foundation` — see `docs/quality.md`                                                                                                                                                                                         |
+| Pre-commit configs                | split            | product `.pre-commit-config.yaml` (`python-product`); Infra `.pre-commit-config.infrastructure.yaml` (`infra-consumer` only); helpers on `foundation` — see `docs/quality.md`                                                                                                                                                                                |
 | Python quality fragments          | `python-product` | `ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`, `pyrightconfig.json`, product `.pre-commit-config.yaml`, `scripts/run-import-linter.sh`, `scripts/run-quality-cli.sh`, `scripts/load-quality-path-env.sh`, `scripts/quality-tools-pins.txt`, `scripts/run-uv-audit.sh`                                                                                      |
 | Helm lint runner                  | `gitops`         | `scripts/run-helm-lint.sh`                                                                                                                                                                                                                                                                                                                                   |
 | Markdown / commitlint baseline    | `foundation`     | `.markdownlint*`, `.prettier*`, `package.json`, `package-lock.json`, `commitlint.config.cjs` (IDE: `.vscode/*`, `.cursorrules`, `cliff.toml` stay `python-product`)                                                                                                                                                                                          |
@@ -106,7 +106,7 @@ first-party packages ([`docs/quality.md`](quality.md)).
 | `api`            | `fairagro/m4.2_advanced_middleware_api` | `foundation` + `python-product` + `gitops` |
 | `sql_to_arc`     | `fairagro/m4.2_sql_to_arc`              | `foundation` + `python-product` + `gitops` |
 | `harvester`      | `fairagro/m4.2_middleware_harvester`    | `foundation` + `python-product` + `gitops` |
-| `infrastructure` | `fairagro/m4.2_infrastructure`          | `foundation` + `gitops`                    |
+| `infrastructure` | `fairagro/m4.2_infrastructure`          | `foundation` + `gitops` + `infra-consumer` |
 
 Push runs **skip** `infrastructure` by default until bot access / adoption (#354). Dispatch can unskip for dry-run or
 live once the token covers Infra.

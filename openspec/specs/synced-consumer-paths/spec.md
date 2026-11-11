@@ -70,12 +70,13 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `.github/copilot-instructions.md`, the skill-facing docs under `docs/` for those skills, `scripts/ai/**`,
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
-`foundation` MUST also allow `.pre-commit-config.infrastructure.yaml` and the helper files that Infra hooks need (at
-least commit-path-check, gitleaks install/ignore, and the Node markdown / commitlint manifests used by those hooks). The
-`foundation` profile MUST NOT include Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`,
-the **python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
-(`docs/sync.md`) MUST state that Infra receives foundation (+ optional `gitops`) and that Renovate on Infra is a later
-slice.
+`foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
+install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST NOT
+include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
+`infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
+**python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
+(`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired) and that Renovate
+on Infra is a later slice.
 
 #### Scenario: Foundation includes skills and m42-ai plumbing
 
@@ -88,7 +89,8 @@ slice.
 #### Scenario: Infra target is foundation-only
 
 - **WHEN** a contributor inspects the `infrastructure` target in `docs/synced-paths.yaml`
-- **THEN** its `profiles` list is `foundation` or `foundation` + `gitops` (never `python-product`)
+- **THEN** its `profiles` list includes `foundation` and MUST NOT include `python-product` (typically `foundation` +
+  `gitops` + an Infra-only profile for `.pre-commit-config.infrastructure.yaml`)
 - **AND** python-product repos list `foundation`, `python-product`, and `gitops` (or equivalent union that preserves
   today’s product hook set including helm-lint)
 
@@ -218,13 +220,13 @@ already covered by existing `.vscode/` / `.github/copilot-instructions.md` allow
 ### Requirement: Pre-commit roots sync by consumer matrix
 
 `docs/synced-paths.yaml` MUST allowlist `.pre-commit-config.yaml` under a profile used by python-product targets and
-`.pre-commit-config.infrastructure.yaml` under `foundation` (or equivalent). The helm lint runner MUST be allowlisted
-under `gitops` (or another profile included by both product and Infra targets). Live docs MUST NOT use obsolete lettered
-“wave” adopt labels for these paths.
+`.pre-commit-config.infrastructure.yaml` under an Infra-only profile (e.g. `infra-consumer`) that product targets MUST
+NOT select. The helm lint runner MUST be allowlisted under `gitops` (or another profile included by both product and
+Infra targets). Live docs MUST NOT use obsolete lettered “wave” adopt labels for these paths.
 
 #### Scenario: Pre-commit roots appear on the right profiles
 
 - **WHEN** a contributor inspects allow entries for pre-commit configs
 - **THEN** the product root is not on Infra’s effective allow
-- **AND** the Infra root is on foundation (reachable by the infrastructure target)
+- **AND** the Infra root is not on the product-union effective allow (only on the infrastructure target)
 - **AND** `scripts/run-helm-lint.sh` is available to both product and Infra targets via their profile unions
