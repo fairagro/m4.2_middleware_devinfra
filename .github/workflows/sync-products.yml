@@ -25,6 +25,10 @@ on:
         description: "Skip fairagro/m4.2_middleware_harvester"
         type: boolean
         default: false
+      skip_infrastructure:
+        description: "Skip fairagro/m4.2_infrastructure (foundation-only; default skip until bot access / adoption)"
+        type: boolean
+        default: true
       followup_id:
         description: "Optional SYNC-FOLLOWUP stable id (opens product issues; empty = none)"
         type: string
@@ -125,6 +129,10 @@ jobs:
               args+=(--orphan-base "${orphan_base}")
             fi
           fi
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Infra foundation sync is opt-in until bot token / adoption (#350 / #354).
+            args+=(--skip-infrastructure)
+          fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ inputs.dry_run }}" == "true" ]]; then
               args+=(--dry-run)
@@ -137,6 +145,9 @@ jobs:
             fi
             if [[ "${{ inputs.skip_harvester }}" == "true" ]]; then
               args+=(--skip-harvester)
+            fi
+            if [[ "${{ inputs.skip_infrastructure }}" == "true" ]]; then
+              args+=(--skip-infrastructure)
             fi
           fi
           uv run python scripts/sync-products.py "${args[@]}"

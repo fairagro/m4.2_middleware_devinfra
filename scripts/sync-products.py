@@ -23,16 +23,28 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ALLOWLIST_PATH = REPO_ROOT / "docs" / "synced-paths.yaml"
 
-TARGETS: dict[str, str] = {
+# Fallback when an older synced-paths.yaml has flat `allow` and no `targets`.
+_LEGACY_TARGET_REPOS: dict[str, str] = {
     "api": "fairagro/m4.2_advanced_middleware_api",
     "sql_to_arc": "fairagro/m4.2_sql_to_arc",
     "harvester": "fairagro/m4.2_middleware_harvester",
 }
+_LEGACY_PROFILE = "_legacy"
+_PRODUCT_UNION_PROFILES = ("foundation", "python-product")
 
 # New branches: chore/devinfra-sync-<shortsha>. Legacy rolling name also matches.
 SYNC_BRANCH_PREFIX = "chore/devinfra-sync"
 SHORT_SHA_LEN = 7
 DRY_RUN_PREVIEW_LIMIT = 20
+
+
+@dataclass(frozen=True)
+class SyncConfig:
+    """Parsed ``docs/synced-paths.yaml`` (profiles + targets, or legacy flat allow)."""
+
+    excludes: tuple[str, ...]
+    profiles: dict[str, tuple[str, ...]]
+    targets: dict[str, tuple[str, tuple[str, ...]]]  # key -> (repo, profile names)
 
 
 def sync_branch_name(source_sha: str) -> str:
@@ -48,19 +60,8 @@ def is_sync_head(head_ref: str) -> bool:
     return head_ref == SYNC_BRANCH_PREFIX or head_ref.startswith(f"{SYNC_BRANCH_PREFIX}-")
 
 
-def load_allow_exclude_text(text: str, *, source: str) -> tuple[list[str], list[str]]:
-    """Load allow/exclude from YAML text (same rules as ``load_allow_exclude``)."""
-    loaded = yaml.safe_load(text)
-    if not isinstance(loaded, dict):
-        raise SystemExit(f"{source}: expected a YAML mapping at the root")
-    allow = loaded.get("allow") or []
-    exclude = loaded.get("exclude") or []
-    overlays = loaded.get("overlays") or []
-    if not isinstance(allow, list) or not isinstance(exclude, list):
-        raise SystemExit(f"{source}: `allow` and `exclude` must be YAML lists")
-    if not isinstance(overlays, list):
-        raise SystemExit(f"{source}: `overlays` must be a YAML list when present")
-    allow_s = [str(x).strip() for x in allow if str(x).strip()]
+def _merge_exclude_overlays(exclude: list[str], overlays: list[str]) -> list[str]:
+    """Merge overlay paths into the exclude denylist (order-preserving)."""
     exclude_s = [str(x).strip() for x in exclude if str(x).strip()]
     seen = set(exclude_s)
     for raw in overlays:
@@ -68,17 +69,124 @@ def load_allow_exclude_text(text: str, *, source: str) -> tuple[list[str], list[
         if item and item not in seen:
             exclude_s.append(item)
             seen.add(item)
-    if not allow_s:
-        raise SystemExit(f"{source}: `allow` list is empty")
-    return allow_s, exclude_s
+    return exclude_s
+
+
+def effective_allow(config: SyncConfig, profile_names: tuple[str, ...]) -> list[str]:
+    """Union profile allow lists in order; dedupe while preserving first occurrence."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for name in profile_names:
+        if name not in config.profiles:
+            raise SystemExit(f"unknown profile {name!r}; known={sorted(config.profiles)}")
+        for pattern in config.profiles[name]:
+            if pattern not in seen:
+                out.append(pattern)
+                seen.add(pattern)
+    if not out:
+        raise SystemExit(f"effective allow empty for profiles {profile_names!r}")
+    return out
+
+
+def product_union_profiles(config: SyncConfig) -> tuple[str, ...]:
+    """Profiles used for the push gate / default ``--list-files`` (product coverage)."""
+    if _LEGACY_PROFILE in config.profiles and set(config.profiles) == {_LEGACY_PROFILE}:
+        return (_LEGACY_PROFILE,)
+    missing = [p for p in _PRODUCT_UNION_PROFILES if p not in config.profiles]
+    if missing:
+        raise SystemExit(f"synced-paths.yaml missing product-union profiles: {missing}")
+    return _PRODUCT_UNION_PROFILES
+
+
+def _parse_excludes(loaded: dict, *, source: str) -> tuple[str, ...]:
+    """Merge root ``exclude`` + ``overlays`` into the effective denylist."""
+    exclude = loaded.get("exclude") or []
+    overlays = loaded.get("overlays") or []
+    if not isinstance(exclude, list) or not isinstance(overlays, list):
+        raise SystemExit(f"{source}: `exclude` and `overlays` must be YAML lists when present")
+    return tuple(_merge_exclude_overlays(exclude, overlays))
+
+
+def _parse_profiles(profiles_raw: object, *, source: str) -> dict[str, tuple[str, ...]]:
+    """Parse ``profiles.<name>.allow`` mappings."""
+    if not isinstance(profiles_raw, dict) or not profiles_raw:
+        raise SystemExit(f"{source}: `profiles` must be a non-empty mapping")
+    profiles: dict[str, tuple[str, ...]] = {}
+    for name, body in profiles_raw.items():
+        if not isinstance(body, dict):
+            raise SystemExit(f"{source}: profiles.{name} must be a mapping with `allow`")
+        allow = body.get("allow") or []
+        if not isinstance(allow, list) or not allow:
+            raise SystemExit(f"{source}: profiles.{name}.allow must be a non-empty list")
+        profiles[str(name)] = tuple(str(x).strip() for x in allow if str(x).strip())
+    return profiles
+
+
+def _parse_targets(
+    targets_raw: object,
+    profiles: dict[str, tuple[str, ...]],
+    *,
+    source: str,
+) -> dict[str, tuple[str, tuple[str, ...]]]:
+    """Parse ``targets.<key>.{repo,profiles}`` against known profile names."""
+    if not isinstance(targets_raw, dict) or not targets_raw:
+        raise SystemExit(f"{source}: `targets` must be a non-empty mapping when using profiles")
+    targets: dict[str, tuple[str, tuple[str, ...]]] = {}
+    for key, body in targets_raw.items():
+        if not isinstance(body, dict):
+            raise SystemExit(f"{source}: targets.{key} must be a mapping")
+        repo = str(body.get("repo") or "").strip()
+        plist = body.get("profiles") or []
+        if not repo or not isinstance(plist, list) or not plist:
+            raise SystemExit(f"{source}: targets.{key} needs non-empty `repo` and `profiles`")
+        names = tuple(str(x).strip() for x in plist if str(x).strip())
+        unknown = [n for n in names if n not in profiles]
+        if unknown:
+            raise SystemExit(f"{source}: targets.{key} references unknown profile {unknown[0]!r}")
+        targets[str(key)] = (repo, names)
+    return targets
+
+
+def _legacy_sync_config(flat_allow: object, excludes: tuple[str, ...], *, source: str) -> SyncConfig:
+    """Build SyncConfig from historical flat ``allow`` (orphan/gate comparison)."""
+    if not isinstance(flat_allow, list) or not flat_allow:
+        raise SystemExit(f"{source}: need `profiles`+`targets` or legacy non-empty `allow`")
+    allow_s = tuple(str(x).strip() for x in flat_allow if str(x).strip())
+    profiles = {_LEGACY_PROFILE: allow_s}
+    targets = {key: (repo, (_LEGACY_PROFILE,)) for key, repo in _LEGACY_TARGET_REPOS.items()}
+    return SyncConfig(excludes=excludes, profiles=profiles, targets=targets)
+
+
+def load_sync_config_text(text: str, *, source: str) -> SyncConfig:
+    """Parse profile-based or legacy flat allowlist YAML."""
+    loaded = yaml.safe_load(text)
+    if not isinstance(loaded, dict):
+        raise SystemExit(f"{source}: expected a YAML mapping at the root")
+    excludes = _parse_excludes(loaded, source=source)
+    profiles_raw = loaded.get("profiles")
+    flat_allow = loaded.get("allow")
+    if profiles_raw is None:
+        return _legacy_sync_config(flat_allow, excludes, source=source)
+    if flat_allow is not None:
+        raise SystemExit(f"{source}: do not set top-level `allow` together with `profiles`")
+    profiles = _parse_profiles(profiles_raw, source=source)
+    targets = _parse_targets(loaded.get("targets"), profiles, source=source)
+    return SyncConfig(excludes=excludes, profiles=profiles, targets=targets)
+
+
+def load_sync_config(path: Path) -> SyncConfig:
+    """Load sync SoT from ``path``."""
+    return load_sync_config_text(path.read_text(encoding="utf-8"), source=str(path))
+
+
+def load_allow_exclude_text(text: str, *, source: str) -> tuple[list[str], list[str]]:
+    """Load product-union allow patterns and effective denylist (gate / list-files default)."""
+    config = load_sync_config_text(text, source=source)
+    return effective_allow(config, product_union_profiles(config)), list(config.excludes)
 
 
 def load_allow_exclude(path: Path) -> tuple[list[str], list[str]]:
-    """Load `allow` and effective denylist from the YAML SoT.
-
-    Product-local `overlays` are never overwritten: they are merged into the
-    denylist even if a maintainer forgets to duplicate them under `exclude`.
-    """
+    """Load product-union `allow` patterns and effective denylist from the YAML SoT."""
     return load_allow_exclude_text(path.read_text(encoding="utf-8"), source=str(path))
 
 
@@ -199,15 +307,33 @@ def git_ls_tree_files(ref: str, *, cwd: Path) -> list[str]:
     return [line for line in raw.splitlines() if line.strip()]
 
 
-def resolve_files_at_ref(ref: str, *, cwd: Path = REPO_ROOT) -> list[Path]:
-    """Resolve allowlist file set as of git ``ref`` (YAML + tree at that ref)."""
+def resolve_files_at_ref(
+    ref: str,
+    *,
+    cwd: Path = REPO_ROOT,
+    target: str | None = None,
+    profile_names: tuple[str, ...] | None = None,
+) -> list[Path]:
+    """Resolve allowlist file set as of git ``ref`` (YAML + tree at that ref).
+
+    Default (no ``target`` / ``profile_names``): product-union profiles for the push gate.
+    """
     try:
         yaml_text = git_show_text(ref, "docs/synced-paths.yaml", cwd=cwd)
     except subprocess.CalledProcessError as exc:
         raise SystemExit(f"cannot read docs/synced-paths.yaml at {ref}: {exc}") from exc
-    patterns, excludes = load_allow_exclude_text(yaml_text, source=f"{ref}:docs/synced-paths.yaml")
+    config = load_sync_config_text(yaml_text, source=f"{ref}:docs/synced-paths.yaml")
+    if profile_names is not None:
+        names = profile_names
+    elif target is not None:
+        if target not in config.targets:
+            raise SystemExit(f"unknown sync target {target!r} at {ref}")
+        names = config.targets[target][1]
+    else:
+        names = product_union_profiles(config)
+    patterns = effective_allow(config, names)
     tree = git_ls_tree_files(ref, cwd=cwd)
-    return filter_tree_paths(tree, patterns, tuple(excludes))
+    return filter_tree_paths(tree, patterns, config.excludes)
 
 
 def orphan_paths(base_files: list[Path], head_files: list[Path]) -> list[Path]:
@@ -524,9 +650,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skip-sql-to-arc", action="store_true")
     parser.add_argument("--skip-harvester", action="store_true")
     parser.add_argument(
+        "--skip-infrastructure",
+        action="store_true",
+        help="Skip fairagro/m4.2_infrastructure (foundation-only target)",
+    )
+    parser.add_argument(
         "--list-files",
         action="store_true",
         help="Print resolved allowlist files and exit",
+    )
+    parser.add_argument(
+        "--target",
+        default="",
+        help="With --list-files / sync orphans: resolve for this target key (default: product union)",
     )
     parser.add_argument(
         "--ref",
@@ -541,52 +677,60 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     source_sha = git_out(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT)
+    list_target = (args.target or "").strip() or None
 
     if args.list_files:
         # Machine-readable only (workflow gate uses exact-line match).
         ref = (args.ref or "HEAD").strip() or "HEAD"
-        if ref == "HEAD":
+        if ref == "HEAD" and list_target is None:
             patterns, excludes = load_allow_exclude(ALLOWLIST_PATH)
             files = resolve_files(patterns, REPO_ROOT, tuple(excludes))
+        elif ref == "HEAD":
+            config = load_sync_config(ALLOWLIST_PATH)
+            if list_target not in config.targets:
+                raise SystemExit(f"unknown --target {list_target!r}")
+            patterns = effective_allow(config, config.targets[list_target][1])
+            files = resolve_files(patterns, REPO_ROOT, config.excludes)
         else:
-            files = resolve_files_at_ref(ref, cwd=REPO_ROOT)
+            files = resolve_files_at_ref(ref, cwd=REPO_ROOT, target=list_target)
         for rel in files:
             print(rel.as_posix())
         return 0
 
-    patterns, excludes = load_allow_exclude(ALLOWLIST_PATH)
-    excludes_t = tuple(excludes)
-    files = resolve_files(patterns, REPO_ROOT, excludes_t)
-    if not files:
-        raise SystemExit("allowlist resolved to zero files — check docs/synced-paths.yaml")
-
-    orphans: list[Path] = []
+    config = load_sync_config(ALLOWLIST_PATH)
     orphan_base = (args.orphan_base or "").strip()
-    if orphan_base:
-        base_files = resolve_files_at_ref(orphan_base, cwd=REPO_ROOT)
-        head_files = resolve_files_at_ref("HEAD", cwd=REPO_ROOT)
-        orphans = orphan_paths(base_files, head_files)
-        print(
-            f"orphan-base {orphan_base}: {len(base_files)} → HEAD {len(head_files)}; orphans to remove: {len(orphans)}",
-            flush=True,
-        )
-
-    print(
-        f"allowlist patterns: {len(patterns)}; exclude: {len(excludes_t)}; files: {len(files)}",
-        flush=True,
-    )
-
     token = resolve_token()
     skips = {
         "api": args.skip_api,
         "sql_to_arc": args.skip_sql_to_arc,
         "harvester": args.skip_harvester,
+        "infrastructure": args.skip_infrastructure,
     }
 
-    for key, repo in TARGETS.items():
-        if skips[key]:
+    for key, (repo, profile_names) in config.targets.items():
+        if skips.get(key, False):
             print(f"\n=== skip {key} ({repo}) ===", flush=True)
             continue
+        patterns = effective_allow(config, profile_names)
+        files = resolve_files(patterns, REPO_ROOT, config.excludes)
+        if not files:
+            raise SystemExit(f"allowlist resolved to zero files for target {key!r}")
+
+        orphans: list[Path] = []
+        if orphan_base:
+            base_files = resolve_files_at_ref(orphan_base, cwd=REPO_ROOT, target=key)
+            head_files = resolve_files_at_ref("HEAD", cwd=REPO_ROOT, target=key)
+            orphans = orphan_paths(base_files, head_files)
+            print(
+                f"{key}: orphan-base {orphan_base}: {len(base_files)} → HEAD {len(head_files)}; "
+                f"orphans to remove: {len(orphans)}",
+                flush=True,
+            )
+
+        print(
+            f"\n=== {key} ({repo}) profiles={list(profile_names)} patterns={len(patterns)} files={len(files)} ===",
+            flush=True,
+        )
         sync_target(
             SyncTarget(
                 key=key,
