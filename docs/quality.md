@@ -11,6 +11,7 @@ Not every file under `scripts/` is Dev Container-only. Personal-token helpers ar
 | ------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. Commit-stage also runs `npm run lint:md` (Node/`npm`; host: `npm install`). Secret scan needs `gitleaks` on `PATH` (`GITLEAKS_VERSION` / `scripts/install-gitleaks.sh`). |
 | `install-gitleaks.sh`                 | Host or CI             | Installs pinned `gitleaks` from `versions.env`                                                                                                                                       |
+| `install-actionlint.sh`               | Host or CI             | Installs pinned `actionlint` from `versions.env`                                                                                                                                     |
 | `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                                            |
 | `run-quality-cli.sh`                  | Host or Dev Container  | `uv run --with-requirements scripts/quality-tools-pins.txt` for fleet quality CLIs                                                                                                   |
 | `run-import-linter.sh`                | Host or Dev Container  | Product `.importlinter`; soft-skips without `middleware/`; uses `run-quality-cli.sh`                                                                                                 |
@@ -132,6 +133,13 @@ product `pyproject.toml`. Gates must not fail with `Failed to spawn` when a prod
 **MAY** still list the same tools as optional project deps for IDE extensions; pytest and other test-only deps stay
 product-owned (`uv run pytest`).
 
+**actionlint (GitHub Actions workflows):** commit-stage hook and reusable code-quality both run the binary pinned as
+`ACTIONLINT_VERSION` in `versions.env` (Dev Container image + `scripts/install-actionlint.sh` in CI). Same pin locally
+and in the pipeline — do **not** pin via a pre-commit `rev`. Hook files: `.github/workflows/`. Devinfra keeps
+[`.github/actionlint.yaml`](../.github/actionlint.yaml) (not synced) to ignore false positives on the intentional
+`$/.github/workflows/…` self-repo reusable `uses:` form ([docs/ci.md](ci.md)). Escape hatch for local hooks only:
+`SKIP=actionlint`.
+
 **gitleaks (secret scan):** commit-stage hook (`gitleaks protect --staged`) and reusable code-quality
 (`gitleaks detect --source . --no-git --verbose --redact`) use the binary pinned as `GITLEAKS_VERSION` in `versions.env`
 (Dev Container image + `scripts/install-gitleaks.sh` in CI). CI uses `--no-git` so the PR tip tree is scanned even on
@@ -217,6 +225,7 @@ lazy imports solely to break cycles) stay principles / other tools / `/code-revi
 | `scripts/run-quality-cli.sh`                        | `uv run --with-requirements` wrapper for fleet quality CLIs                                                     |
 | `scripts/quality-tools-pins.txt`                    | Fleet pins for ruff/mypy/pylint/bandit/vulture/import-linter (hooks + CI)                                       |
 | `scripts/install-gitleaks.sh`                       | Install pinned `gitleaks` from `versions.env` (CI / host)                                                       |
+| `scripts/install-actionlint.sh`                     | Install pinned `actionlint` from `versions.env` (CI / host)                                                     |
 | `.gitleaksignore`                                   | Synced gitleaks allowlist (false positives only)                                                                |
 | `scripts/run-uv-audit.sh`                           | Frozen `uv audit` + optional product `.uv-audit-ignore` (hooks + CI)                                            |
 | `.importlinter`                                     | Product-owned import-linter config (fleet-required settings in this doc) — **not** synced from Devinfra         |
@@ -257,9 +266,9 @@ Devinfra keeps **two** hand-maintained pre-commit roots (no fragment merge scrip
 | Devinfra + python-product repos | [`.pre-commit-config.yaml`](../.pre-commit-config.yaml)                               | foundation + python-product + gitops (full product)                                          |
 | `m4.2_infrastructure`           | [`.pre-commit-config.infrastructure.yaml`](../.pre-commit-config.infrastructure.yaml) | foundation + gitops hooks; sync profile `infra-consumer` only — copy/symlink to root locally |
 
-Shared foundation hooks (hygiene, gitleaks, markdown, commitlint, commit-path-check) and gitops `helm-lint` are
-**duplicated** across both files when they apply — edit both when changing shared policy. Products MUST adopt the synced
-product root **verbatim** (no product-only `entry` / `args` / `exclude` / `env` patches). Fleet rule
+Shared foundation hooks (hygiene, gitleaks, **actionlint**, markdown, commitlint, commit-path-check) and gitops
+`helm-lint` are **duplicated** across both files when they apply — edit both when changing shared policy. Products MUST
+adopt the synced product root **verbatim** (no product-only `entry` / `args` / `exclude` / `env` patches). Fleet rule
 ([#63](https://github.com/fairagro/m4.2_middleware_devinfra/issues/63),
 [#57](https://github.com/fairagro/m4.2_middleware_devinfra/issues/57)): either Devinfra generalizes the need, or the
 exception is a documented product-local surface that sync does **not** overwrite — never “re-patch after every sync”.

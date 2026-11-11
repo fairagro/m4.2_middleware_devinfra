@@ -71,9 +71,9 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
-install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST NOT
-include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
-`infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
+install/ignore, **actionlint install**, and the Node markdown / commitlint manifests used by those hooks). The
+`foundation` profile MUST NOT include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only
+profile such as `infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
 **python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
 (`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired), that Renovate on
 Infra is a later slice, and that product `.devcontainer/**` is never part of the Infra sync set (Infra owns its GitOps
@@ -127,6 +127,12 @@ until adoption.
 - **THEN** they find shared vs python-product vs Infra-owned pin buckets
 - **AND** they learn argocd / kind / ct stay Infra-owned until adoption
 - **AND** they learn product minikube→kind is a separate follow-up, not implied by this allowlist split
+
+#### Scenario: Foundation allowlists actionlint install helper
+
+- **WHEN** a contributor inspects the `foundation` profile allow list for quality install helpers
+- **THEN** `scripts/install-actionlint.sh` is listed (alongside gitleaks install)
+- **AND** `versions.env` remains off `foundation` (python-product / later Infra Renovate slice)
 
 ### Requirement: Workspace extensions recommendations are allowlisted
 

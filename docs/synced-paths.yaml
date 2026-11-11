@@ -51,6 +51,7 @@ profiles:
       - scripts/bin/m42-ai
       - scripts/commit-path-check.sh
       - scripts/install-gitleaks.sh
+      - scripts/install-actionlint.sh
       - .gitleaksignore
       - package.json
       - package-lock.json

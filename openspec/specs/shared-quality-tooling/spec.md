@@ -30,11 +30,13 @@ auto-fixes where hooks support them.
 The repository MUST provide **two** hand-maintained root pre-commit configs (no required fragment-merge script):
 
 - **Product / Devinfra** — `.pre-commit-config.yaml` covering foundation hygiene (trailing-whitespace / YAML or TOML
-  checks with vendor-skill and Helm-template excludes, **gitleaks**, prettier-md, markdownlint, commitlint,
-  commit-path-check), python-product gates (ruff, mypy, bandit, pylint, **vulture**, **import-linter**, **uv audit**,
-  pre-push `pytest` + container-structure-test via `scripts/run-container-structure-test.sh`), and gitops **helm-lint**
-- **Infrastructure** — `.pre-commit-config.infrastructure.yaml` covering the foundation hygiene set above plus
-  **helm-lint**, and MUST NOT include `middleware/`-scoped python-product hooks or pre-push pytest/CST
+  checks with vendor-skill and Helm-template excludes, **gitleaks**, **actionlint**, prettier-md, markdownlint,
+  commitlint, commit-path-check), python-product gates (ruff, mypy, bandit, pylint, **vulture**, **import-linter**, **uv
+  audit**, pre-push `pytest` + container-structure-test via `scripts/run-container-structure-test.sh`), and gitops
+  **helm-lint**
+- **Infrastructure** — `.pre-commit-config.infrastructure.yaml` covering the foundation hygiene set above (including
+  **actionlint**) plus **helm-lint**, and MUST NOT include `middleware/`-scoped python-product hooks or pre-push
+  pytest/CST
 
 Shared foundation/gitops hooks that appear in both files MAY be duplicated; documentation MUST state that policy edits
 touch both files when applicable. Consumers MUST NOT need a Devinfra compose script to install hooks.
@@ -48,9 +50,10 @@ Python-oriented hooks MUST target the `middleware/` package root. Config MUST ex
 exclude Go-templated Helm templates under `charts/**/templates/` and, during migration, `helm/**/templates/` and
 `helmchart/**/templates/`. The fleet MUST NOT treat `helmcharts/` as a supported chart-root alias in that exclude list.
 
-Vulture / import-linter / uv-audit / gitleaks / quality-CLI pin rules remain in force for hooks present in the product
-config (confidence 100; product `.importlinter`; `--frozen` uv audit; gitleaks fail-closed without SaaS key;
-ruff/mypy/pylint/bandit/vulture/import-linter via `scripts/run-quality-cli.sh` pins; gitleaks from `versions.env`).
+Vulture / import-linter / uv-audit / gitleaks / actionlint / quality-CLI pin rules remain in force for hooks present in
+the applicable config (confidence 100; product `.importlinter`; `--frozen` uv audit; gitleaks fail-closed without SaaS
+key; ruff/mypy/pylint/bandit/vulture/import-linter via `scripts/run-quality-cli.sh` pins; gitleaks and actionlint from
+`versions.env`).
 
 Documentation (`docs/quality.md`) MUST describe the two files, the consumer matrix, duplication, and Infra install
 (copy/symlink or `PRE_COMMIT_CONFIG_FILE`). Products MUST NOT need post-sync hand-edits of the product root solely for
@@ -105,6 +108,12 @@ Helm excludes or the locked hook map.
 - **AND** there is no ggshield secret-scan hook
 - **AND** the gitleaks hook does not require `GITGUARDIAN_API_KEY`
 
+#### Scenario: Commit-stage includes actionlint
+
+- **WHEN** a consumer inspects commit-stage hooks in the applicable root config (product or infrastructure)
+- **THEN** an actionlint hook is present that runs the `versions.env`-pinned binary on `PATH`
+- **AND** the hook is scoped to GitHub workflow files under `.github/workflows/`
+
 #### Scenario: Missing product quality dep does not spawn-fail the gate
 
 - **WHEN** a product checkout runs a synced vulture (or ruff/mypy/pylint/bandit/import-linter) hook or reusable
@@ -123,7 +132,7 @@ Helm excludes or the locked hook map.
 - **WHEN** a contributor inspects `.pre-commit-config.infrastructure.yaml`
 - **THEN** the file has no `middleware/`-scoped ruff/mypy/bandit/pylint/vulture/import-linter hooks and no pre-push
   pytest/CST hooks
-- **AND** foundation hygiene hooks and helm-lint remain present
+- **AND** foundation hygiene hooks (including actionlint) and helm-lint remain present
 
 ### Requirement: Commit-stage Helm lint with no-op when no charts
 
@@ -627,6 +636,26 @@ install helper MUST fail closed when the pin is missing.
 #### Scenario: Missing gitleaks pin fails install
 
 - **WHEN** the install helper runs without `GITLEAKS_VERSION` set
+- **THEN** it exits non-zero with a clear error
+
+### Requirement: Actionlint CLI pin and install
+
+The repository MUST pin actionlint via `ACTIONLINT_VERSION` in `versions.env` (Renovate-managed) and MUST provide an
+install helper (e.g. `scripts/install-actionlint.sh`) that places the pinned binary on `PATH` for Dev Container image
+builds / create paths and CI. Commit-stage hooks and reusable code-quality MUST use that installed binary (or an
+equivalent install-then-run path from the same pin). The install helper MUST fail closed when the pin is missing. Docs
+MUST state that the same `ACTIONLINT_VERSION` applies to local hooks and GitHub Actions (no second pin via pre-commit
+`rev`).
+
+#### Scenario: Contributor has actionlint after Dev Container rebuild
+
+- **WHEN** a contributor rebuilds the Dev Container with a valid `ACTIONLINT_VERSION` pin
+- **THEN** `actionlint` is on `PATH` at that pin
+- **AND** the commit-stage actionlint hook can invoke it
+
+#### Scenario: Missing actionlint pin fails install
+
+- **WHEN** the install helper runs without `ACTIONLINT_VERSION` set
 - **THEN** it exits non-zero with a clear error
 
 ### Requirement: Dual pre-commit roots without compose script
