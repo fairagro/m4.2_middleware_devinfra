@@ -234,6 +234,16 @@ jobs:
           # useful git log -p). --redact: never print secret values into Actions logs.
           gitleaks detect --source . --no-git --verbose --redact
 
+      - name: Install actionlint (ACTIONLINT_VERSION)
+        if: ${{ !inputs.skip }}
+        run: sudo bash scripts/install-actionlint.sh
+
+      - name: Lint GitHub Actions workflows with actionlint
+        if: ${{ !inputs.skip }}
+        run: |
+          # Same pin as Dev Container / commit-stage (versions.env ACTIONLINT_VERSION).
+          actionlint
+
       - name: Run tests
         if: ${{ !inputs.skip }}
         env:

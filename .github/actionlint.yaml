@@ -1,0 +1,7 @@
+# Devinfra-only: nested reusable workflows use `$/.github/workflows/<file>` so calls resolve to the
+# same Devinfra commit as the outer reusable (see docs/ci.md / openspec reusable-ci-workflows).
+# actionlint only accepts owner/repo/...@ref or ./path — ignore that false positive here.
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'reusable workflow call "\$/\.github/workflows/.+" at "uses" is not following the format'

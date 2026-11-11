@@ -117,7 +117,7 @@ git-cliff --version
 | GitHub / Node   | `gh`, Node, pinned `npm`, OpenSpec, Prettier, markdownlint-cli2, Renovate                      |
 | Release bump    | `git-cliff` (`GIT_CLIFF_VERSION`; `scripts/detect-version-bump.sh` for `version_bump=auto`)    |
 | Python          | `uv` + pinned Python; quality CLIs via `uv sync` / pre-commit (ruff, …)                        |
-| Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`                                                        |
+| Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`, `actionlint`                                          |
 | K8s             | `kubectl`, `helm`, `minikube`                                                                  |
 | Secrets tooling | `sops`, `age`, `gpg` (ciphertext / `.sops.yaml` / `public_gpg_keys` **content** stay per repo) |
 | Containers      | DinD feature, `container-structure-test` (`cst`), `trivy`                                      |
