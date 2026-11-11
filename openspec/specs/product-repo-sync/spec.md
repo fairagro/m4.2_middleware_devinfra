@@ -109,8 +109,10 @@ invent deletes from heuristics unrelated to the allowlist delta.
 #### Scenario: Infrastructure receives foundation only
 
 - **WHEN** sync builds the file set for the `infrastructure` target
-- **THEN** the effective allow is the `foundation` profile only
-- **AND** python-product-only paths (e.g. `.devcontainer/**`, `.pre-commit-config.yaml`, Renovate) are not copied
+- **THEN** the effective allow is the union of that target’s profiles (foundation + gitops + Infra-only as wired) and
+  MUST NOT include `python-product`
+- **AND** python-product-only paths (e.g. `.devcontainer/**`, `.pre-commit-config.yaml`, Renovate, `versions.env`) are
+  not copied
 
 #### Scenario: OpenSpec specs and middleware are never synced
 
@@ -141,11 +143,13 @@ invent deletes from heuristics unrelated to the allowlist delta.
 
 The repository MUST document sync purpose, triggers (main push + dispatch), dry-run/skip (including infrastructure), bot
 token setup (shared with Renovate when applicable; Infra token access called out as a later slice when needed),
-**profile-based** allowlist ownership (`foundation` vs `python-product` vs `gitops` when present), hard excludes,
-**delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and the dispatch follow-up
-input. Docs MUST state non-goals for foundation-only / foundation+gitops Infra sync: no full python-product allowlist,
-no verbatim product `.devcontainer/*`, no python-product pre-commit fragment or composed product hook blob, no
-Renovate/`versions.env` until that slice. Docs MUST NOT use obsolete lettered “wave” adopt labels for sync coverage. The
+**profile-based** allowlist ownership (`foundation` vs `python-product` vs `gitops` vs Infra-only profiles when
+present), hard excludes, **delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and
+the dispatch follow-up input. Docs MUST state non-goals for Infra sync (foundation + gitops + Infra-only profiles as
+wired): no full python-product allowlist, no verbatim product `.devcontainer/*`, no python-product pre-commit root, no
+Renovate/`versions.env` until that slice, and **Infra keeps owning its fat GitOps Dev Container until a dedicated
+adoption issue**. Docs MUST publish the Dev Container pin-ownership buckets (shared / python-product / Infra-owned) or
+point to the Dev Container docs that do. Docs MUST NOT use obsolete lettered “wave” adopt labels for sync coverage. The
 root README Docs index (or CI docs) MUST link to this documentation and MUST NOT describe sync paths with those labels.
 
 #### Scenario: Contributor finds sync docs
@@ -161,3 +165,10 @@ root README Docs index (or CI docs) MUST link to this documentation and MUST NOT
 - **THEN** they learn that allowlist orphans are removed via delta `git rm` without a `retire:` list (per target profile
   set)
 - **AND** they learn how to set `SYNC-FOLLOWUP: <id>` on a Devinfra PR and via dispatch
+
+#### Scenario: Contributor learns Infra Dev Container non-goals
+
+- **WHEN** a contributor reads sync non-goals for the `infrastructure` target
+- **THEN** they learn product `.devcontainer/*` is never synced to Infra by accident
+- **AND** they learn Infra owns its GitOps Dev Container until an adoption issue
+- **AND** they find or are pointed at pin-ownership buckets (shared vs python-product vs Infra-owned)
