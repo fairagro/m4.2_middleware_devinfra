@@ -211,8 +211,8 @@ jobs:
               # Products may extend, e.g. stubs/, dev_environment/**
               # Do NOT put chart paths only here — that forces Docker build/check without linting charts.
             helm:
-              - 'helmchart/**'
-              # Other products: 'helm/**' (or the product chart root)
+              - 'charts/**'
+              # Deprecated until rename PRs land: 'helmchart/**' or 'helm/**'
 
   code-quality:
     needs: [detect-changes]
@@ -247,7 +247,7 @@ jobs:
     needs: [detect-changes]
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
     with:
-      chart_dir: helmchart/fairagro-advanced-middleware-api-chart
+      chart_dir: charts/fairagro-advanced-middleware-api-chart
       skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
       # Optional CI overlay (omit or leave empty for bare chart defaults):
       # values_file: path/to/ci-values.yaml
@@ -255,10 +255,11 @@ jobs:
 
 `detect-changes` / `skip` stay a **caller** responsibility. Suggested `code` paths above are a fleet default — extend
 for product-only trees (e.g. `stubs/`, `dev_environment/**`). Chart-only PRs should skip Docker build/check via `code`
-while still running `helm-lint` when the `helm` filter matches. **Do not** treat “add `helmchart/**` to the Docker
-`code` filter alone” as chart validation. Optional `values_file` passes a checkout-relative overlay into `helm lint` /
-`helm template` (fail closed if missing); empty keeps bare-chart behaviour. Local commit-stage parity uses
-`HELM_VALUES_FILE` on [`scripts/run-helm-lint.sh`](../scripts/run-helm-lint.sh) — see [`docs/quality.md`](quality.md).
+while still running `helm-lint` when the `helm` filter matches. Fleet chart root is **`charts/`** (see #349); do not
+treat “add `charts/**` to the Docker `code` filter alone” as chart validation. Optional `values_file` passes a
+checkout-relative overlay into `helm lint` / `helm template` (fail closed if missing); empty keeps bare-chart behaviour.
+Local commit-stage parity uses `HELM_VALUES_FILE` on [`scripts/run-helm-lint.sh`](../scripts/run-helm-lint.sh) — see
+[`docs/quality.md`](quality.md).
 
 ### Post-merge main (Docker build + check → Code Scanning)
 
@@ -403,7 +404,7 @@ jobs:
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-release.yml@main
     with:
       version_bump: ${{ inputs.version_bump }}
-      chart_dir: helmchart/fairagro-advanced-middleware-api-chart
+      chart_dir: charts/fairagro-advanced-middleware-api-chart
       chart_name: fairagro-advanced-middleware-api-chart
       dockerhub_namespace: zalf
       ghcr_namespace: fairagro
@@ -418,7 +419,7 @@ jobs:
   helm:
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-pre-release.yml@main
     with:
-      chart_dir: helmchart/fairagro-advanced-middleware-api-chart
+      chart_dir: charts/fairagro-advanced-middleware-api-chart
       chart_name: fairagro-advanced-middleware-api-chart
       dockerhub_namespace: zalf
       ghcr_namespace: fairagro
@@ -548,10 +549,11 @@ Feature-PR chart gate (lint + optional template smoke). Does **not** package or 
 | `values_file`  | `""`       | Optional checkout-relative overlay (`-f`); empty = bare chart        |
 
 Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Wire with a **separate** detect-changes output
-for chart roots (`helmchart/**` or `helm/**`); see the Feature PR example above. When `values_file` is non-empty, the
-job fails if the path is missing and passes `-f` to both `helm lint` and (when enabled) `helm template`. Local
-commit-stage lint is the synced `helm-lint` hook (`scripts/run-helm-lint.sh`) with the matching env `HELM_VALUES_FILE` —
-see [`docs/quality.md`](quality.md); it does **not** replace this Feature-PR reusable.
+for chart roots (`charts/**`; deprecated callers may still use `helmchart/**` or `helm/**` until rename); see the
+Feature PR example above. **`helmcharts/` is not a fleet chart root.** When `values_file` is non-empty, the job fails if
+the path is missing and passes `-f` to both `helm lint` and (when enabled) `helm template`. Local commit-stage lint is
+the synced `helm-lint` hook (`scripts/run-helm-lint.sh`) with the matching env `HELM_VALUES_FILE` — see
+[`docs/quality.md`](quality.md); it does **not** replace this Feature-PR reusable.
 
 ### `reusable-helm-release.yml` / `reusable-helm-pre-release.yml`
 
