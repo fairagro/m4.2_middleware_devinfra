@@ -3,7 +3,7 @@
 # Install as root `.pre-commit-config.yaml` in Infra (copy/symlink) or point PRE_COMMIT_CONFIG_FILE at this file.
 # Product repos use `.pre-commit-config.yaml` instead. See docs/quality.md.
 #
-# Hook map (#351): foundation hygiene + gitleaks + md + commitlint/commit-path-check + helm-lint.
+# Hook map (#351/#353): foundation hygiene + gitleaks + actionlint + md + commitlint/commit-path-check + helm-lint.
 # Not included: ruff/mypy/bandit/pylint/vulture/import-linter/uv-audit/pytest/CST.
 
 repos:
@@ -46,6 +46,13 @@ repos:
         entry: gitleaks protect --staged --verbose
         language: system
         pass_filenames: false
+
+      - id: actionlint
+        name: actionlint (GitHub Actions workflows)
+        # Binary from versions.env (Dev Container / scripts/install-actionlint.sh)
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/
 
       - id: prettier-md
         name: prettier format:md

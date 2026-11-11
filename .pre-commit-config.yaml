@@ -55,6 +55,13 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: actionlint
+        name: actionlint (GitHub Actions workflows)
+        # Binary from versions.env (Dev Container / scripts/install-actionlint.sh)
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/
+
       - id: ruff
         name: ruff lint
         entry: bash scripts/run-quality-cli.sh ruff check --config ruff.toml middleware/
