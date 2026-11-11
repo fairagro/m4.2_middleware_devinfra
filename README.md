@@ -112,7 +112,8 @@ steps.
 - [Renovate](docs/renovate.md) — shared config/workflow, bot token, dry-run, Dependabot migration
 - [Product sync](docs/sync.md) — allowlist push into API / sql-to-arc / harvester (`#13`)
 - [AI review policy](docs/ai_review_policy.md) — Finder/Fixer policy (Copilot, Bugbot, `/review-fixer`)
-- [Synced paths allowlist](docs/synced-paths.yaml) — sole SoT for synced paths (`allow` / `exclude` / `overlays`)
+- [Synced paths allowlist](docs/synced-paths.yaml) — sole SoT for synced paths (`profiles` / `targets` / `exclude` /
+  `overlays`)
 - [Surface quality bar (path map)](docs/surface-quality-bar.global.md) — synced default path→surface map; products
   extend via local `docs/surface-quality-bar.md`
 - [Review-fixer](docs/review-fixer.md) — open-work triage + no auto-commit for `/review-fixer`
@@ -130,7 +131,7 @@ steps.
 | `.vscode/settings.json`                   | Shared IDE baseline (interpreter, Ruff, pytest, Prettier)                           |
 | `docs/`                                   | Feature documentation (grows over time)                                             |
 | `docs/ai_review_policy.md`                | Canonical AI review (Finder/Fixer) policy                                           |
-| `docs/synced-paths.yaml`                  | Sole sync path SoT (`allow` / `exclude` / `overlays`)                               |
+| `docs/synced-paths.yaml`                  | Sole sync path SoT (`profiles` / `targets` / `exclude` / `overlays`)                |
 | `docs/sync.md`                            | Product-repo sync workflow, dry-run/skip, shared bot token                          |
 | `docs/surface-quality-bar.global.md`      | Synced default path→surface map (products: local `surface-quality-bar.md`)          |
 | `docs/review-fixer.md`                    | Thin index for `/review-fixer`                                                      |
