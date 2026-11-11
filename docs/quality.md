@@ -268,6 +268,11 @@ exception is a documented product-local surface that sync does **not** overwrite
 `.pre-commit-config.infrastructure.yaml` (never the product root) and installs it as `.pre-commit-config.yaml` (or sets
 `PRE_COMMIT_CONFIG_FILE`).
 
+**Dev Container:** the shared product image / `.devcontainer/*` stay on `python-product` only; Infra keeps its GitOps
+image until adoption — pin buckets and follow-ups in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352) /
+[`devcontainer.md`](devcontainer.md#pin-ownership-product-vs-infra)
+([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
+
 Examples already in the product skeleton:
 
 - `check-yaml` excludes Go-templated Helm under `charts/**/templates/` (and deprecated `helm/**/templates/` /
