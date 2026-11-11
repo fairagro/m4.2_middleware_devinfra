@@ -40,7 +40,7 @@ def test_load_repo_yaml_has_foundation_and_infra(sync) -> None:
     assert "infra-consumer" in config.profiles
 
 
-def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
+def test_foundation_includes_renovate_and_versions_env(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     foundation = set(sync.effective_allow(config, ("foundation",)))
     assert "scripts/ai/**" in foundation
@@ -49,8 +49,11 @@ def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
     assert "scripts/install-gitleaks.sh" in foundation
     assert "scripts/install-actionlint.sh" in foundation
     assert ".pre-commit-config.infrastructure.yaml" not in foundation
-    assert "renovate.json" not in foundation
-    assert "versions.env" not in foundation
+    assert "renovate.json" in foundation
+    assert ".github/workflows/renovate.yml" in foundation
+    assert "docs/renovate.md" in foundation
+    assert "versions.env" in foundation
+    assert ".python-version" not in foundation
     assert ".devcontainer/Dockerfile" not in foundation
     assert ".pre-commit-config.yaml" not in foundation
 
@@ -59,6 +62,7 @@ def test_product_union_includes_shared_surfaces(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     union = set(sync.effective_allow(config, sync.product_union_profiles(config)))
     assert "renovate.json" in union
+    assert "versions.env" in union
     assert ".devcontainer/Dockerfile" in union
     assert "scripts/ai/**" in union
     assert ".pre-commit-config.yaml" in union
@@ -73,6 +77,9 @@ def test_infra_allow_omits_product_pre_commit_root(sync) -> None:
     assert ".pre-commit-config.yaml" not in infra
     assert "scripts/run-helm-lint.sh" in infra
     assert "ruff.toml" not in infra
+    assert "renovate.json" in infra
+    assert "versions.env" in infra
+    assert ".python-version" not in infra
     # #352: product Dev Container never on Infra profiles
     assert ".devcontainer/Dockerfile" not in infra
     assert ".devcontainer/devcontainer.json" not in infra

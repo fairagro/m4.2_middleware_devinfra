@@ -5,14 +5,16 @@
 # Synced Markdown must not use in-repo relative links to paths outside allow (minus exclude);
 # use absolute Devinfra URLs (blob/main) or plain non-linked names — see docs/sync.md.
 #
-# Profiles (#350 / #351 / #352): effective allow = union of the target's profiles.
-# foundation = skills/AI plumbing + shared hook helpers (not Infra-only pre-commit root;
-#   never `.devcontainer/**`)
+# Profiles (#350 / #351 / #352 / #354): effective allow = union of the target's profiles.
+# foundation = skills/AI plumbing + shared hook helpers + Renovate + versions.env
+#   (not Infra-only pre-commit root; never `.devcontainer/**` or `.python-version`)
 # python-product = Python quality / product Dev Container blob / product pre-commit root
 # gitops = Helm lint runner (shared by product + Infra configs)
 # infra-consumer = Infra-only paths (e.g. `.pre-commit-config.infrastructure.yaml`)
 # #352: Infra keeps fat GitOps Dev Container until adoption — do not add `.devcontainer/**`
 #   to foundation/gitops/infra-consumer. Pin ownership: docs/sync.md + docs/devcontainer.md.
+# #354: Infra gets Renovate + versions.env via foundation (unused pins are no-ops until a
+#   Dockerfile/hook reads them). Live sync still defaults skip_infrastructure until bot checklist.
 
 profiles:
   foundation:
@@ -61,11 +63,14 @@ profiles:
       - .prettierrc.json
       - .prettierignore
       - commitlint.config.cjs
+      - docs/renovate.md
+      - renovate.json
+      - .github/workflows/renovate.yml
+      - versions.env
 
   python-product:
     allow:
       - docs/surface-quality-bar.global.md
-      - docs/renovate.md
       - docs/quality.md
       - docs/devcontainer.md
       - docs/conventions.md
@@ -92,11 +97,8 @@ profiles:
       - scripts/devcontainer-post-create.sh
       - scripts/import-public-gpg-keys.sh
       - openspec/principles.global.md
-      - renovate.json
-      - .github/workflows/renovate.yml
       - .github/workflows/codeql.yml
       - docker/Dockerfile.product-app.base
-      - versions.env
       - .python-version
       - .pre-commit-config.yaml
       - .bandit

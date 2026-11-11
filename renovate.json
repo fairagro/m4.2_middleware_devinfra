@@ -351,6 +351,20 @@
       "enabled": false
     },
     {
+      "description": "Infra: do not bump Devinfra-synced Renovate/pin SoT (land in Devinfra, then sync #13)",
+      "matchRepositories": [
+        "fairagro/m4.2_infrastructure"
+      ],
+      "matchFileNames": [
+        "versions.env",
+        "package.json",
+        "package-lock.json",
+        "renovate.json",
+        ".github/workflows/renovate.yml"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Python 3.12 global lock (versions.env + .python-version)",
       "matchManagers": [
         "dockerfile",

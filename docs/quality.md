@@ -278,8 +278,8 @@ exception is a documented product-local surface that sync does **not** overwrite
 `PRE_COMMIT_CONFIG_FILE`).
 
 **Dev Container:** the shared product image / `.devcontainer/*` stay on `python-product` only; Infra keeps its GitOps
-image until adoption — pin buckets and follow-ups in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352) /
-[`devcontainer.md`](devcontainer.md#pin-ownership-product-vs-infra)
+image until adoption — pin buckets and follow-ups in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352--354)
+/ [`devcontainer.md`](devcontainer.md#pin-ownership-product-vs-infra)
 ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
 
 Examples already in the product skeleton:
