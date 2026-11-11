@@ -32,10 +32,11 @@ def test_load_repo_yaml_has_foundation_and_infra(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     assert "foundation" in config.profiles
     assert "python-product" in config.profiles
+    assert "gitops" in config.profiles
     assert "infrastructure" in config.targets
     assert config.targets["infrastructure"][0] == "fairagro/m4.2_infrastructure"
-    assert config.targets["infrastructure"][1] == ("foundation",)
-    assert config.targets["api"][1] == ("foundation", "python-product")
+    assert config.targets["infrastructure"][1] == ("foundation", "gitops")
+    assert config.targets["api"][1] == ("foundation", "python-product", "gitops")
 
 
 def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
@@ -44,18 +45,30 @@ def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
     assert "scripts/ai/**" in foundation
     assert ".agents/skills/uv/**" in foundation
     assert "scripts/bin/m42-ai" in foundation
+    assert ".pre-commit-config.infrastructure.yaml" in foundation
     assert "renovate.json" not in foundation
     assert "versions.env" not in foundation
     assert ".devcontainer/Dockerfile" not in foundation
     assert ".pre-commit-config.yaml" not in foundation
 
 
-def test_product_union_includes_wave_a_surfaces(sync) -> None:
+def test_product_union_includes_shared_surfaces(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     union = set(sync.effective_allow(config, sync.product_union_profiles(config)))
     assert "renovate.json" in union
     assert ".devcontainer/Dockerfile" in union
     assert "scripts/ai/**" in union
+    assert ".pre-commit-config.yaml" in union
+    assert "scripts/run-helm-lint.sh" in union
+
+
+def test_infra_allow_omits_product_pre_commit_root(sync) -> None:
+    config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
+    infra = set(sync.effective_allow(config, config.targets["infrastructure"][1]))
+    assert ".pre-commit-config.infrastructure.yaml" in infra
+    assert ".pre-commit-config.yaml" not in infra
+    assert "scripts/run-helm-lint.sh" in infra
+    assert "ruff.toml" not in infra
 
 
 def test_legacy_flat_allow_still_loads(sync) -> None:

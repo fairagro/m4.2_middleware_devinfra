@@ -2,41 +2,38 @@
 
 ### Requirement: Shared pre-commit skeleton
 
-The repository MUST provide **profile-scoped pre-commit fragments** and a **compose** step that writes each consumer’s
-root `.pre-commit-config.yaml`. Fragments MUST cover at least:
+The repository MUST provide **two** hand-maintained root pre-commit configs (no required fragment-merge script):
 
-- **foundation** — trailing-whitespace / YAML or TOML hygiene (with vendor-skill and Helm-template excludes as today),
-  **gitleaks**, prettier-md, markdownlint, commitlint, commit-path-check
-- **python-product** — ruff, mypy, bandit, pylint, **vulture**, **import-linter**, **uv audit**, and **pre-push**
-  `pytest` + container-structure-test (CST via `scripts/run-container-structure-test.sh`)
-- **gitops** — commit-stage **helm-lint** (actionlint / kubeconform MAY be added in later changes)
+- **Product / Devinfra** — `.pre-commit-config.yaml` covering foundation hygiene (trailing-whitespace / YAML or TOML
+  checks with vendor-skill and Helm-template excludes, **gitleaks**, prettier-md, markdownlint, commitlint,
+  commit-path-check), python-product gates (ruff, mypy, bandit, pylint, **vulture**, **import-linter**, **uv audit**,
+  pre-push `pytest` + container-structure-test via `scripts/run-container-structure-test.sh`), and gitops **helm-lint**
+- **Infrastructure** — `.pre-commit-config.infrastructure.yaml` covering the foundation hygiene set above plus
+  **helm-lint**, and MUST NOT include `middleware/`-scoped python-product hooks or pre-push pytest/CST
 
-Python-product consumers MUST compose **foundation ∪ python-product ∪ gitops** so behavior matches the former single
-blob (including helm-lint). Infrastructure MUST compose **foundation** and MAY include **gitops**; it MUST NOT receive
-python-product hooks. Devinfra’s own root `.pre-commit-config.yaml` MUST be the composed product-union result (or
-equivalent) so local hooks stay coherent.
+Shared foundation/gitops hooks that appear in both files MAY be duplicated; documentation MUST state that policy edits
+touch both files when applicable. Consumers MUST NOT need a Devinfra compose script to install hooks.
 
-The pre-push `pytest` hook (python-product fragment) MUST invoke pytest with marker expression
-`-m "not system_external and not system_local"` (or equivalent), print a short duration / `SKIP=pytest` notice, and MUST
-NOT be Infra’s required gate. Reusable CI MUST NOT silently inherit that pre-push marker filter as its only suite.
+The pre-push `pytest` hook (product config only) MUST invoke pytest with `-m "not system_external and not system_local"`
+(or equivalent), print a short duration / `SKIP=pytest` notice, and MUST NOT be Infra’s required gate. Reusable CI MUST
+NOT silently inherit that pre-push marker filter as its only suite.
 
 Python-oriented hooks MUST target the `middleware/` package root. Config MUST exclude vendor agent skill trees under
 `.agents/skills/` (at least `gh`, `docker`, `hadolint`, `uv`, and `scan-secrets` when present). Shared `check-yaml` MUST
 exclude Go-templated Helm templates under `charts/**/templates/` and, during migration, `helm/**/templates/` and
 `helmchart/**/templates/`. The fleet MUST NOT treat `helmcharts/` as a supported chart-root alias in that exclude list.
 
-Vulture / import-linter / uv-audit / gitleaks / quality-CLI pin rules from the prior single-skeleton contract remain in
-force for the fragments that carry those hooks (confidence 100; product `.importlinter`; `--frozen` uv audit; gitleaks
-fail-closed without SaaS key; ruff/mypy/pylint/bandit/vulture/import-linter via `scripts/run-quality-cli.sh` pins;
-gitleaks from `versions.env`).
+Vulture / import-linter / uv-audit / gitleaks / quality-CLI pin rules remain in force for hooks present in the product
+config (confidence 100; product `.importlinter`; `--frozen` uv audit; gitleaks fail-closed without SaaS key;
+ruff/mypy/pylint/bandit/vulture/import-linter via `scripts/run-quality-cli.sh` pins; gitleaks from `versions.env`).
 
-Documentation (`docs/quality.md`) MUST describe fragments, compose, the consumer matrix, and migration for the three
-python-product repos. Products MUST NOT need post-sync hand-edits of the composed root solely for Helm excludes or the
-locked hook map.
+Documentation (`docs/quality.md`) MUST describe the two files, the consumer matrix, duplication, and Infra install
+(copy/symlink or `PRE_COMMIT_CONFIG_FILE`). Products MUST NOT need post-sync hand-edits of the product root solely for
+Helm excludes or the locked hook map.
 
 #### Scenario: Pre-commit config lists both stages
 
-- **WHEN** a python-product consumer inspects the composed root `.pre-commit-config.yaml`
+- **WHEN** a python-product consumer inspects `.pre-commit-config.yaml`
 - **THEN** commit-stage and pre-push stages are both present
 - **AND** the pre-push CST entry calls the shared runner script
 
@@ -56,29 +53,29 @@ locked hook map.
 
 - **WHEN** `check-yaml` runs in a product repo that has `charts/`, `helm/`, or `helmchart/*/templates/*.yaml`
 - **THEN** those template paths are excluded by the shared config
-- **AND** products do not need to patch the composed `.pre-commit-config.yaml` solely for that exclude
+- **AND** products do not need to patch `.pre-commit-config.yaml` solely for that exclude
 
 #### Scenario: Commit-stage includes vulture
 
-- **WHEN** a python-product consumer inspects commit-stage hooks in the composed root config
+- **WHEN** a python-product consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** a vulture unused-code hook is present for `middleware/`
 - **AND** it uses minimum confidence 100 without a synced whitelist file
 
 #### Scenario: Commit-stage includes import-linter
 
-- **WHEN** a python-product consumer inspects commit-stage hooks in the composed root config
+- **WHEN** a python-product consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** an import-linter hook is present that runs the documented runner against product `.importlinter`
 - **AND** it fails closed when that config is missing in a product with `middleware/`
 
 #### Scenario: Commit-stage includes uv audit
 
-- **WHEN** a python-product consumer inspects commit-stage hooks in the composed root config
+- **WHEN** a python-product consumer inspects commit-stage hooks in `.pre-commit-config.yaml`
 - **THEN** a uv-audit lockfile vulnerability hook is present
 - **AND** it fails closed on findings except documented ignored advisory IDs
 
 #### Scenario: Commit-stage includes gitleaks
 
-- **WHEN** a consumer with the foundation fragment inspects commit-stage hooks in the composed root config
+- **WHEN** a consumer inspects commit-stage hooks in the applicable root config (product or infrastructure)
 - **THEN** a gitleaks secret-scan hook is present
 - **AND** there is no ggshield secret-scan hook
 - **AND** the gitleaks hook does not require `GITGUARDIAN_API_KEY`
@@ -98,29 +95,29 @@ locked hook map.
 
 #### Scenario: Infra composed config omits python-product hooks
 
-- **WHEN** infrastructure composes foundation (and optionally gitops) without python-product
-- **THEN** the composed root has no `middleware/`-scoped ruff/mypy/bandit/pylint/vulture/import-linter hooks and no
-  pre-push pytest/CST hooks
-- **AND** foundation hygiene hooks (and gitops helm-lint when included) remain present
+- **WHEN** a contributor inspects `.pre-commit-config.infrastructure.yaml`
+- **THEN** the file has no `middleware/`-scoped ruff/mypy/bandit/pylint/vulture/import-linter hooks and no pre-push
+  pytest/CST hooks
+- **AND** foundation hygiene hooks and helm-lint remain present
 
 ### Requirement: Commit-stage Helm lint with no-op when no charts
 
-The **gitops** pre-commit fragment MUST include a **commit-stage** hook that lints product Helm charts (composed into
-consumers that select gitops). The hook MUST discover chart roots as directories named `charts/<chart>/` that contain
-`Chart.yaml` (one path segment under `charts/`). During a documented migration window the hook MUST also discover
-deprecated roots `helmchart/<chart>/` and `helm/<chart>/` the same way. The fleet MUST NOT discover `helmcharts/` as a
-chart-root alias. When **no** such chart exists, the hook MUST succeed without requiring the Helm CLI. When at least one
-chart exists, it MUST invoke `helm` from `PATH` (Dev Container pin from `versions.env` `HELM_VERSION`) and run
-`helm lint` plus a default-values `helm template` smoke render (same smoke as `reusable-helm-lint.yml` when
-`run_template` is true) on each discovered chart. The shared Helm lint runner MUST accept an optional environment
-variable `HELM_VALUES_FILE` (path relative to the repository root). When unset or empty, lint and template MUST use
-bare-chart behaviour (no `-f`), matching Feature-PR reusable behaviour with empty `values_file`. When `HELM_VALUES_FILE`
-is non-empty, the runner MUST fail if that file is missing, and MUST pass `-f` that path to `helm lint` and to
-`helm template` for each discovered chart. Missing `helm` while charts exist MUST fail with guidance to use the Dev
-Container (or install the pinned Helm version). The hook MUST NOT treat `check-yaml` as Helm validation; Go-templated
-chart templates MUST remain excluded from `check-yaml`. Repos without charts (including this Devinfra tree) MUST remain
-a successful no-op. Documentation MUST state that **`charts/`** is the canonical fleet chart root and that `helm/` /
-`helmchart/` are deprecated pending consumer renames.
+Both the product and infrastructure pre-commit roots that include gitops MUST contain a **commit-stage** hook that lints
+Helm charts. The hook MUST discover chart roots as directories named `charts/<chart>/` that contain `Chart.yaml` (one
+path segment under `charts/`). During a documented migration window the hook MUST also discover deprecated roots
+`helmchart/<chart>/` and `helm/<chart>/` the same way. The fleet MUST NOT discover `helmcharts/` as a chart-root alias.
+When **no** such chart exists, the hook MUST succeed without requiring the Helm CLI. When at least one chart exists, it
+MUST invoke `helm` from `PATH` (Dev Container pin from `versions.env` `HELM_VERSION`) and run `helm lint` plus a
+default-values `helm template` smoke render (same smoke as `reusable-helm-lint.yml` when `run_template` is true) on each
+discovered chart. The shared Helm lint runner MUST accept an optional environment variable `HELM_VALUES_FILE` (path
+relative to the repository root). When unset or empty, lint and template MUST use bare-chart behaviour (no `-f`),
+matching Feature-PR reusable behaviour with empty `values_file`. When `HELM_VALUES_FILE` is non-empty, the runner MUST
+fail if that file is missing, and MUST pass `-f` that path to `helm lint` and to `helm template` for each discovered
+chart. Missing `helm` while charts exist MUST fail with guidance to use the Dev Container (or install the pinned Helm
+version). The hook MUST NOT treat `check-yaml` as Helm validation; Go-templated chart templates MUST remain excluded
+from `check-yaml`. Repos without charts (including this Devinfra tree) MUST remain a successful no-op. Documentation
+MUST state that **`charts/`** is the canonical fleet chart root and that `helm/` / `helmchart/` are deprecated pending
+consumer renames.
 
 #### Scenario: No chart directories is a no-op
 
@@ -176,21 +173,14 @@ a successful no-op. Documentation MUST state that **`charts/`** is the canonical
 
 ## ADDED Requirements
 
-### Requirement: Pre-commit profile fragments are the editable SoT
+### Requirement: Dual pre-commit roots without compose script
 
-Devinfra MUST store editable pre-commit hook definitions as profile fragments (paths under a documented directory such
-as `.pre-commit.d/` or equivalent), not as three unrelated hand-maintained root configs. A documented compose command
-(script or checked-in generator) MUST merge the selected fragments into root `.pre-commit-config.yaml` for the active
-consumer matrix. Hand-editing only the generated root without updating fragments MUST be documented as incorrect.
-Compose MUST be deterministic (stable hook order within the locked map).
+Devinfra MUST NOT require a repository-owned compose/merge script to produce consumer pre-commit configs. The product
+and infrastructure roots MUST be editable checked-in YAML. Documentation MUST name both paths and forbid treating a
+fragment-only tree as the install entrypoint.
 
-#### Scenario: Contributor edits a fragment then composes
+#### Scenario: Contributor finds the two configs
 
-- **WHEN** a maintainer changes a hook in the foundation fragment and runs the documented compose for python-product
-- **THEN** the root `.pre-commit-config.yaml` reflects that change
-- **AND** docs name the compose command and fragment paths
-
-#### Scenario: No dual SoT
-
-- **WHEN** a contributor looks for where to change shared hook policy
-- **THEN** docs direct them to the profile fragments (and compose), not to maintaining a divergent root-only copy
+- **WHEN** a contributor reads `docs/quality.md` for pre-commit
+- **THEN** they find `.pre-commit-config.yaml` and `.pre-commit-config.infrastructure.yaml` named as the SoT roots
+- **AND** they are not directed to run a Devinfra compose script as a required step

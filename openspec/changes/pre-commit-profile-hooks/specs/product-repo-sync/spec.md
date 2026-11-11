@@ -8,8 +8,8 @@ token setup (shared with Renovate when applicable; Infra token access called out
 **delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and the dispatch follow-up
 input. Docs MUST state non-goals for foundation-only / foundation+gitops Infra sync: no full python-product allowlist,
 no verbatim product `.devcontainer/*`, no python-product pre-commit fragment or composed product hook blob, no
-Renovate/`versions.env` until that slice. Docs MUST NOT use obsolete “Wave A” / “Wave-A” terminology for sync coverage.
-The root README Docs index (or CI docs) MUST link to this documentation and MUST NOT describe sync paths as “Wave A”.
+Renovate/`versions.env` until that slice. Docs MUST NOT use obsolete lettered “wave” adopt labels for sync coverage. The
+root README Docs index (or CI docs) MUST link to this documentation and MUST NOT describe sync paths with those labels.
 
 #### Scenario: Contributor finds sync docs
 

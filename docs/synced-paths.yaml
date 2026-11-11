@@ -5,8 +5,10 @@
 # Synced Markdown must not use in-repo relative links to paths outside allow (minus exclude);
 # use absolute Devinfra URLs (blob/main) or plain non-linked names — see docs/sync.md.
 #
-# Layout B (#350): profiles + targets. Effective allow = union of the target's profiles.
-# Slice 1 foundation = skills/commands/prompts/skill docs + m42-ai / token plumbing (no Renovate).
+# Profiles (#350 / #351): effective allow = union of the target's profiles.
+# foundation = skills/AI plumbing + Infra pre-commit config + shared hook helpers
+# python-product = Python quality / Dev Container / product pre-commit root
+# gitops = Helm lint runner (shared by product + Infra configs)
 
 profiles:
   foundation:
@@ -43,6 +45,18 @@ profiles:
       - scripts/bin/gh
       - scripts/bin/git
       - scripts/bin/m42-ai
+      - .pre-commit-config.infrastructure.yaml
+      - scripts/commit-path-check.sh
+      - scripts/install-gitleaks.sh
+      - .gitleaksignore
+      - package.json
+      - package-lock.json
+      - .markdownlint.json
+      - .markdownlint-cli2.jsonc
+      - .markdownlintignore
+      - .prettierrc.json
+      - .prettierignore
+      - commitlint.config.cjs
 
   python-product:
     allow:
@@ -60,16 +74,12 @@ profiles:
       - scripts/run-import-linter.sh
       - scripts/run-quality-cli.sh
       - scripts/load-quality-path-env.sh
-      - scripts/commit-path-check.sh
       - scripts/quality-tools-pins.txt
       - scripts/run-uv-audit.sh
-      - scripts/run-helm-lint.sh
       - scripts/detect-version-bump.sh
       - scripts/generate-release-changelog.sh
       - scripts/install-git-cliff.sh
       - scripts/install-cst.sh
-      - scripts/install-gitleaks.sh
-      - .gitleaksignore
       - scripts/setup-git-hooks.sh
       - scripts/update-dockerfile-pins.sh
       - scripts/prune-merged-branches.sh
@@ -90,14 +100,6 @@ profiles:
       - mypy.ini
       - .pylintrc
       - pyrightconfig.json
-      - .markdownlint.json
-      - .markdownlint-cli2.jsonc
-      - .markdownlintignore
-      - .prettierrc.json
-      - .prettierignore
-      - package.json
-      - package-lock.json
-      - commitlint.config.cjs
       - cliff.toml
       - .vscode/settings.json
       - .vscode/extensions.json
@@ -108,19 +110,23 @@ profiles:
       - .devcontainer/starship.toml
       - .gitignore
 
+  gitops:
+    allow:
+      - scripts/run-helm-lint.sh
+
 targets:
   api:
     repo: fairagro/m4.2_advanced_middleware_api
-    profiles: [foundation, python-product]
+    profiles: [foundation, python-product, gitops]
   sql_to_arc:
     repo: fairagro/m4.2_sql_to_arc
-    profiles: [foundation, python-product]
+    profiles: [foundation, python-product, gitops]
   harvester:
     repo: fairagro/m4.2_middleware_harvester
-    profiles: [foundation, python-product]
+    profiles: [foundation, python-product, gitops]
   infrastructure:
     repo: fairagro/m4.2_infrastructure
-    profiles: [foundation]
+    profiles: [foundation, gitops]
 
 # Never copy — even if mis-listed under allow.
 exclude:

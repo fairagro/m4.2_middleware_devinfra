@@ -30,7 +30,7 @@ _LEGACY_TARGET_REPOS: dict[str, str] = {
     "harvester": "fairagro/m4.2_middleware_harvester",
 }
 _LEGACY_PROFILE = "_legacy"
-_PRODUCT_UNION_PROFILES = ("foundation", "python-product")
+_PRODUCT_UNION_PROFILES = ("foundation", "python-product", "gitops")
 
 # New branches: chore/devinfra-sync-<shortsha>. Legacy rolling name also matches.
 SYNC_BRANCH_PREFIX = "chore/devinfra-sync"
