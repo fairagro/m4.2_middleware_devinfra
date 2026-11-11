@@ -22,6 +22,7 @@ ARG HADOLINT_VERSION
 ARG CST_VERSION
 ARG GITLEAKS_VERSION
 ARG ACTIONLINT_VERSION
+ARG KUBECONFORM_VERSION
 ARG TRIVY_VERSION
 ARG RENOVATE_VERSION
 ARG GIT_CLIFF_VERSION
@@ -118,6 +119,10 @@ RUN curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAK
 # ── actionlint (GitHub Actions workflow lint; commit-stage + reusable code-quality)
 RUN curl -fsSL "https://github.com/rhysd/actionlint/releases/download/${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION#v}_linux_amd64.tar.gz" \
         | tar -xz -C /usr/local/bin actionlint && chmod +x /usr/local/bin/actionlint
+
+# ── kubeconform (opt-in manifest schema check after helm template; consumer CI)
+RUN curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+        | tar -xz -C /usr/local/bin kubeconform && chmod +x /usr/local/bin/kubeconform
 
 # ── Trivy ─────────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/${TRIVY_VERSION}/trivy_${TRIVY_VERSION#v}_Linux-64bit.tar.gz" \

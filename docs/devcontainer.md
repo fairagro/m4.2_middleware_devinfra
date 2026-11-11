@@ -67,11 +67,11 @@ non-zero). Do **not** edit synced JSON `postCreate` for LFS.
 
 ### Pin ownership (product vs Infra)
 
-| Bucket                       | Examples                                                                                                                                                              | Notes                                                                                                         |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Shared / foundation-eligible | Helm, **minikube** (current product local cluster), git-lfs (eligible, not required install today), Node/npm/OpenSpec/Prettier/markdownlint, gitleaks, starship, yq/… | Intent buckets in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352--354); one file `versions.env` |
-| python-product               | Python/uv, CST, Trivy, Renovate CLI, git-cliff, product-app pins                                                                                                      | Same `versions.env` + this image                                                                              |
-| Infra-owned until adoption   | argocd, **kind**, **ct** (chart-testing)                                                                                                                              | Infra GitOps image only                                                                                       |
+| Bucket                       | Examples                                                                                                                                                                               | Notes                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Shared / foundation-eligible | Helm, **minikube** (current product local cluster), git-lfs (eligible, not required install today), Node/npm/OpenSpec/Prettier/markdownlint, gitleaks, **kubeconform**, starship, yq/… | Intent buckets in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352--354); one file `versions.env` |
+| python-product               | Python/uv, CST, Trivy, Renovate CLI, git-cliff, product-app pins                                                                                                                       | Same `versions.env` + this image                                                                              |
+| Infra-owned until adoption   | argocd, **kind**, **ct** (chart-testing)                                                                                                                                               | Infra GitOps image only                                                                                       |
 
 Replacing product **minikube → kind** is a separate Feature
 ([#364](https://github.com/fairagro/m4.2_middleware_devinfra/issues/364)); API local smoke docs:
@@ -117,7 +117,7 @@ git-cliff --version
 | GitHub / Node   | `gh`, Node, pinned `npm`, OpenSpec, Prettier, markdownlint-cli2, Renovate                      |
 | Release bump    | `git-cliff` (`GIT_CLIFF_VERSION`; `scripts/detect-version-bump.sh` for `version_bump=auto`)    |
 | Python          | `uv` + pinned Python; quality CLIs via `uv sync` / pre-commit (ruff, …)                        |
-| Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`, `actionlint`                                          |
+| Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`, `actionlint`, `kubeconform`                           |
 | K8s             | `kubectl`, `helm`, `minikube`                                                                  |
 | Secrets tooling | `sops`, `age`, `gpg` (ciphertext / `.sops.yaml` / `public_gpg_keys` **content** stay per repo) |
 | Containers      | DinD feature, `container-structure-test` (`cst`), `trivy`                                      |

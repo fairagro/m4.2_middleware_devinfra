@@ -312,6 +312,16 @@
       "depNameTemplate": "rhysd/actionlint",
       "extractVersionTemplate": "^v?(?<version>.*)$",
       "autoReplaceStringTemplate": "ACTIONLINT_VERSION=v{{newValue}}"
+    },
+    {
+      "description": "kubeconform pin in versions.env",
+      "customType": "regex",
+      "managerFilePatterns": ["/^versions\\.env$/"],
+      "matchStrings": ["KUBECONFORM_VERSION=v(?<currentValue>[^\\s#]+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "yannh/kubeconform",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "autoReplaceStringTemplate": "KUBECONFORM_VERSION=v{{newValue}}"
     }
   ],
 

@@ -12,6 +12,8 @@ Not every file under `scripts/` is Dev Container-only. Personal-token helpers ar
 | `quality-check.sh` / `quality-fix.sh` | Host or Dev Container  | Needs `uv`. Commit-stage also runs `npm run lint:md` (Node/`npm`; host: `npm install`). Secret scan needs `gitleaks` on `PATH` (`GITLEAKS_VERSION` / `scripts/install-gitleaks.sh`). |
 | `install-gitleaks.sh`                 | Host or CI             | Installs pinned `gitleaks` from `versions.env`                                                                                                                                       |
 | `install-actionlint.sh`               | Host or CI             | Installs pinned `actionlint` from `versions.env`                                                                                                                                     |
+| `install-kubeconform.sh`              | Host or CI             | Installs pinned `kubeconform` from `versions.env`                                                                                                                                    |
+| `run-kubeconform.sh`                  | Host or Dev Container  | Opt-in schema check on rendered manifests (stdin/files); needs `kubeconform` on `PATH`; does **not** run `helm template`                                                             |
 | `run-container-structure-test.sh`     | Host or Dev Container  | Needs Docker + `container-structure-test`                                                                                                                                            |
 | `run-quality-cli.sh`                  | Host or Dev Container  | `uv run --with-requirements scripts/quality-tools-pins.txt` for fleet quality CLIs                                                                                                   |
 | `run-import-linter.sh`                | Host or Dev Container  | Product `.importlinter`; soft-skips without `middleware/`; uses `run-quality-cli.sh`                                                                                                 |
@@ -119,6 +121,7 @@ products may drop a duplicate `--extension-pkg-allow-list=lxml` CLI flag — tha
 | import-linter           | **hooks + CI only**                                 | `.importlinter`      | yes | Named IDE exception; **product-owned** config — see below                                  |
 | uv audit                | **hooks + CI only**                                 | — (CLI + overlay)    | yes | Named IDE exception; frozen lockfile CVE gate; needs OSV network — see below               |
 | Helm lint               | **hooks + Feature-PR CI only**                      | yes                  | yes | Named IDE exception; local `run-helm-lint.sh`; CI is `reusable-helm-lint.yml` — see below  |
+| kubeconform             | **opt-in consumer CI** (not product hooks)          | —                    | —   | After `helm template`; shared pin/runner — see kubeconform note below                      |
 | pytest                  | IDE via `pyproject.toml` `testpaths`                | pre-push             | yes | Synced `pytestArgs` stay `[]` — do not hardcode roots in settings                          |
 
 **Bandit severity (named exception):** `.bandit` has no fail-on-severity key. Hooks use Bandit’s `-ll` (report MEDIUM+
@@ -139,6 +142,13 @@ and in the pipeline — do **not** pin via a pre-commit `rev`. Hook files: `.git
 [`.github/actionlint.yaml`](../.github/actionlint.yaml) (not synced) to ignore false positives on the intentional
 `$/.github/workflows/…` self-repo reusable `uses:` form ([docs/ci.md](ci.md)). Escape hatch for local hooks only:
 `SKIP=actionlint`.
+
+**kubeconform (opt-in manifest schema check):** validates **rendered** Kubernetes YAML against OpenAPI schemas. Pin is
+`KUBECONFORM_VERSION` in `versions.env` (product Dev Container image + `scripts/install-kubeconform.sh`). Thin runner:
+[`scripts/run-kubeconform.sh`](../scripts/run-kubeconform.sh) (file args and/or stdin; extra flags pass through). This
+is **not** part of product `run-helm-lint.sh` or shared helm-lint pre-commit hooks — `helm lint` / template smoke only
+prove charts render. Consumers (e.g. Infra after a template matrix) own CRD schemas and flags such as
+`-ignore-missing-schemas`. Example: `helm template ci ./charts/app | bash scripts/run-kubeconform.sh -summary`.
 
 **gitleaks (secret scan):** commit-stage hook (`gitleaks protect --staged`) and reusable code-quality
 (`gitleaks detect --source . --no-git --verbose --redact`) use the binary pinned as `GITLEAKS_VERSION` in `versions.env`
@@ -226,6 +236,8 @@ lazy imports solely to break cycles) stay principles / other tools / `/code-revi
 | `scripts/quality-tools-pins.txt`                    | Fleet pins for ruff/mypy/pylint/bandit/vulture/import-linter (hooks + CI)                                       |
 | `scripts/install-gitleaks.sh`                       | Install pinned `gitleaks` from `versions.env` (CI / host)                                                       |
 | `scripts/install-actionlint.sh`                     | Install pinned `actionlint` from `versions.env` (CI / host)                                                     |
+| `scripts/install-kubeconform.sh`                    | Install pinned `kubeconform` from `versions.env` (CI / host)                                                    |
+| `scripts/run-kubeconform.sh`                        | Opt-in kubeconform runner (stdin/files; no helm discovery)                                                      |
 | `.gitleaksignore`                                   | Synced gitleaks allowlist (false positives only)                                                                |
 | `scripts/run-uv-audit.sh`                           | Frozen `uv audit` + optional product `.uv-audit-ignore` (hooks + CI)                                            |
 | `.importlinter`                                     | Product-owned import-linter config (fleet-required settings in this doc) — **not** synced from Devinfra         |
