@@ -22,8 +22,8 @@ is no top-level flat `allow`. The workflow does **not** maintain a second path l
 Infra pre-commit root via **`infra-consumer`** (`.pre-commit-config.infrastructure.yaml`); with **`gitops`**, also
 `scripts/run-helm-lint.sh` — **not** Renovate/`versions.env`, **`.devcontainer/*`**, or the python-product
 `.pre-commit-config.yaml` (Renovate on Infra is #354). Infra **keeps** its fat GitOps Dev Container (argocd / kind /
-chart-testing / …) until a dedicated **adoption** issue; sync must never Wave-A-overwrite it with the product blob
-([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
+chart-testing / …) until a dedicated **adoption** issue; sync must never overwrite it with the verbatim product Dev
+Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
 
 ## Dev Container overlay + pin ownership (#352)
 
@@ -37,11 +37,12 @@ chart-testing / …) until a dedicated **adoption** issue; sync must never Wave-
 
 Planned product toolchain swap **minikube → kind** is **not** part of the #352 contract:
 [Devinfra #364](https://github.com/fairagro/m4.2_middleware_devinfra/issues/364), API smoke docs
-[api#670](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/670). **Consumer-safe links (synced
-Markdown):** after sync, relative links only resolve for paths that also ship in the product checkout. Synced docs MUST
-NOT use in-repo relative links (`../…`) to targets outside `allow` (minus `exclude`). Point at Devinfra with absolute
-GitHub URLs (`…/fairagro/m4.2_middleware_devinfra/blob/main/…`), or keep a plain non-linked path name. Do **not** “fix”
-broken links by adding Devinfra-only automation to the product allowlist
+[api#670](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/670).
+
+**Consumer-safe links (synced Markdown):** after sync, relative links only resolve for paths that also ship in the
+product checkout. Synced docs MUST NOT use in-repo relative links (`../…`) to targets outside `allow` (minus `exclude`).
+Point at Devinfra with absolute GitHub URLs (`…/fairagro/m4.2_middleware_devinfra/blob/main/…`), or keep a plain
+non-linked path name. Do **not** “fix” broken links by adding Devinfra-only automation to the product allowlist
 ([#86](https://github.com/fairagro/m4.2_middleware_devinfra/issues/86)).
 
 Tracks [#13](https://github.com/fairagro/m4.2_middleware_devinfra/issues/13).
