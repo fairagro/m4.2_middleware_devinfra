@@ -24,8 +24,26 @@ fi
 
 echo "run-kubeconform: using $(command -v kubeconform) pin=${pin:-unset}" >&2
 
-# No file args and stdin is a TTY → show usage (kubeconform alone may hang waiting for stdin).
-if [[ $# -eq 0 && -t 0 ]]; then
+# TTY + no manifest paths → usage (flags-only like `-summary` would otherwise hang on stdin).
+# Piped stdin and/or positional paths (including after `--`) are fine.
+has_manifest_arg=0
+seen_dd=0
+for arg in "$@"; do
+  if [[ "${seen_dd}" -eq 1 ]]; then
+    has_manifest_arg=1
+    break
+  fi
+  if [[ "${arg}" == "--" ]]; then
+    seen_dd=1
+    continue
+  fi
+  if [[ "${arg}" != -* ]]; then
+    has_manifest_arg=1
+    break
+  fi
+done
+
+if [[ -t 0 && "${has_manifest_arg}" -eq 0 ]]; then
   echo "run-kubeconform: pass manifest files and/or pipe YAML on stdin; extra args are forwarded to kubeconform." >&2
   echo "run-kubeconform: example: helm template ci ./charts/app | bash scripts/run-kubeconform.sh -summary" >&2
   exit 1
