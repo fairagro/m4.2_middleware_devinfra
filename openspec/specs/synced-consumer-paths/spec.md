@@ -71,9 +71,9 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
-install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST NOT
-include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
-`infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
+install/ignore, **actionlint install**, and the Node markdown / commitlint manifests used by those hooks). The
+`foundation` profile MUST NOT include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only
+profile such as `infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
 **python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
 (`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired) and that Renovate
 on Infra is a later slice.
@@ -93,6 +93,12 @@ on Infra is a later slice.
   `gitops` + an Infra-only profile for `.pre-commit-config.infrastructure.yaml`)
 - **AND** python-product repos list `foundation`, `python-product`, and `gitops` (or equivalent union that preserves
   today’s product hook set including helm-lint)
+
+#### Scenario: Foundation allowlists actionlint install helper
+
+- **WHEN** a contributor inspects the `foundation` profile allow list for quality install helpers
+- **THEN** `scripts/install-actionlint.sh` is listed (alongside gitleaks install)
+- **AND** `versions.env` remains off `foundation` (python-product / later Infra Renovate slice)
 
 ### Requirement: Workspace extensions recommendations are allowlisted
 
