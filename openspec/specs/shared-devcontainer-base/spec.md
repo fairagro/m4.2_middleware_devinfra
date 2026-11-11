@@ -25,11 +25,11 @@ and/or `docs/quality.md`) MUST name actionlint among shared CLI tools.
 
 The repository MUST provide `.devcontainer/Dockerfile` and repo-root `versions.env` (consumed via Compose build-args /
 `.devcontainer/.env` symlink) that define the **shared product Dev Container toolchain** used by the three m4.2 product
-repos: base image pin, Python/uv, Node/OpenSpec, GitHub CLI prerequisites, **jq**, **yq**, **xq**, hadolint, Starship,
-container-structure-test, yamlfmt, kubectl, Helm, Minikube, **SOPS**, **age**, **gnupg** (gpg on `PATH`),
-**default-jre-headless** (or equivalent JRE), **graphviz**, **Trivy**, and the **Renovate** CLI, plus **Prettier** and
-**markdownlint-cli2** (global CLI pins in `versions.env`). The shared image MUST NOT require difftastic and MUST NOT
-require **Git LFS** (`git-lfs` MUST NOT be a required shared apt/package install; MUST NOT run
+repos: base image pin, Python/uv, Node/OpenSpec, GitHub CLI prerequisites, **jq**, **yq**, **xq**, hadolint,
+**actionlint**, Starship, container-structure-test, yamlfmt, kubectl, Helm, Minikube, **SOPS**, **age**, **gnupg** (gpg
+on `PATH`), **default-jre-headless** (or equivalent JRE), **graphviz**, **Trivy**, and the **Renovate** CLI, plus
+**Prettier** and **markdownlint-cli2** (global CLI pins in `versions.env`). The shared image MUST NOT require difftastic
+and MUST NOT require **Git LFS** (`git-lfs` MUST NOT be a required shared apt/package install; MUST NOT run
 `git lfs install --system` as part of the shared image build). Exact tool versions MUST live only in `versions.env` (one
 pin source), except distro packages (e.g. `jq`, `gnupg`, JRE, graphviz) installed from the base image’s package manager
 without a separate `versions.env` pin. **yq** (mikefarah), **xq** (XML query CLI), and **Trivy** MUST be pinned in

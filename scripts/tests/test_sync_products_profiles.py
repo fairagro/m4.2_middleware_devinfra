@@ -46,6 +46,8 @@ def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
     assert "scripts/ai/**" in foundation
     assert ".agents/skills/uv/**" in foundation
     assert "scripts/bin/m42-ai" in foundation
+    assert "scripts/install-gitleaks.sh" in foundation
+    assert "scripts/install-actionlint.sh" in foundation
     assert ".pre-commit-config.infrastructure.yaml" not in foundation
     assert "renovate.json" not in foundation
     assert "versions.env" not in foundation
