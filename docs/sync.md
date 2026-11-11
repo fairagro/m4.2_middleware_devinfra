@@ -20,20 +20,25 @@ is no top-level flat `allow`. The workflow does **not** maintain a second path l
 
 **Foundation / Infra:** skills, commands, prompts, skill docs, `scripts/ai/**`, `m42-ai`, token helpers + hook helpers;
 Infra pre-commit root via **`infra-consumer`** (`.pre-commit-config.infrastructure.yaml`); with **`gitops`**, also
-`scripts/run-helm-lint.sh` — **not** Renovate/`versions.env`, **`.devcontainer/*`**, or the python-product
-`.pre-commit-config.yaml` (Renovate on Infra is #354). Infra **keeps** its fat GitOps Dev Container (argocd / kind /
+`scripts/run-helm-lint.sh`; with **`foundation`**, also Renovate artifacts + `versions.env` (#354). Sync does **not**
+copy product **`.devcontainer/*`**, `.python-version`, or the python-product `.pre-commit-config.yaml` to Infra. Unused
+pins in `versions.env` on Infra do not install tools. Infra **keeps** its fat GitOps Dev Container (argocd / kind /
 chart-testing / …) until a dedicated **adoption** issue; sync must never overwrite it with the verbatim product Dev
-Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
+Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)). Live Infra sync stays skipped
+by default until the bot checklist in
+[`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure).
 
-## Dev Container overlay + pin ownership (#352)
+## Dev Container overlay + pin ownership (#352 / #354)
 
-| Surface                                    | Who                                                                                                                                                                                       | Notes                                                     |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Product `.devcontainer/*` + `versions.env` | **`python-product` only** (api / sql_to_arc / harvester)                                                                                                                                  | Verbatim sync; see [`devcontainer.md`](devcontainer.md)   |
-| Infra GitOps Dev Container                 | **Infra-owned** until adoption                                                                                                                                                            | Not on `foundation` / `gitops` / `infra-consumer` allow   |
-| Shared / foundation-eligible pins (intent) | Helm, **minikube** (product local-cluster **today**), **git-lfs** (shared-eligible; product image still does **not** require git-lfs install — see `devcontainer.md`) + other shared CLIs | File split of `versions.env` is later (#354 / follow-ups) |
-| python-product pins                        | Python/uv, CST, Trivy, Renovate, git-cliff, product-app Alpine/pip/pyinstaller, …                                                                                                         | On product `versions.env` via sync                        |
-| Infra-owned until adoption                 | **argocd**, **kind**, **ct** (chart-testing)                                                                                                                                              | Stay on Infra’s image                                     |
+| Surface                                       | Who                                                       | Notes                                                                   |
+| --------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Product `.devcontainer/*` + `.python-version` | **`python-product` only** (api / sql_to_arc / harvester)  | Verbatim sync; see [`devcontainer.md`](devcontainer.md)                 |
+| Infra GitOps Dev Container                    | **Infra-owned** until adoption                            | Not on `foundation` / `gitops` / `infra-consumer` allow                 |
+| Pin file `versions.env`                       | **`foundation`** (products + Infra)                       | One pin SoT; unused keys on Infra are no-ops until something reads them |
+| Renovate config + workflow                    | **`foundation`** (products + Infra)                       | `renovate.json`, `.github/workflows/renovate.yml`, `docs/renovate.md`   |
+| Shared / foundation-eligible pin _intent_     | Helm, **minikube** (today), git-lfs eligible, shared CLIs | Documented buckets; still one file                                      |
+| python-product pin _intent_                   | Python/uv, CST, Trivy, Renovate CLI, git-cliff, …         | Same `versions.env`; product image/hooks consume them                   |
+| Infra-owned until adoption                    | **argocd**, **kind**, **ct** (chart-testing)              | Stay on Infra’s image                                                   |
 
 Planned product toolchain swap **minikube → kind** is **not** part of the #352 contract:
 [Devinfra #364](https://github.com/fairagro/m4.2_middleware_devinfra/issues/364), API smoke docs
@@ -86,7 +91,7 @@ the YAML, the YAML wins.
 | Sync / AI policy + skill docs     | `foundation`     | `docs/sync.md`, `docs/synced-paths.yaml`, `docs/ai_review_policy.md`, skill docs (`review-fixer`, …)                                                                                                                                                                                                                                                         |
 | Agent skills / commands / prompts | `foundation`     | `.agents/skills/{issue-fixer,review-fixer,create-issue,code-review,arctrl,gh,docker,hadolint,uv}/**`, `.cursor/commands/*`, prompts                                                                                                                                                                                                                          |
 | `m42-ai` + token helpers          | `foundation`     | `scripts/ai/**`, `scripts/bin/{gh,git,m42-ai}`, `scripts/{dev-tokens,set-dev-tokens}.sh`                                                                                                                                                                                                                                                                     |
-| Quality / CI / Dev Container docs | `python-product` | `docs/quality.md`, `docs/devcontainer.md`, `docs/ci.md`, `docs/renovate.md`, …                                                                                                                                                                                                                                                                               |
+| Quality / CI / Dev Container docs | split            | `docs/renovate.md` on `foundation`; `docs/quality.md`, `docs/devcontainer.md`, `docs/ci.md`, … on `python-product`                                                                                                                                                                                                                                           |
 | Shell wrappers `k`/`d`            | `python-product` | `scripts/bin/{k,d}`                                                                                                                                                                                                                                                                                                                                          |
 | Quality scripts / hooks           | `python-product` | `scripts/quality-{check,fix}.sh`, `scripts/setup-git-hooks.sh`, `scripts/git-hooks/**`, `scripts/update-dockerfile-pins.sh`, `scripts/prune-merged-branches.sh`, `scripts/devcontainer-post-create.sh`, `scripts/import-public-gpg-keys.sh`, `scripts/detect-version-bump.sh`, `scripts/generate-release-changelog.sh`, `scripts/install-{git-cliff,cst}.sh` |
 | Pre-commit configs                | split            | product `.pre-commit-config.yaml` (`python-product`); Infra `.pre-commit-config.infrastructure.yaml` (`infra-consumer` only); helpers on `foundation` — see `docs/quality.md`                                                                                                                                                                                |
@@ -94,8 +99,8 @@ the YAML, the YAML wins.
 | Helm lint runner                  | `gitops`         | `scripts/run-helm-lint.sh`                                                                                                                                                                                                                                                                                                                                   |
 | Markdown / commitlint baseline    | `foundation`     | `.markdownlint*`, `.prettier*`, `package.json`, `package-lock.json`, `commitlint.config.cjs` (IDE: `.vscode/*`, `.cursorrules`, `cliff.toml` stay `python-product`)                                                                                                                                                                                          |
 | Fleet ignore baseline             | `python-product` | root `.gitignore` (incl. `.docker/buildx/` + token-seed runtime; product-only paths → nested `.gitignore`; see Overlays)                                                                                                                                                                                                                                     |
-| Dev Container / image pins        | `python-product` | `.devcontainer/{Dockerfile,devcontainer.json,docker-compose.yml,starship.toml}`, `versions.env`, `.python-version`, `docker/Dockerfile.product-app.base`                                                                                                                                                                                                     |
-| Renovate                          | `python-product` | `renovate.json`, `.github/workflows/renovate.yml`                                                                                                                                                                                                                                                                                                            |
+| Dev Container / image pins        | split            | `.devcontainer/{Dockerfile,devcontainer.json,docker-compose.yml,starship.toml}`, `.python-version`, `docker/Dockerfile.product-app.base` on `python-product`; `versions.env` on `foundation`                                                                                                                                                                 |
+| Renovate                          | `foundation`     | `renovate.json`, `.github/workflows/renovate.yml`, `docs/renovate.md`                                                                                                                                                                                                                                                                                        |
 | Global prose SoT                  | `python-product` | `docs/surface-quality-bar.global.md`, `openspec/principles.global.md`                                                                                                                                                                                                                                                                                        |
 
 **Hard excludes / never overwrite:** see `exclude` and `overlays` in the YAML (e.g. `.devcontainer/product.env`,
@@ -124,8 +129,9 @@ first-party packages ([`docs/quality.md`](quality.md)).
 | `harvester`      | `fairagro/m4.2_middleware_harvester`    | `foundation` + `python-product` + `gitops` |
 | `infrastructure` | `fairagro/m4.2_infrastructure`          | `foundation` + `gitops` + `infra-consumer` |
 
-Push runs **skip** `infrastructure` by default until bot access / adoption (#354). Dispatch can unskip for dry-run or
-live once the token covers Infra.
+Push runs **skip** `infrastructure` by default until operators complete the Slice-2 bot checklist
+([`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure)). Dispatch can dry-run or unskip
+Infra once the PAT covers that repo and the Infra secret is set.
 
 ## Triggers
 

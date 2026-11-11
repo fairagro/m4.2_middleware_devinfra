@@ -67,11 +67,11 @@ non-zero). Do **not** edit synced JSON `postCreate` for LFS.
 
 ### Pin ownership (product vs Infra)
 
-| Bucket                       | Examples                                                                                                                                                              | Notes                                                                     |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Shared / foundation-eligible | Helm, **minikube** (current product local cluster), git-lfs (eligible, not required install today), Node/npm/OpenSpec/Prettier/markdownlint, gitleaks, starship, yq/… | Full table: [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352) |
-| python-product               | Python/uv, CST, Trivy, Renovate, git-cliff, product-app pins                                                                                                          | This image + `versions.env`                                               |
-| Infra-owned until adoption   | argocd, **kind**, **ct** (chart-testing)                                                                                                                              | Infra GitOps image only                                                   |
+| Bucket                       | Examples                                                                                                                                                              | Notes                                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Shared / foundation-eligible | Helm, **minikube** (current product local cluster), git-lfs (eligible, not required install today), Node/npm/OpenSpec/Prettier/markdownlint, gitleaks, starship, yq/… | Intent buckets in [`sync.md`](sync.md#dev-container-overlay--pin-ownership-352--354); one file `versions.env` |
+| python-product               | Python/uv, CST, Trivy, Renovate CLI, git-cliff, product-app pins                                                                                                      | Same `versions.env` + this image                                                                              |
+| Infra-owned until adoption   | argocd, **kind**, **ct** (chart-testing)                                                                                                                              | Infra GitOps image only                                                                                       |
 
 Replacing product **minikube → kind** is a separate Feature
 ([#364](https://github.com/fairagro/m4.2_middleware_devinfra/issues/364)); API local smoke docs:

@@ -2,23 +2,6 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Canonical renovate.json in Devinfra
-
-The repository MUST provide a root `renovate.json` (or equivalent Renovate config file) that enables managers needed for
-shared and product layouts (at least dockerfile, devcontainer, pep621, github-actions, and custom regex for
-`versions.foundation.env` / `versions.env` / related pins). The config MUST be suitable as the shared source of truth
-for sync (#13): unused managers or regexes MUST be harmless when matching files are absent (including on Infra, which
-lacks python-product pin files and Dev Container entrypoints). Product-specific overlays MAY be added later via
-`extends` or thin local files; this change MUST keep a complete Devinfra config covering both pin files without
-duplicate keys managed in both files.
-
-#### Scenario: Contributor opens renovate.json
-
-- **WHEN** a contributor opens root `renovate.json` in Devinfra
-- **THEN** they find enabled managers covering Docker, Dev Container, Python/uv (pep621), GitHub Actions, and regex pins
-  for `versions.foundation.env` and `versions.env`
-- **AND** the file is valid against the Renovate schema (or documented equivalent)
-
 ### Requirement: Renovate documentation covers token, dry-run, and Dependabot migration
 
 The repository MUST document: (1) creating `DEVINFRA_BOT_TOKEN` as a GitHub Actions repository secret (fine-grained PAT
@@ -28,12 +11,12 @@ dry-run using the Dev Container pinned `renovate` against the shared config; (3)
 Dependabot **version update** config (`dependabot.yml`) after Renovate is green; keep Dependabot **alerts**; prefer
 Renovate for dependency update PRs (avoid dual general updaters); turn off Dependabot **security update** PRs when
 Renovate owns vulnerability remediation so only one bot opens fix PRs; (4) sync/adoption via #13 for API / sql-to-arc /
-harvester **and** `m4.2_infrastructure` (foundation Renovate + `versions.foundation.env`); (5) that shared Renovate
-enables `vulnerabilityAlerts` and `osvVulnerabilityAlerts`, with OSV limited to direct dependencies on supported
-datasources, and that neither knob consumes Trivy / Code Scanning SARIF; (6) the operator **checklist** to grant the bot
-PAT access to Infra, set `DEVINFRA_BOT_TOKEN` on Infra, run Infra sync dry-run then enable live sync, and note Infra#80;
-(7) an Infra Dependabot wind-down **plan** (docs only in Devinfra — Infra deletes its version-update config locally
-after Renovate is green). The root README Docs index (or CI/Dev Container docs) MUST link to this documentation.
+harvester **and** `m4.2_infrastructure` (foundation Renovate + `versions.env`); (5) that shared Renovate enables
+`vulnerabilityAlerts` and `osvVulnerabilityAlerts`, with OSV limited to direct dependencies on supported datasources,
+and that neither knob consumes Trivy / Code Scanning SARIF; (6) the operator **checklist** to grant the bot PAT access
+to Infra, set `DEVINFRA_BOT_TOKEN` on Infra, run Infra sync dry-run then enable live sync, and note Infra#80; (7) an
+Infra Dependabot wind-down **plan** (docs only in Devinfra — Infra deletes its version-update config locally after
+Renovate is green). The root README Docs index (or CI/Dev Container docs) MUST link to this documentation.
 
 #### Scenario: Operator prepares Renovate on a new repo
 
@@ -48,7 +31,7 @@ after Renovate is green). The root README Docs index (or CI/Dev Container docs) 
 
 - **WHEN** an operator follows the Infra Slice-2 checklist in Renovate or sync docs
 - **THEN** they learn to extend PAT access to `fairagro/m4.2_infrastructure` and set the Infra secret
-- **AND** they learn to dry-run then enable Infra sync for Renovate + `versions.foundation.env`
+- **AND** they learn to dry-run then enable Infra sync for Renovate + `versions.env`
 - **AND** they find the Dependabot wind-down plan for Infra after Renovate is green
 
 ### Requirement: Bot token is shared with product sync under one secret name
@@ -72,24 +55,24 @@ as an alternate.
 The shared `renovate.json` MUST disable dependency updates in the three product repositories
 (`fairagro/m4.2_advanced_middleware_api`, `fairagro/m4.2_sql_to_arc`, `fairagro/m4.2_middleware_harvester`) and in
 `fairagro/m4.2_infrastructure` for paths and packages owned by Devinfra and delivered via sync (#13). For products that
-includes at least: `versions.foundation.env`, `versions.env`, `.python-version`, `docker/Dockerfile.product-app.base`,
-`.devcontainer/Dockerfile`, `renovate.json`, `.github/workflows/renovate.yml`, `.github/workflows/codeql.yml`, and the
-BuildKit frontend package `docker/dockerfile`. For Infra that includes at least: `versions.foundation.env`,
-`renovate.json`, and `.github/workflows/renovate.yml`. Those updates MUST continue to run in Devinfra. Consumer-local
-managers (e.g. product pep621 under `middleware/`, Infra-local Dockerfiles / workflows not on the skip list) MUST remain
-enabled in those repos.
+includes at least: `versions.env`, `.python-version`, `docker/Dockerfile.product-app.base`, `.devcontainer/Dockerfile`,
+`renovate.json`, `.github/workflows/renovate.yml`, `.github/workflows/codeql.yml`, and the BuildKit frontend package
+`docker/dockerfile`. For Infra that includes at least: `versions.env`, `renovate.json`, and
+`.github/workflows/renovate.yml`. Those updates MUST continue to run in Devinfra. Consumer-local managers (e.g. product
+pep621 under `middleware/`, Infra-local Dockerfiles / workflows not on the skip list) MUST remain enabled in those
+repos.
 
 #### Scenario: Product Renovate does not open versions.env CLI bump PRs
 
 - **WHEN** Renovate runs in a product repo with the shared config
-- **AND** newer GitHub-release CLI pins exist for entries in `versions.env` or `versions.foundation.env`
-- **THEN** it does not open a PR that only updates those synced pin files
+- **AND** newer GitHub-release CLI pins exist for entries in `versions.env`
+- **THEN** it does not open a PR that only updates that synced `versions.env` file
 
-#### Scenario: Infra Renovate does not bump synced foundation pins
+#### Scenario: Infra Renovate does not bump synced versions.env
 
 - **WHEN** Renovate runs in `m4.2_infrastructure` with the shared config
-- **AND** newer pins exist for entries in `versions.foundation.env`
-- **THEN** it does not open a PR that only updates that synced foundation pin file
+- **AND** newer pins exist for entries in `versions.env`
+- **THEN** it does not open a PR that only updates that synced pin file
 
 #### Scenario: Product Renovate does not bump docker/dockerfile syntax tags
 

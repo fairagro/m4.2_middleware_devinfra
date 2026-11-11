@@ -68,22 +68,22 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
 install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST also
 allow Renovate config/workflow (`renovate.json`, `.github/workflows/renovate.yml`), Renovate docs (`docs/renovate.md`),
-and the foundation pin file (`versions.foundation.env`). The `foundation` profile MUST NOT include
-`.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as `infra-consumer`), the
-python-product pin file `versions.env`, `.python-version`, `.devcontainer/**`, the **python-product**
-`.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation (`docs/sync.md`) MUST state
-that Infra receives foundation (+ `gitops` / Infra-only profiles as wired), including Renovate + foundation pins, and
-that product `.devcontainer/**` is never part of the Infra sync set (Infra owns its GitOps image until adoption).
+and the pin file `versions.env`. The `foundation` profile MUST NOT include `.pre-commit-config.infrastructure.yaml`
+(that path MUST live on an Infra-only profile such as `infra-consumer`), `.python-version`, `.devcontainer/**`, the
+**python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
+(`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired), including
+Renovate + `versions.env`, that unused pins do not install tools by themselves, and that product `.devcontainer/**` is
+never part of the Infra sync set (Infra owns its GitOps image until adoption).
 
 #### Scenario: Foundation includes skills and m42-ai plumbing
 
 - **WHEN** a contributor inspects the `foundation` profile allow list
 - **THEN** agent skills (including `uv`), matching commands/prompts, skill docs, `scripts/ai/**`, and `m42-ai` / token
   helpers are listed
-- **AND** `renovate.json`, `.github/workflows/renovate.yml`, `docs/renovate.md`, and `versions.foundation.env` are
-  listed under `foundation`
-- **AND** `versions.env`, `.python-version`, Dev Container paths, and python-product `.pre-commit-config.yaml` are not
-  listed under `foundation`
+- **AND** `renovate.json`, `.github/workflows/renovate.yml`, `docs/renovate.md`, and `versions.env` are listed under
+  `foundation`
+- **AND** `.python-version`, Dev Container paths, and python-product `.pre-commit-config.yaml` are not listed under
+  `foundation`
 
 #### Scenario: Infra target is foundation-only
 
@@ -94,23 +94,8 @@ that product `.devcontainer/**` is never part of the Infra sync set (Infra owns 
   today’s product hook set including helm-lint)
 - **AND** no `.devcontainer/**` path appears on any profile used by the `infrastructure` target
 
-#### Scenario: Infra effective allow includes Renovate and foundation pins
+#### Scenario: Infra effective allow includes Renovate and versions.env
 
 - **WHEN** sync or a test resolves the effective allow for the `infrastructure` target
-- **THEN** `renovate.json`, `.github/workflows/renovate.yml`, and `versions.foundation.env` are included
-- **AND** `versions.env` and `.python-version` are not included
-
-## ADDED Requirements
-
-### Requirement: Pin files split by profile
-
-`docs/synced-paths.yaml` MUST allowlist `versions.foundation.env` under `foundation` and MUST allowlist `versions.env`
-(and `.python-version`) under `python-product` only. Docs MUST state foundation-eligible pins live in
-`versions.foundation.env` and python-product pins in `versions.env`, with no intentional duplicate keys across files.
-
-#### Scenario: Profile split for pin files
-
-- **WHEN** a contributor inspects pin-file allowlist membership
-- **THEN** `versions.foundation.env` is on `foundation`
-- **AND** `versions.env` and `.python-version` are on `python-product` only
-- **AND** docs name the two-file pin split
+- **THEN** `renovate.json`, `.github/workflows/renovate.yml`, and `versions.env` are included
+- **AND** `.python-version` and `.devcontainer/**` paths are not included
