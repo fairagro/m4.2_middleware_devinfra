@@ -317,6 +317,8 @@ def resolve_files_at_ref(
     """Resolve allowlist file set as of git ``ref`` (YAML + tree at that ref).
 
     Default (no ``target`` / ``profile_names``): product-union profiles for the push gate.
+    When ``target`` is set but absent from that ref's YAML (e.g. ``infrastructure`` vs a
+    pre-profile flat allow), return an empty set so orphan deltas treat it as newly added.
     """
     try:
         yaml_text = git_show_text(ref, "docs/synced-paths.yaml", cwd=cwd)
@@ -327,7 +329,7 @@ def resolve_files_at_ref(
         names = profile_names
     elif target is not None:
         if target not in config.targets:
-            raise SystemExit(f"unknown sync target {target!r} at {ref}")
+            return []
         names = config.targets[target][1]
     else:
         names = product_union_profiles(config)

@@ -111,3 +111,23 @@ def test_resolve_head_infra_smaller_than_product_union(sync) -> None:
     assert infra_set <= product_set
     assert not any(p.startswith(".devcontainer/") for p in infra_set)
     assert any("scripts/ai/" in p or p.startswith("scripts/ai/") for p in infra_set)
+
+
+def test_missing_target_at_legacy_ref_is_empty(sync, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pre-profile YAML has no infrastructure key — orphan base must not abort."""
+    legacy = """
+allow:
+  - scripts/ai/**
+exclude: []
+overlays: []
+"""
+    monkeypatch.setattr(sync, "git_show_text", lambda *_a, **_k: legacy)
+    monkeypatch.setattr(sync, "git_ls_tree_files", lambda *_a, **_k: ["scripts/ai/x.py"])
+    assert sync.resolve_files_at_ref("fake-legacy", target="infrastructure") == []
+    api_files = sync.resolve_files_at_ref("fake-legacy", target="api")
+    assert [p.as_posix() for p in api_files] == ["scripts/ai/x.py"]
+    orphans = sync.orphan_paths(
+        sync.resolve_files_at_ref("fake-legacy", target="infrastructure"),
+        [Path("scripts/ai/x.py")],
+    )
+    assert orphans == []
