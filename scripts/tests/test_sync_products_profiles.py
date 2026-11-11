@@ -73,6 +73,13 @@ def test_infra_allow_omits_product_pre_commit_root(sync) -> None:
     assert ".pre-commit-config.yaml" not in infra
     assert "scripts/run-helm-lint.sh" in infra
     assert "ruff.toml" not in infra
+    # #352: product Dev Container never on Infra profiles
+    assert ".devcontainer/Dockerfile" not in infra
+    assert ".devcontainer/devcontainer.json" not in infra
+    assert not any(p.startswith(".devcontainer/") for p in infra)
+    for profile in ("foundation", "gitops", "infra-consumer"):
+        allow = set(sync.effective_allow(config, (profile,)))
+        assert not any(p.startswith(".devcontainer/") for p in allow)
 
 
 def test_legacy_flat_allow_still_loads(sync) -> None:

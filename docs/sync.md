@@ -15,13 +15,29 @@ extras) are **not** deleted.
 follow-up ensure while it is foundation-only.
 
 **Sole path SoT:** [`docs/synced-paths.yaml`](synced-paths.yaml) defines **`profiles`** (`foundation`, `python-product`,
-`gitops`), **`targets`** (repo + profile list), and the hard denylist (`exclude` / `overlays`). There is no top-level
-flat `allow`. The workflow does **not** maintain a second path list (no `paths:` filter).
+`gitops`, `infra-consumer`), **`targets`** (repo + profile list), and the hard denylist (`exclude` / `overlays`). There
+is no top-level flat `allow`. The workflow does **not** maintain a second path list (no `paths:` filter).
 
 **Foundation / Infra:** skills, commands, prompts, skill docs, `scripts/ai/**`, `m42-ai`, token helpers + hook helpers;
 Infra pre-commit root via **`infra-consumer`** (`.pre-commit-config.infrastructure.yaml`); with **`gitops`**, also
-`scripts/run-helm-lint.sh` — **not** Renovate/`versions.env`, `.devcontainer/*`, or the python-product
-`.pre-commit-config.yaml` (Renovate on Infra is #354).
+`scripts/run-helm-lint.sh` — **not** Renovate/`versions.env`, **`.devcontainer/*`**, or the python-product
+`.pre-commit-config.yaml` (Renovate on Infra is #354). Infra **keeps** its fat GitOps Dev Container (argocd / kind /
+chart-testing / …) until a dedicated **adoption** issue; sync must never overwrite it with the verbatim product Dev
+Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)).
+
+## Dev Container overlay + pin ownership (#352)
+
+| Surface                                    | Who                                                                                                                                                                                       | Notes                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Product `.devcontainer/*` + `versions.env` | **`python-product` only** (api / sql_to_arc / harvester)                                                                                                                                  | Verbatim sync; see [`devcontainer.md`](devcontainer.md)   |
+| Infra GitOps Dev Container                 | **Infra-owned** until adoption                                                                                                                                                            | Not on `foundation` / `gitops` / `infra-consumer` allow   |
+| Shared / foundation-eligible pins (intent) | Helm, **minikube** (product local-cluster **today**), **git-lfs** (shared-eligible; product image still does **not** require git-lfs install — see `devcontainer.md`) + other shared CLIs | File split of `versions.env` is later (#354 / follow-ups) |
+| python-product pins                        | Python/uv, CST, Trivy, Renovate, git-cliff, product-app Alpine/pip/pyinstaller, …                                                                                                         | On product `versions.env` via sync                        |
+| Infra-owned until adoption                 | **argocd**, **kind**, **ct** (chart-testing)                                                                                                                                              | Stay on Infra’s image                                     |
+
+Planned product toolchain swap **minikube → kind** is **not** part of the #352 contract:
+[Devinfra #364](https://github.com/fairagro/m4.2_middleware_devinfra/issues/364), API smoke docs
+[api#670](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/670).
 
 **Consumer-safe links (synced Markdown):** after sync, relative links only resolve for paths that also ship in the
 product checkout. Synced docs MUST NOT use in-repo relative links (`../…`) to targets outside `allow` (minus `exclude`).
