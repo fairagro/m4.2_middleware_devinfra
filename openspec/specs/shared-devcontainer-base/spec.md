@@ -51,25 +51,38 @@ and/or `docs/quality.md`) MUST name actionlint among shared CLI tools.
 - **THEN** `actionlint` is on `PATH` at `ACTIONLINT_VERSION`
 - **AND** Dev Container docs list actionlint with the other shared lint CLIs
 
+### Requirement: Kubeconform pinned in the shared Dev Container image
+
+The shared product Dev Container image MUST install **kubeconform** at the version pinned by `KUBECONFORM_VERSION` in
+`versions.env` (Compose build-arg / Dockerfile `ARG`, same pattern as gitleaks and actionlint). The binary MUST be on
+`PATH` after rebuild so local and consumer CI scripts can use the shared runner without a separate host install.
+Documentation (`docs/devcontainer.md` and/or `docs/quality.md`) MUST name kubeconform among shared CLI tools.
+
+#### Scenario: kubeconform available after rebuild
+
+- **WHEN** a contributor rebuilds the Dev Container from this repo’s compose/Dockerfile
+- **THEN** `kubeconform` is on `PATH` at `KUBECONFORM_VERSION`
+- **AND** Dev Container docs list kubeconform with the other shared lint CLIs
+
 ### Requirement: Shared Dev Container image and versions.env
 
 The repository MUST provide `.devcontainer/Dockerfile` and repo-root `versions.env` (consumed via Compose build-args /
 `.devcontainer/.env` symlink) that define the **shared product Dev Container toolchain** used by the three m4.2 product
 repos: base image pin, Python/uv, Node/OpenSpec, GitHub CLI prerequisites, **jq**, **yq**, **xq**, hadolint,
-**actionlint**, Starship, container-structure-test, yamlfmt, kubectl, Helm, Minikube, **SOPS**, **age**, **gnupg** (gpg
-on `PATH`), **default-jre-headless** (or equivalent JRE), **graphviz**, **Trivy**, and the **Renovate** CLI, plus
-**Prettier** and **markdownlint-cli2** (global CLI pins in `versions.env`). The shared image MUST NOT require difftastic
-and MUST NOT require **Git LFS** (`git-lfs` MUST NOT be a required shared apt/package install; MUST NOT run
-`git lfs install --system` as part of the shared image build). Exact tool versions MUST live only in `versions.env` (one
-pin source), except distro packages (e.g. `jq`, `gnupg`, JRE, graphviz) installed from the base image’s package manager
-without a separate `versions.env` pin. **yq** (mikefarah), **xq** (XML query CLI), and **Trivy** MUST be pinned in
-`versions.env` and installed as release binaries on `PATH`. **Renovate** MUST be pinned in `versions.env` and installed
-as a global npm CLI (same pattern as OpenSpec / Prettier). Prettier / markdownlint-cli2 and their IDE extensions
-(`esbenp.prettier-vscode`, `davidanson.vscode-markdownlint`) are part of the **shared** toolchain: when synced into
-product repos they MUST **replace or supplement** each product’s prior markdown format/lint feature so consumers
-converge on one stack. Shipping the Renovate CLI in the image MUST be documented together with the shared Renovate
-config and per-repo workflow (`shared-renovate` capability). Shipping Trivy in the image does **not** by itself require
-shipping a reusable Trivy GitHub Actions workflow (that remains a separate CI concern). The shared
+**actionlint**, **kubeconform**, Starship, container-structure-test, yamlfmt, kubectl, Helm, Minikube, **SOPS**,
+**age**, **gnupg** (gpg on `PATH`), **default-jre-headless** (or equivalent JRE), **graphviz**, **Trivy**, and the
+**Renovate** CLI, plus **Prettier** and **markdownlint-cli2** (global CLI pins in `versions.env`). The shared image MUST
+NOT require difftastic and MUST NOT require **Git LFS** (`git-lfs` MUST NOT be a required shared apt/package install;
+MUST NOT run `git lfs install --system` as part of the shared image build). Exact tool versions MUST live only in
+`versions.env` (one pin source), except distro packages (e.g. `jq`, `gnupg`, JRE, graphviz) installed from the base
+image’s package manager without a separate `versions.env` pin. **yq** (mikefarah), **xq** (XML query CLI), and **Trivy**
+MUST be pinned in `versions.env` and installed as release binaries on `PATH`. **Renovate** MUST be pinned in
+`versions.env` and installed as a global npm CLI (same pattern as OpenSpec / Prettier). Prettier / markdownlint-cli2 and
+their IDE extensions (`esbenp.prettier-vscode`, `davidanson.vscode-markdownlint`) are part of the **shared** toolchain:
+when synced into product repos they MUST **replace or supplement** each product’s prior markdown format/lint feature so
+consumers converge on one stack. Shipping the Renovate CLI in the image MUST be documented together with the shared
+Renovate config and per-repo workflow (`shared-renovate` capability). Shipping Trivy in the image does **not** by itself
+require shipping a reusable Trivy GitHub Actions workflow (that remains a separate CI concern). The shared
 `.devcontainer/docker-compose.yml` MUST bind the repo at `..:/workspace:cached` (or equivalent consistency flag) so the
 Compose workspace path matches the shared `devcontainer.json` `workspaceFolder`.
 
