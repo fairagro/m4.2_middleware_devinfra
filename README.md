@@ -9,7 +9,7 @@ Shared source of truth for agent skills, quality tooling, Dev Container base, an
 Canonical shared files live **here**. Product repos consume them via sync PRs. Do **not** hand-edit synced paths in
 consumers — land shared changes in this repo first. The allowlist is [`docs/synced-paths.yaml`](docs/synced-paths.yaml)
 (AI review policy, Finder entries, fixer skills/commands, `scripts/ai/`, personal-token helpers,
-`openspec/principles.global.md`, and other Wave A / sync paths). Roadmap:
+`openspec/principles.global.md`, and other profile-based sync paths). Roadmap:
 [epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1).
 
 ## Agent skills

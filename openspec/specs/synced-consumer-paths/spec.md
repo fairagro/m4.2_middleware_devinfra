@@ -69,24 +69,30 @@ The `foundation` profile `allow` list MUST include the fleet agent skill trees u
 matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/BUGBOT.md`,
 `.github/copilot-instructions.md`, the skill-facing docs under `docs/` for those skills, `scripts/ai/**`,
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
-`scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). The `foundation` profile
-MUST NOT include Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`,
-`.pre-commit-config.yaml`, or python-product-only quality/CI surfaces that belong in `python-product`. Documentation
-(`docs/sync.md`) MUST state that Infra / foundation-only consumers receive this profile and that Renovate on Infra is a
-later slice.
+`scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
+`foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
+install/ignore, and the Node markdown / commitlint manifests used by those hooks). The `foundation` profile MUST NOT
+include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
+`infra-consumer`), Renovate config/workflow, `versions.env` / `.python-version`, `.devcontainer/**`, the
+**python-product** `.pre-commit-config.yaml`, or other python-product-only quality/CI surfaces. Documentation
+(`docs/sync.md`) MUST state that Infra receives foundation (+ `gitops` / Infra-only profiles as wired) and that Renovate
+on Infra is a later slice.
 
 #### Scenario: Foundation includes skills and m42-ai plumbing
 
 - **WHEN** a contributor inspects the `foundation` profile allow list
 - **THEN** agent skills (including `uv`), matching commands/prompts, skill docs, `scripts/ai/**`, and `m42-ai` / token
   helpers are listed
-- **AND** Renovate / `versions.env` / Dev Container / pre-commit blob are not listed under `foundation`
+- **AND** Renovate / `versions.env` / Dev Container / python-product `.pre-commit-config.yaml` are not listed under
+  `foundation`
 
 #### Scenario: Infra target is foundation-only
 
 - **WHEN** a contributor inspects the `infrastructure` target in `docs/synced-paths.yaml`
-- **THEN** its `profiles` list is exactly `foundation` (or equivalent foundation-only set)
-- **AND** python-product repos list both `foundation` and `python-product`
+- **THEN** its `profiles` list includes `foundation` and MUST NOT include `python-product` (typically `foundation` +
+  `gitops` + an Infra-only profile for `.pre-commit-config.infrastructure.yaml`)
+- **AND** python-product repos list `foundation`, `python-product`, and `gitops` (or equivalent union that preserves
+  today’s product hook set including helm-lint)
 
 ### Requirement: Workspace extensions recommendations are allowlisted
 
@@ -210,3 +216,17 @@ already covered by existing `.vscode/` / `.github/copilot-instructions.md` allow
 - **WHEN** a maintainer inspects `docs/synced-paths.yaml` after this change
 - **THEN** they find allow entries for the shared git-cliff config and commitlint config (and detect script)
 - **AND** products receive those paths on the next sync without hand-copy
+
+### Requirement: Pre-commit roots sync by consumer matrix
+
+`docs/synced-paths.yaml` MUST allowlist `.pre-commit-config.yaml` under a profile used by python-product targets and
+`.pre-commit-config.infrastructure.yaml` under an Infra-only profile (e.g. `infra-consumer`) that product targets MUST
+NOT select. The helm lint runner MUST be allowlisted under `gitops` (or another profile included by both product and
+Infra targets). Live docs MUST NOT use obsolete lettered “wave” adopt labels for these paths.
+
+#### Scenario: Pre-commit roots appear on the right profiles
+
+- **WHEN** a contributor inspects allow entries for pre-commit configs
+- **THEN** the product root is not on Infra’s effective allow
+- **AND** the Infra root is not on the product-union effective allow (only on the infrastructure target)
+- **AND** `scripts/run-helm-lint.sh` is available to both product and Infra targets via their profile unions

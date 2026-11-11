@@ -141,11 +141,12 @@ invent deletes from heuristics unrelated to the allowlist delta.
 
 The repository MUST document sync purpose, triggers (main push + dispatch), dry-run/skip (including infrastructure), bot
 token setup (shared with Renovate when applicable; Infra token access called out as a later slice when needed),
-**profile-based** allowlist ownership (`foundation` vs `python-product`), hard excludes, **delta orphan deletion**
-(per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and the dispatch follow-up input. Docs MUST state
-non-goals for foundation-only Infra sync: no full Wave-A allowlist, no verbatim product `.devcontainer/*`, no
-python-product pre-commit blob, no Renovate/`versions.env` in Slice 1. The root README Docs index (or CI docs) MUST link
-to this documentation.
+**profile-based** allowlist ownership (`foundation` vs `python-product` vs `gitops` when present), hard excludes,
+**delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and the dispatch follow-up
+input. Docs MUST state non-goals for foundation-only / foundation+gitops Infra sync: no full python-product allowlist,
+no verbatim product `.devcontainer/*`, no python-product pre-commit fragment or composed product hook blob, no
+Renovate/`versions.env` until that slice. Docs MUST NOT use obsolete lettered “wave” adopt labels for sync coverage. The
+root README Docs index (or CI docs) MUST link to this documentation and MUST NOT describe sync paths with those labels.
 
 #### Scenario: Contributor finds sync docs
 

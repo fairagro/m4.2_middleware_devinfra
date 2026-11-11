@@ -32,10 +32,12 @@ def test_load_repo_yaml_has_foundation_and_infra(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     assert "foundation" in config.profiles
     assert "python-product" in config.profiles
+    assert "gitops" in config.profiles
     assert "infrastructure" in config.targets
     assert config.targets["infrastructure"][0] == "fairagro/m4.2_infrastructure"
-    assert config.targets["infrastructure"][1] == ("foundation",)
-    assert config.targets["api"][1] == ("foundation", "python-product")
+    assert config.targets["infrastructure"][1] == ("foundation", "gitops", "infra-consumer")
+    assert config.targets["api"][1] == ("foundation", "python-product", "gitops")
+    assert "infra-consumer" in config.profiles
 
 
 def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
@@ -44,18 +46,31 @@ def test_foundation_excludes_renovate_and_devcontainer(sync) -> None:
     assert "scripts/ai/**" in foundation
     assert ".agents/skills/uv/**" in foundation
     assert "scripts/bin/m42-ai" in foundation
+    assert ".pre-commit-config.infrastructure.yaml" not in foundation
     assert "renovate.json" not in foundation
     assert "versions.env" not in foundation
     assert ".devcontainer/Dockerfile" not in foundation
     assert ".pre-commit-config.yaml" not in foundation
 
 
-def test_product_union_includes_wave_a_surfaces(sync) -> None:
+def test_product_union_includes_shared_surfaces(sync) -> None:
     config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
     union = set(sync.effective_allow(config, sync.product_union_profiles(config)))
     assert "renovate.json" in union
     assert ".devcontainer/Dockerfile" in union
     assert "scripts/ai/**" in union
+    assert ".pre-commit-config.yaml" in union
+    assert "scripts/run-helm-lint.sh" in union
+    assert ".pre-commit-config.infrastructure.yaml" not in union
+
+
+def test_infra_allow_omits_product_pre_commit_root(sync) -> None:
+    config = sync.load_sync_config(REPO_ROOT / "docs" / "synced-paths.yaml")
+    infra = set(sync.effective_allow(config, config.targets["infrastructure"][1]))
+    assert ".pre-commit-config.infrastructure.yaml" in infra
+    assert ".pre-commit-config.yaml" not in infra
+    assert "scripts/run-helm-lint.sh" in infra
+    assert "ruff.toml" not in infra
 
 
 def test_legacy_flat_allow_still_loads(sync) -> None:
@@ -108,7 +123,10 @@ def test_resolve_head_infra_smaller_than_product_union(sync) -> None:
     assert len(infra) < len(product)
     infra_set = {p.as_posix() for p in infra}
     product_set = {p.as_posix() for p in product}
-    assert infra_set <= product_set
+    # Infra-only pre-commit root is not on the product union.
+    assert ".pre-commit-config.infrastructure.yaml" in infra_set
+    assert ".pre-commit-config.infrastructure.yaml" not in product_set
+    assert infra_set - {".pre-commit-config.infrastructure.yaml"} <= product_set
     assert not any(p.startswith(".devcontainer/") for p in infra_set)
     assert any("scripts/ai/" in p or p.startswith("scripts/ai/") for p in infra_set)
 
