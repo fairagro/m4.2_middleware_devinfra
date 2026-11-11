@@ -10,7 +10,7 @@ tooling in `.devcontainer/Dockerfile`, generic postCreate. It syncs to **api / s
 
 **`m4.2_infrastructure`** keeps its own fat **GitOps** Dev Container (argocd / kind / chart-testing / …) until a
 dedicated **adoption** issue. Sync must **not** copy this product `.devcontainer/*` onto Infra (see
-[`sync.md`](sync.md#dev-container-overlay--pin-ownership-352)).
+[`sync.md`](sync.md#dev-container-overlay--pin-ownership-352--354)).
 
 Repo-specific container env (`MYPYPATH`, `PYLINT_SOURCE_ROOTS`, `CST_*`, …) belongs in optional product-owned
 `.devcontainer/product.env` (not synced) and/or CI/hook env inputs. Compose `env_file` applies at **container create**
