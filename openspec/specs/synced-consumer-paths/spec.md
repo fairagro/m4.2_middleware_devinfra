@@ -71,8 +71,8 @@ matching Cursor commands and GitHub Copilot prompts for those skills, `.cursor/B
 `scripts/bin/m42-ai`, and the personal-token helper scripts/binaries those skills document (`scripts/dev-tokens.sh`,
 `scripts/set-dev-tokens.sh`, and allowlisted `scripts/bin` wrappers required for that flow). After the pre-commit split,
 `foundation` MUST also allow the helper files that Infra and foundation hooks need (at least commit-path-check, gitleaks
-install/ignore, **actionlint install**, **kubeconform install and runner**, and the Node markdown / commitlint manifests
-used by those hooks). The `foundation` profile MUST also allow Renovate config/workflow (`renovate.json`,
+ignore, the **unified pinned-tool installer**, **kubeconform runner**, and the Node markdown / commitlint manifests used
+by those hooks). The `foundation` profile MUST also allow Renovate config/workflow (`renovate.json`,
 `.github/workflows/renovate.yml`), Renovate docs (`docs/renovate.md`), and the pin file `versions.env`. The `foundation`
 profile MUST NOT include `.pre-commit-config.infrastructure.yaml` (that path MUST live on an Infra-only profile such as
 `infra-consumer`), `.python-version`, `.devcontainer/**`, the **python-product** `.pre-commit-config.yaml`, or other
@@ -109,8 +109,9 @@ adoption).
 #### Scenario: Foundation allowlists kubeconform install and runner
 
 - **WHEN** a contributor inspects the `foundation` profile allow list for quality helpers
-- **THEN** `scripts/install-kubeconform.sh` and `scripts/run-kubeconform.sh` are listed
-- **AND** product helm-lint hooks are not required to call that runner
+- **THEN** `scripts/install-pinned-tool.sh` and `scripts/run-kubeconform.sh` are listed
+- **AND** per-tool `scripts/install-{gitleaks,actionlint,kubeconform,cst,git-cliff}.sh` paths are not listed
+- **AND** product helm-lint hooks are not required to call the kubeconform runner
 
 ### Requirement: Dev Container paths stay on python-product only
 
@@ -147,7 +148,7 @@ until adoption.
 #### Scenario: Foundation allowlists actionlint install helper
 
 - **WHEN** a contributor inspects the `foundation` profile allow list for quality install helpers
-- **THEN** `scripts/install-actionlint.sh` is listed (alongside gitleaks install)
+- **THEN** `scripts/install-pinned-tool.sh` is listed (covering actionlint and gitleaks tool ids)
 
 ### Requirement: Workspace extensions recommendations are allowlisted
 
