@@ -138,7 +138,9 @@ missing); and **after** those shared steps (**T-late**), run every `scripts/devc
 lexicographic order when that directory has matching entries (`nullglob`: absent or empty directory MUST skip cleanly).
 Each present drop-in MUST be a regular file and executable; a missing execute bit or non-zero exit MUST fail the whole
 postCreate (**hard-fail**). Shared postCreate MUST NOT hard-code optional product-local script names (e.g.
-`scripts/install-dev-hooks.sh`, `scripts/setup-git-lfs.sh`). The Ruff CLI MUST come from the uv project environment
+`scripts/install-dev-hooks.sh`, `scripts/setup-git-lfs.sh`). Shared postCreate MUST NOT refresh `versions.env`-pinned
+CLI tools (including gitleaks, actionlint, and kubeconform) via `scripts/install-pinned-tool.sh` or equivalent
+downloads; those binaries come from the Dev Container **image**. The Ruff CLI MUST come from the uv project environment
 after sync. This repository’s `devcontainer.json` MUST list the shared product IDE extension set (Docker / Helm / Python
 / Ruff / Pylint / Mypy / PlantUML / Prettier / markdownlint / signageos SOPS, Kubernetes Tools, and related helpers used
 across the three product repos) and postCreate MUST attempt soft-fail install of that same set via remote CLI when
@@ -193,6 +195,12 @@ available. The list MUST include at least: `charliermarsh.ruff`, `jebbs.plantuml
 
 - **WHEN** a contributor inspects `.devcontainer/devcontainer.json` extensions and the postCreate extension array
 - **THEN** both include `ms-kubernetes-tools.vscode-kubernetes-tools`
+
+#### Scenario: postCreate does not refresh pinned CLIs
+
+- **WHEN** postCreate runs in this repo’s Linux Dev Container
+- **THEN** it does not invoke `scripts/install-pinned-tool.sh` (or equivalent) to refresh gitleaks, actionlint, or
+  kubeconform
 
 ### Requirement: Shared import-public-gpg-keys script
 
