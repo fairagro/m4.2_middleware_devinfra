@@ -24,9 +24,9 @@ Infra pre-commit root via **`infra-consumer`** (`.pre-commit-config.infrastructu
 copy product **`.devcontainer/*`**, `.python-version`, or the python-product `.pre-commit-config.yaml` to Infra. Unused
 pins in `versions.env` on Infra do not install tools. Infra **keeps** its fat GitOps Dev Container (argocd / kind /
 chart-testing / …) until a dedicated **adoption** issue; sync must never overwrite it with the verbatim product Dev
-Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)). Live Infra sync stays skipped
-by default until the bot checklist in
-[`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure).
+Container blob ([#352](https://github.com/fairagro/m4.2_middleware_devinfra/issues/352)). Live Infra sync is included by
+default after Slice-2 (#388); see [`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure)
+and skip via dispatch when needed.
 
 ## Dev Container overlay + pin ownership (#352 / #354)
 
@@ -130,17 +130,18 @@ first-party packages ([`docs/quality.md`](quality.md)).
 | `harvester`      | `fairagro/m4.2_middleware_harvester`    | `foundation` + `python-product` + `gitops` |
 | `infrastructure` | `fairagro/m4.2_infrastructure`          | `foundation` + `gitops` + `infra-consumer` |
 
-Push runs **skip** `infrastructure` by default until operators complete the Slice-2 bot checklist
-([`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure)). Dispatch can dry-run or unskip
-Infra once the PAT covers that repo and the Infra secret is set.
+Push and dispatch **include** `infrastructure` by default (Slice-2 checklist done — see
+[`renovate.md`](renovate.md#slice-2-checklist-infra-renovate--sync-m42_infrastructure)). Set `skip_infrastructure=true`
+on dispatch when you need to omit Infra (ops emergency / dry-run focus).
 
 ## Triggers
 
 - **Push to `main`**: live sync when the **product-union** allowlist **file set** or allowlisted **content** changed vs
   `before`. Passes `--orphan-base` so consumer PRs can delete delta orphans **per target**. Always collects
-  `SYNC-FOLLOWUP` from the merged PR (body + comments) when a PR exists for `HEAD` (python-product repos only).
+  `SYNC-FOLLOWUP` from the merged PR (body + comments) when a PR exists for `HEAD` (python-product repos only). Includes
+  `infrastructure` (no push hard-skip).
 - **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`,
-  `skip_infrastructure` (default **true**), `followup_id` (optional stable id).
+  `skip_infrastructure` (default **false**), `followup_id` (optional stable id).
 
 Dry-run reports resolved files / would-delete orphans and targets without cloning or opening/closing PRs or creating
 issues. Skip flags omit a consumer. Actions dry-run (`workflow_dispatch` with `dry_run=true`) does **not** require

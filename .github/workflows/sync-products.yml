@@ -27,10 +27,10 @@ on:
         default: false
       skip_infrastructure:
         description: >-
-          Skip fairagro/m4.2_infrastructure (default true until DEVINFRA_BOT_TOKEN
-          PAT covers Infra — see docs/renovate.md Slice-2 checklist)
+          Skip fairagro/m4.2_infrastructure (default false; set true for ops
+          emergencies — see docs/sync.md)
         type: boolean
-        default: true
+        default: false
       followup_id:
         description: "Optional SYNC-FOLLOWUP stable id (opens product issues; empty = none)"
         type: string
@@ -130,10 +130,6 @@ jobs:
             if [[ -n "${orphan_base}" ]]; then
               args+=(--orphan-base "${orphan_base}")
             fi
-          fi
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            # Infra foundation sync is opt-in until bot token / adoption (#350 / #354).
-            args+=(--skip-infrastructure)
           fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ inputs.dry_run }}" == "true" ]]; then
