@@ -224,7 +224,7 @@ jobs:
 
       - name: Install gitleaks (GITLEAKS_VERSION)
         if: ${{ !inputs.skip }}
-        run: sudo bash scripts/install-gitleaks.sh
+        run: sudo bash scripts/install-pinned-tool.sh gitleaks
 
       - name: Secret scan with gitleaks
         if: ${{ !inputs.skip }}
@@ -236,7 +236,7 @@ jobs:
 
       - name: Install actionlint (ACTIONLINT_VERSION)
         if: ${{ !inputs.skip }}
-        run: sudo bash scripts/install-actionlint.sh
+        run: sudo bash scripts/install-pinned-tool.sh actionlint
 
       - name: Lint GitHub Actions workflows with actionlint
         if: ${{ !inputs.skip }}

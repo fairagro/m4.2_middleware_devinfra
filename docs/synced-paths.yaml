@@ -52,9 +52,7 @@ profiles:
       - scripts/bin/git
       - scripts/bin/m42-ai
       - scripts/commit-path-check.sh
-      - scripts/install-gitleaks.sh
-      - scripts/install-actionlint.sh
-      - scripts/install-kubeconform.sh
+      - scripts/install-pinned-tool.sh
       - scripts/run-kubeconform.sh
       - .gitleaksignore
       - package.json
@@ -89,8 +87,6 @@ profiles:
       - scripts/run-uv-audit.sh
       - scripts/detect-version-bump.sh
       - scripts/generate-release-changelog.sh
-      - scripts/install-git-cliff.sh
-      - scripts/install-cst.sh
       - scripts/setup-git-hooks.sh
       - scripts/update-dockerfile-pins.sh
       - scripts/prune-merged-branches.sh

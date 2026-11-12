@@ -4,7 +4,8 @@
 #   scripts/run-kubeconform.sh [kubeconform flags…] [--] [manifest files…]
 #   helm template … | scripts/run-kubeconform.sh [kubeconform flags…]
 # Does not discover charts, does not run helm template, does not ship CRD schema packs.
-# Environment: host or Dev Container. Pin: versions.env KUBECONFORM_VERSION (+ install-kubeconform.sh).
+# Environment: host or Dev Container. Pin: versions.env KUBECONFORM_VERSION
+# (+ scripts/install-pinned-tool.sh kubeconform).
 
 set -euo pipefail
 
@@ -18,7 +19,7 @@ fi
 
 if ! command -v kubeconform >/dev/null 2>&1; then
   echo "run-kubeconform: kubeconform is not on PATH." >&2
-  echo "run-kubeconform: use the Linux Dev Container (KUBECONFORM_VERSION=${pin:-unset}) or bash scripts/install-kubeconform.sh." >&2
+  echo "run-kubeconform: use the Linux Dev Container (KUBECONFORM_VERSION=${pin:-unset}) or bash scripts/install-pinned-tool.sh kubeconform." >&2
   exit 1
 fi
 

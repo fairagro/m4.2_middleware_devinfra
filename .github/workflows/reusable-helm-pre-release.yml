@@ -64,7 +64,7 @@ jobs:
 
       - name: Install git-cliff (auto bump)
         if: ${{ inputs.version_bump == 'auto' }}
-        run: sudo bash scripts/install-git-cliff.sh
+        run: sudo bash scripts/install-pinned-tool.sh git-cliff
 
       - name: Calculate next chart pre-release version
         id: calc-version

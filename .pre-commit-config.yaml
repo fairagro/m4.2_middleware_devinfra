@@ -50,14 +50,14 @@ repos:
 
       - id: gitleaks
         name: gitleaks secret scan
-        # Binary from versions.env (Dev Container / scripts/install-gitleaks.sh); no SaaS API key
+        # Binary from versions.env (Dev Container / scripts/install-pinned-tool.sh gitleaks); no SaaS API key
         entry: gitleaks protect --staged --verbose
         language: system
         pass_filenames: false
 
       - id: actionlint
         name: actionlint (GitHub Actions workflows)
-        # Binary from versions.env (Dev Container / scripts/install-actionlint.sh)
+        # Binary from versions.env (Dev Container / scripts/install-pinned-tool.sh actionlint)
         entry: actionlint
         language: system
         files: ^\.github/workflows/

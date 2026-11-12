@@ -268,7 +268,7 @@ jobs:
 
       - name: Install container-structure-test (CST_VERSION)
         if: ${{ !inputs.skip }}
-        run: sudo bash scripts/install-cst.sh
+        run: sudo bash scripts/install-pinned-tool.sh cst
 
       - name: Run Container Structure Tests
         if: ${{ !inputs.skip }}
