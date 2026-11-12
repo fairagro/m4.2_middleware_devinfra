@@ -167,7 +167,7 @@ successful no-op. Documentation MUST state that **`charts/`** is the only fleet 
 - **THEN** each discovered chart is passed to `helm lint` without `-f`
 - **AND** each chart is passed to `helm template` with chart default values (no `-f`)
 
-#### Scenario: Legacy helm and helmchart roots still work during migration
+#### Scenario: Legacy helm and helmchart roots are not discovered
 
 - **WHEN** a product checkout has only `helmchart/<chart>/Chart.yaml` or only `helm/<chart>/Chart.yaml` and no
   `charts/*/Chart.yaml`
