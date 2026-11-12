@@ -261,7 +261,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install git-cliff (changelog)
-        run: sudo bash scripts/install-git-cliff.sh
+        run: sudo bash scripts/install-pinned-tool.sh git-cliff
 
       - name: Download SBOM artifacts
         continue-on-error: true

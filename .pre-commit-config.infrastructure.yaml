@@ -49,7 +49,7 @@ repos:
 
       - id: actionlint
         name: actionlint (GitHub Actions workflows)
-        # Binary from versions.env (Dev Container / scripts/install-actionlint.sh)
+        # Binary from versions.env (Dev Container / scripts/install-pinned-tool.sh actionlint)
         entry: actionlint
         language: system
         files: ^\.github/workflows/
