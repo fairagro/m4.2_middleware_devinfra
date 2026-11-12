@@ -657,9 +657,9 @@ use that installed binary (or an equivalent install-then-run path). The install 
 missing. Shared Dev Container **postCreate** MUST NOT refresh gitleaks via that installer; contributors get the pin from
 the image after rebuild (same bar as actionlint).
 
-#### Scenario: Contributor has gitleaks after Dev Container create
+#### Scenario: Contributor has gitleaks after Dev Container rebuild
 
-- **WHEN** a contributor creates or rebuilds the Dev Container with a valid `GITLEAKS_VERSION` pin in the image
+- **WHEN** a contributor rebuilds the Dev Container with a valid `GITLEAKS_VERSION` pin
 - **THEN** `gitleaks` is on `PATH` at that pin without a postCreate `install-pinned-tool.sh gitleaks` refresh
 - **AND** the commit-stage gitleaks hook can invoke it without a SaaS API key
 
