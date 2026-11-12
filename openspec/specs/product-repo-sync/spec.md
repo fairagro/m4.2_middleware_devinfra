@@ -12,16 +12,16 @@ adopts.
 
 The repository MUST provide a GitHub Actions workflow that can open sync pull requests in
 `fairagro/m4.2_advanced_middleware_api`, `fairagro/m4.2_sql_to_arc`, and `fairagro/m4.2_middleware_harvester`, and MUST
-also support an optional fourth target `infrastructure` → `fairagro/m4.2_infrastructure`. On push to the default branch
-(`main`), when the run is not skipped, the workflow MUST attempt live sync PRs for the configured python-product targets
-(issue #13 done-when). The `infrastructure` target MAY default to skipped on push until operators enable it (bot access
-/ adoption); dry-run and dispatch MUST still be able to include it. The workflow MUST also support `workflow_dispatch`
-with inputs to dry-run (no PR) and/or skip individual targets (including `skip_infrastructure`). Sync MUST authenticate
-with a repository Actions secret holding a bot token that has Contents and Pull requests access on the target repos
-being synced (same bot identity MAY be shared with Renovate). The bot token MUST also be able to create issues on those
-target repos when follow-up creation runs. Each live sync that has allowlisted changes MUST open a **new** sync PR per
-target (SHA-scoped branch); it MUST NOT force-update a single rolling sync branch or reuse one open PR across runs (see
-also: one PR per run and supersede).
+also support a fourth target `infrastructure` → `fairagro/m4.2_infrastructure`. On push to the default branch (`main`),
+when the run is not skipped, the workflow MUST attempt live sync PRs for the configured python-product targets **and**
+the `infrastructure` target (issue #13 / #388). The workflow MUST NOT hard-skip `infrastructure` on push. The workflow
+MUST also support `workflow_dispatch` with inputs to dry-run (no PR) and/or skip individual targets (including
+`skip_infrastructure`). The `skip_infrastructure` dispatch input MUST default to **false** so live/dry-run dispatch
+includes Infra unless an operator explicitly skips it. Sync MUST authenticate with a repository Actions secret holding a
+bot token that has Contents and Pull requests access on the target repos being synced (same bot identity MAY be shared
+with Renovate). The bot token MUST also be able to create issues on those target repos when follow-up creation runs.
+Each live sync that has allowlisted changes MUST open a **new** sync PR per target (SHA-scoped branch); it MUST NOT
+force-update a single rolling sync branch or reuse one open PR across runs (see also: one PR per run and supersede).
 
 On push-triggered live sync, the workflow MUST resolve the Devinfra pull request associated with source `HEAD` (when one
 exists), collect `SYNC-FOLLOWUP: <stable-id>` trailers from that PR’s body and comments, and for each distinct id ensure
@@ -38,11 +38,18 @@ per-product ensure path without requiring a merged PR trailer.
 - **AND** the job uses the documented bot token secret (not `GITHUB_TOKEN` alone for cross-repo PRs)
 - **AND** the job does not force-push an existing rolling sync branch to update a prior open PR
 
+#### Scenario: Push includes infrastructure by default
+
+- **WHEN** a commit lands on Devinfra `main` and the allowlist gate says sync
+- **THEN** the sync job does not pass `--skip-infrastructure` solely because the event is push
+- **AND** `infrastructure` is synced unless a documented emergency override is used
+
 #### Scenario: Maintainer dry-runs or skips a consumer
 
 - **WHEN** a maintainer runs `workflow_dispatch` with dry-run enabled or a target skip flag (including infrastructure)
 - **THEN** the job reports what would sync without opening PRs (dry-run), or omits the skipped target
 - **AND** documentation describes these overrides
+- **AND** `skip_infrastructure` defaults to false so Infra is included unless the maintainer sets it true
 
 #### Scenario: Trailer opens product follow-up issues
 
@@ -143,19 +150,19 @@ invent deletes from heuristics unrelated to the allowlist delta.
 ### Requirement: Sync documentation is indexed
 
 The repository MUST document sync purpose, triggers (main push + dispatch), dry-run/skip (including infrastructure), bot
-token setup (shared with Renovate when applicable), the **operator checklist** to extend `DEVINFRA_BOT_TOKEN` access to
-`fairagro/m4.2_infrastructure` and set the Infra repository secret before enabling live Infra sync, **profile-based**
-allowlist ownership (`foundation` vs `python-product` vs `gitops` vs Infra-only profiles when present), hard excludes,
-**delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer (body and comments)**, and the dispatch follow-up
-input. Docs MUST state non-goals for Infra sync (foundation + gitops + Infra-only profiles as wired): no full
-python-product allowlist, no verbatim product `.devcontainer/*`, no python-product pre-commit root, no
-`.python-version`, and **Infra keeps owning its fat GitOps Dev Container until a dedicated adoption issue**. Docs MUST
-state that Infra **does** receive Renovate artifacts and `versions.env` via foundation, and that unused pins do not
-install tools by themselves. Docs MUST publish the Dev Container pin-ownership buckets (shared / python-product /
-Infra-owned) or point to the Dev Container docs that do. Docs MUST NOT use obsolete lettered “wave” adopt labels for
-sync coverage. The root README Docs index (or CI docs) MUST link to this documentation and MUST NOT describe sync paths
-with those labels. Docs MUST note that push sync MAY keep `skip_infrastructure` default true until operators complete
-the bot checklist.
+token setup (shared with Renovate when applicable), the **completed** Slice-2 operator checklist for Infra Renovate +
+sync (PAT + Infra secret), **profile-based** allowlist ownership (`foundation` vs `python-product` vs `gitops` vs
+Infra-only profiles when present), hard excludes, **delta orphan deletion** (per-target), **`SYNC-FOLLOWUP` trailer
+(body and comments)**, and the dispatch follow-up input. Docs MUST state non-goals for Infra sync (foundation + gitops +
+Infra-only profiles as wired): no full python-product allowlist, no verbatim product `.devcontainer/*`, no
+python-product pre-commit root, no `.python-version`, and **Infra keeps owning its fat GitOps Dev Container until a
+dedicated adoption issue**. Docs MUST state that Infra **does** receive Renovate artifacts and `versions.env` via
+foundation, and that unused pins do not install tools by themselves. Docs MUST publish the Dev Container pin-ownership
+buckets (shared / python-product / Infra-owned) or point to the Dev Container docs that do. Docs MUST NOT use obsolete
+lettered “wave” adopt labels for sync coverage. The root README Docs index (or CI docs) MUST link to this documentation
+and MUST NOT describe sync paths with those labels. Docs MUST state that push and dispatch **include** `infrastructure`
+by default after Slice-2, and MUST document how operators set `skip_infrastructure=true` on dispatch when they need to
+omit Infra.
 
 #### Scenario: Contributor finds sync docs
 
@@ -177,5 +184,9 @@ the bot checklist.
 - **THEN** they learn product `.devcontainer/*` is never synced to Infra by accident
 - **AND** they learn Infra owns its GitOps Dev Container until an adoption issue
 - **AND** they find or are pointed at pin-ownership buckets (shared vs python-product vs Infra-owned)
-- **AND** they learn Infra receives Renovate + `versions.env` via foundation after Slice 2
-- **AND** they find the bot-access checklist before enabling live Infra sync
+
+#### Scenario: Contributor learns Infra is included by default
+
+- **WHEN** a contributor reads sync / Renovate Slice-2 docs after this change
+- **THEN** they learn push and dispatch include `infrastructure` by default
+- **AND** they learn how to set `skip_infrastructure=true` on dispatch when omitting Infra
