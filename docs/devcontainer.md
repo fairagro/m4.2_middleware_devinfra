@@ -274,7 +274,11 @@ rebuilds.
 
 ## postCreateCommand
 
-Runs `scripts/devcontainer-post-create.sh` once per create:
+Runs `scripts/devcontainer-post-create.sh` once per create. It sets up the **workspace** (deps, hooks, tokens,
+extensions). **Pinned CLI binaries** used by commit-stage hooks (`actionlint`, `kubeconform`, `gitleaks`, …) are baked
+into the **image** via `.devcontainer/Dockerfile` + `versions.env`. After a sync that adds or bumps such a CLI hook/pin,
+**rebuild the Dev Container image** — restarting the container or re-running postCreate alone does **not** install those
+tools (except the legacy gitleaks soft-refresh below).
 
 - fix `/commandhistory` and `~/.config/gh` permissions
 - write `.python-version` from `versions.env` via `scripts/load-versions-env.sh`
@@ -283,6 +287,9 @@ Runs `scripts/devcontainer-post-create.sh` once per create:
   flags as reusable code-quality CI). Stale `.venv` with a broken interpreter is removed first when detected.
 - `npm ci` when `package-lock.json` exists (workspace Node deps for commitlint / local npm scripts; image globals still
   cover Prettier/markdownlint CLIs)
+- soft-refresh **gitleaks** from `versions.env` via `scripts/install-pinned-tool.sh gitleaks` (legacy exception so pin
+  bumps can land without an image rebuild; other CLI hooks are image-only — removal tracked in
+  [#384](https://github.com/fairagro/m4.2_middleware_devinfra/issues/384))
 - `pre-commit install` for `pre-commit` and `commit-msg` hook types (each on its own guard)
 - `./scripts/setup-git-hooks.sh` (dispatcher + `pre-push.d/50-quality`; does not manage Git LFS or hard-code product
   scripts)
