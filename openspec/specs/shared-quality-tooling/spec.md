@@ -47,8 +47,8 @@ NOT silently inherit that pre-push marker filter as its only suite.
 
 Python-oriented hooks MUST target the `middleware/` package root. Config MUST exclude vendor agent skill trees under
 `.agents/skills/` (at least `gh`, `docker`, `hadolint`, `uv`, and `scan-secrets` when present). Shared `check-yaml` MUST
-exclude Go-templated Helm templates under `charts/**/templates/` and, during migration, `helm/**/templates/` and
-`helmchart/**/templates/`. The fleet MUST NOT treat `helmcharts/` as a supported chart-root alias in that exclude list.
+exclude Go-templated Helm templates under `charts/**/templates/`. The fleet MUST NOT treat `helm/`, `helmchart/`, or
+`helmcharts/` as supported chart-root aliases in that exclude list.
 
 Vulture / import-linter / uv-audit / gitleaks / actionlint / quality-CLI pin rules remain in force for hooks present in
 the applicable config (confidence 100; product `.importlinter`; `--frozen` uv audit; gitleaks fail-closed without SaaS
@@ -79,7 +79,7 @@ Helm excludes or the locked hook map.
 
 #### Scenario: Helm templates are excluded from check-yaml
 
-- **WHEN** `check-yaml` runs in a product repo that has `charts/`, `helm/`, or `helmchart/*/templates/*.yaml`
+- **WHEN** `check-yaml` runs in a product repo that has `charts/*/templates/*.yaml`
 - **THEN** those template paths are excluded by the shared config
 - **AND** products do not need to patch `.pre-commit-config.yaml` solely for that exclude
 
@@ -137,33 +137,30 @@ Helm excludes or the locked hook map.
 ### Requirement: Commit-stage Helm lint with no-op when no charts
 
 Both the product and infrastructure pre-commit roots that include gitops MUST contain a **commit-stage** hook that lints
-Helm charts. The hook MUST discover chart roots as directories named `charts/<chart>/` that contain `Chart.yaml` (one
-path segment under `charts/`). During a documented migration window the hook MUST also discover deprecated roots
-`helmchart/<chart>/` and `helm/<chart>/` the same way. The fleet MUST NOT discover `helmcharts/` as a chart-root alias.
-When **no** such chart exists, the hook MUST succeed without requiring the Helm CLI. When at least one chart exists, it
-MUST invoke `helm` from `PATH` (Dev Container pin from `versions.env` `HELM_VERSION`) and run `helm lint` plus a
-default-values `helm template` smoke render (same smoke as `reusable-helm-lint.yml` when `run_template` is true) on each
-discovered chart. The shared Helm lint runner MUST accept an optional environment variable `HELM_VALUES_FILE` (path
-relative to the repository root). When unset or empty, lint and template MUST use bare-chart behaviour (no `-f`),
-matching Feature-PR reusable behaviour with empty `values_file`. When `HELM_VALUES_FILE` is non-empty, the runner MUST
-fail if that file is missing, and MUST pass `-f` that path to `helm lint` and to `helm template` for each discovered
-chart. Missing `helm` while charts exist MUST fail with guidance to use the Dev Container (or install the pinned Helm
-version). The hook MUST NOT treat `check-yaml` as Helm validation; Go-templated chart templates MUST remain excluded
-from `check-yaml`. Repos without charts (including this Devinfra tree) MUST remain a successful no-op. Documentation
-MUST state that **`charts/`** is the canonical fleet chart root and that `helm/` / `helmchart/` are deprecated pending
-consumer renames.
+Helm charts. The hook MUST discover chart roots **only** as directories named `charts/<chart>/` that contain
+`Chart.yaml` (one path segment under `charts/`). The fleet MUST NOT discover `helm/`, `helmchart/`, or `helmcharts/` as
+chart-root aliases. When **no** such chart exists, the hook MUST succeed without requiring the Helm CLI. When at least
+one chart exists, it MUST invoke `helm` from `PATH` (Dev Container pin from `versions.env` `HELM_VERSION`) and run
+`helm lint` plus a default-values `helm template` smoke render (same smoke as `reusable-helm-lint.yml` when
+`run_template` is true) on each discovered chart. The shared Helm lint runner MUST accept an optional environment
+variable `HELM_VALUES_FILE` (path relative to the repository root). When unset or empty, lint and template MUST use
+bare-chart behaviour (no `-f`), matching Feature-PR reusable behaviour with empty `values_file`. When `HELM_VALUES_FILE`
+is non-empty, the runner MUST fail if that file is missing, and MUST pass `-f` that path to `helm lint` and to
+`helm template` for each discovered chart. Missing `helm` while charts exist MUST fail with guidance to use the Dev
+Container (or install the pinned Helm). The hook MUST NOT treat `check-yaml` as Helm validation; Go-templated chart
+templates MUST remain excluded from `check-yaml`. Repos without charts (including this Devinfra tree) MUST remain a
+successful no-op. Documentation MUST state that **`charts/`** is the only fleet chart root.
 
 #### Scenario: No chart directories is a no-op
 
 - **WHEN** a contributor runs commit-stage quality (`pre-commit` / `scripts/quality-check.sh`) in a repo with no
-  `charts/*/Chart.yaml`, `helmchart/*/Chart.yaml`, or `helm/*/Chart.yaml`
+  `charts/*/Chart.yaml`
 - **THEN** the Helm lint hook exits 0
 - **AND** it does not fail solely because `helm` is missing from `PATH`
 
 #### Scenario: Existing charts are linted and template-smoked
 
-- **WHEN** a product checkout has at least one `charts/<chart>/Chart.yaml` (or, during migration,
-  `helmchart/<chart>/Chart.yaml` or `helm/<chart>/Chart.yaml`)
+- **WHEN** a product checkout has at least one `charts/<chart>/Chart.yaml`
 - **AND** `helm` is on `PATH`
 - **AND** `HELM_VALUES_FILE` is unset or empty
 - **AND** the contributor runs commit-stage quality
@@ -172,11 +169,11 @@ consumer renames.
 
 #### Scenario: Legacy helm and helmchart roots still work during migration
 
-- **WHEN** a product checkout has only `helmchart/<chart>/Chart.yaml` or only `helm/<chart>/Chart.yaml`
-- **AND** `helm` is on `PATH`
+- **WHEN** a product checkout has only `helmchart/<chart>/Chart.yaml` or only `helm/<chart>/Chart.yaml` and no
+  `charts/*/Chart.yaml`
 - **AND** the contributor runs commit-stage quality
-- **THEN** those charts are still discovered and linted
-- **AND** documentation identifies those roots as deprecated
+- **THEN** those legacy roots are not discovered
+- **AND** the Helm lint hook exits 0 without requiring `helm` on `PATH`
 
 #### Scenario: HELM_VALUES_FILE overlays lint and template
 
@@ -201,7 +198,7 @@ consumer renames.
 
 #### Scenario: check-yaml still excludes Helm templates
 
-- **WHEN** `check-yaml` runs in a product repo that has `charts/`, `helm/`, or `helmchart/*/templates/*.yaml`
+- **WHEN** `check-yaml` runs in a product repo that has `charts/*/templates/*.yaml`
 - **THEN** those template paths remain excluded
 - **AND** Helm validation is the dedicated lint hook, not `check-yaml`
 
@@ -210,18 +207,17 @@ consumer renames.
 Documentation in this repository (at least `docs/quality.md`) MUST state that commit-stage quality runs Helm lint
 locally via the shared hook, that Feature-PR CI still uses `reusable-helm-lint.yml` with a **separate** chart path
 filter, and that IDE Helm extensions are optional and are **not** the gate. Documentation MUST state that the canonical
-fleet chart root is **`charts/<chart>/`**, that `helm/` and `helmchart/` remain temporarily discovered as deprecated
-roots, and that `helmcharts/` is not a supported alias. Documentation MUST state that optional overlay parity uses
-`HELM_VALUES_FILE` locally and `values_file` on the Feature-PR reusable (same `-f` semantics when set; bare chart when
-empty). Helm lint MUST NOT be required as an IDE save/lint extension to satisfy three-environment parity (named IDE
-exception, same family as Bandit).
+fleet chart root is **`charts/<chart>/`** only, and that `helm/`, `helmchart/`, and `helmcharts/` are not supported
+aliases. Documentation MUST state that optional overlay parity uses `HELM_VALUES_FILE` locally and `values_file` on the
+Feature-PR reusable (same `-f` semantics when set; bare chart when empty). Helm lint MUST NOT be required as an IDE
+save/lint extension to satisfy three-environment parity (named IDE exception, same family as Bandit).
 
 #### Scenario: Contributor reads local vs CI Helm lint
 
 - **WHEN** a contributor opens `docs/quality.md` for Helm / chart quality
 - **THEN** they learn local commit-stage lint is the shared hook
 - **AND** they learn Feature-PR wiring remains the reusable with a separate detect-changes output
-- **AND** they learn `charts/` is the canonical chart root (with deprecated dual discovery called out)
+- **AND** they learn `charts/` is the only fleet chart root
 - **AND** they learn `HELM_VALUES_FILE` / `values_file` are the matching overlay knobs
 - **AND** they learn IDE Helm tools are not a required third gate
 
