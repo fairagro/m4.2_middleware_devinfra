@@ -42,7 +42,7 @@ per-product ensure path without requiring a merged PR trailer.
 
 - **WHEN** a commit lands on Devinfra `main` and the allowlist gate says sync
 - **THEN** the sync job does not pass `--skip-infrastructure` solely because the event is push
-- **AND** `infrastructure` is synced unless a documented emergency override is used
+- **AND** `infrastructure` is included in the sync targets for that push
 
 #### Scenario: Maintainer dry-runs or skips a consumer
 
