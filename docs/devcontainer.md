@@ -31,7 +31,7 @@ OpenSpec **specs/changes** for product work stay in the product repos
 | `.devcontainer/Dockerfile`                          | Pinned shared tooling image                                                                                                                                                                                   |
 | [`.vscode/settings.json`](../.vscode/settings.json) | Shared workspace IDE settings (also apply on host clones)                                                                                                                                                     |
 | `versions.env`                                      | Single source of truth for tool versions                                                                                                                                                                      |
-| `.devcontainer/.env`                                | Symlink → `../versions.env` (Compose build-arg substitution)                                                                                                                                                  |
+| `.devcontainer/.env`                                | **Generated** copy of `versions.env` (host `initializeCommand` → `scripts/devcontainer-prepare-env.sh`; gitignored)                                                                                           |
 
 ## Shared JSON + Compose contract (`/workspace`)
 
