@@ -421,16 +421,19 @@ values from `${localWorkspaceFolderBasename}` (e.g. bashhistory and gh-config vo
 `${workspaceFolder}`), MUST set `VIRTUAL_ENV` to `/workspace/.venv`, MUST set `DEVCONTAINER_REPO_NAME` to
 `${localWorkspaceFolderBasename}`, and MUST point `STARSHIP_CONFIG` at a synced `.devcontainer/starship.toml`. It MUST
 NOT embed product-only `remoteEnv` keys such as product `MYPYPATH` or `CST_*`, and MUST NOT require product-specific
-`postStartCommand` for the shared happy path. It MUST set `initializeCommand` to run a shared host script that removes
-any existing `.devcontainer/.env` (including a symlink) and copies repo-root `versions.env` to `.devcontainer/.env`
-before Compose parses build-args — so checkouts with `core.symlinks=false` still get pin substitution. The repository
-MUST provide that script under `scripts/` and list it on the product sync allowlist with the other Dev Container entry
-files. The repository MUST provide a matching fleet-generic `.devcontainer/docker-compose.yml` that binds
-`..:/workspace` for the devcontainer service and MUST list the shared Dev Container entry files (including
-`starship.toml` and the prepare-env script) on the product sync allowlist (MUST NOT list them under sync `exclude` as
-standing product-owned overlays). Shared Compose MAY reference an optional `.devcontainer/product.env` with soft-fail /
-`required: false` semantics so absence does not break Dev Container start. Root `.gitignore` MUST ignore the generated
-`.devcontainer/.env` (no `!.devcontainer/.env` force-add exception).
+`postStartCommand` for the shared happy path. It MUST set `initializeCommand` to an OS-resolving host entry
+(`scripts/devcontainer-prepare-env`) that removes any existing `.devcontainer/.env` (including a symlink) and copies
+repo-root `versions.env` to `.devcontainer/.env` before Compose parses build-args — so checkouts with
+`core.symlinks=false` still get pin substitution. On Linux and macOS that entry MUST run the shared bash prepare script;
+on Windows it MUST run PowerShell (`Remove-Item` then `Copy-Item`) and MUST NOT invoke `bash` (System32 `bash.exe` is
+the WSL launcher and fails when the only distro is `docker-desktop`). The repository MUST provide those host scripts
+under `scripts/` and list them on the product sync allowlist with the other Dev Container entry files. The repository
+MUST provide a matching fleet-generic `.devcontainer/docker-compose.yml` that binds `..:/workspace` for the devcontainer
+service and MUST list the shared Dev Container entry files (including `starship.toml` and the prepare-env scripts) on
+the product sync allowlist (MUST NOT list them under sync `exclude` as standing product-owned overlays). Shared Compose
+MAY reference an optional `.devcontainer/product.env` with soft-fail / `required: false` semantics so absence does not
+break Dev Container start. Root `.gitignore` MUST ignore the generated `.devcontainer/.env` (no `!.devcontainer/.env`
+force-add exception).
 
 #### Scenario: Shared JSON is path-generic
 
@@ -454,12 +457,20 @@ standing product-owned overlays). Shared Compose MAY reference an optional `.dev
 - **WHEN** a contributor opens the folder in Dev Containers (or runs the shared prepare script on the host)
 - **THEN** `.devcontainer/.env` is a regular file whose contents match repo-root `versions.env`
 - **AND** an existing symlink or stale `.devcontainer/.env` is removed before the copy
-- **AND** `devcontainer.json` `initializeCommand` invokes that shared script
+- **AND** `devcontainer.json` `initializeCommand` invokes the OS-resolving `scripts/devcontainer-prepare-env` entry
+
+#### Scenario: Windows host prepare does not invoke bash
+
+- **WHEN** a contributor opens the folder in Dev Containers on Windows where `bash` resolves to `System32\bash.exe`
+- **THEN** `initializeCommand` runs the PowerShell prepare path (via the `.cmd` companion)
+- **AND** the command does not invoke `bash`
+- **AND** missing `versions.env` still fails the command
 
 #### Scenario: Sync allowlists both entry files
 
 - **WHEN** a contributor inspects the product sync path allowlist
 - **THEN** `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml`, and `.devcontainer/starship.toml` are
   allowlisted for verbatim sync
-- **AND** the prepare-env script is allowlisted with other python-product Dev Container scripts
+- **AND** the prepare-env scripts (extensionless entry, `.sh`, `.cmd`, `.ps1`) are allowlisted with other python-product
+  Dev Container scripts
 - **AND** none of those paths are standing sync excludes
