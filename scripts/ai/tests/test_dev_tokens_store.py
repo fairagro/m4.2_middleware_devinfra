@@ -12,6 +12,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEV_TOKENS = REPO_ROOT / "scripts" / "dev-tokens.sh"
+SET_DEV_TOKENS = REPO_ROOT / "scripts" / "set-dev-tokens.sh"
+GIT_WRAPPER = REPO_ROOT / "scripts" / "bin" / "git"
 
 
 def _b64_line(var: str, value: str) -> str:
@@ -175,6 +177,99 @@ test -z "${{GITGUARDIAN_API_KEY-}}"
                     answers_left -= 1
             time.sleep(0.05)
         # Drain any remaining prompts
+        while answers_left > 0 and time.monotonic() < deadline:
+            ready, _, _ = select.select([master], [], [], 0.2)
+            if ready:
+                try:
+                    _ = os.read(master, 4096)
+                except OSError:
+                    break
+            os.write(master, b"\n")
+            answers_left -= 1
+        status = proc.wait(timeout=5)
+        err = proc.stderr.read() if proc.stderr else ""
+        assert status == 0, f"script failed ({status}): {err}"
+    finally:
+        if slave >= 0:
+            os.close(slave)
+        os.close(master)
+
+
+def test_git_wrapper_ignores_dev_tokens_force_on_tty(tmp_path: Path) -> None:
+    """scripts/bin/git must not prompt even when DEV_TOKENS_FORCE is inherited (#411)."""
+    store = tmp_path / "tokens.env"
+    store.write_text("", encoding="utf-8")
+    script = f"""
+set -euo pipefail
+export DEV_TOKENS_FILE={store!s}
+export DEV_TOKENS_FORCE=1
+unset DEV_TOKENS_PROMPT GH_TOKEN GITGUARDIAN_API_KEY || true
+"{GIT_WRAPPER!s}" --version
+"""
+    master, slave = pty.openpty()
+    try:
+        proc = subprocess.Popen(
+            ["bash", "-c", script],
+            stdin=slave,
+            stdout=slave,
+            stderr=subprocess.PIPE,
+            cwd=REPO_ROOT,
+            text=True,
+        )
+        os.close(slave)
+        slave = -1
+        status = proc.wait(timeout=5)
+        err = proc.stderr.read() if proc.stderr else ""
+        assert status == 0, f"script failed ({status}): {err}"
+        assert "GH_TOKEN" not in err
+    finally:
+        if slave >= 0:
+            os.close(slave)
+        os.close(master)
+
+
+def test_set_dev_tokens_empty_answer_clears_force(tmp_path: Path) -> None:
+    """Empty set-dev-tokens answer must leave DEV_TOKENS_FORCE unset in that shell (#411)."""
+    store = tmp_path / "tokens.env"
+    store.write_text("", encoding="utf-8")
+    script = f"""
+set -euo pipefail
+export DEV_TOKENS_FILE={store!s}
+unset DEV_TOKENS_FORCE DEV_TOKENS_PROMPT GH_TOKEN GITGUARDIAN_API_KEY || true
+# shellcheck disable=SC1091
+source {SET_DEV_TOKENS!s}
+# FORCE must not linger after a normal (empty) prompt completion.
+if [ "${{DEV_TOKENS_FORCE+x}}" = x ]; then
+  echo "DEV_TOKENS_FORCE still set after set-dev-tokens" >&2
+  exit 1
+fi
+test -z "${{GH_TOKEN-}}"
+"""
+    master, slave = pty.openpty()
+    try:
+        proc = subprocess.Popen(
+            ["bash", "-c", script],
+            stdin=slave,
+            stdout=slave,
+            stderr=subprocess.PIPE,
+            cwd=REPO_ROOT,
+            text=True,
+        )
+        os.close(slave)
+        slave = -1
+        deadline = time.monotonic() + 5.0
+        answers_left = 1
+        while proc.poll() is None and time.monotonic() < deadline:
+            ready, _, _ = select.select([master], [], [], 0.1)
+            if ready:
+                try:
+                    _ = os.read(master, 4096)
+                except OSError:
+                    break
+                if answers_left > 0:
+                    os.write(master, b"\n")
+                    answers_left -= 1
+            time.sleep(0.05)
         while answers_left > 0 and time.monotonic() < deadline:
             ready, _, _ = select.select([master], [], [], 0.2)
             if ready:
