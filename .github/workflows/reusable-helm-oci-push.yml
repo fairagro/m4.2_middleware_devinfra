@@ -1,6 +1,9 @@
 # Nested Helm OCI push to DockerHub and/or GHCR. Issue #34.
 # Chart .tgz must be available as a workflow artifact from the caller.
 #   uses: $/.github/workflows/reusable-helm-oci-push.yml
+# Push steps that consume registry secrets write status to $RUNNER_TEMP (not
+# $GITHUB_OUTPUT). Normalize steps (no secret context) promote those values to
+# job outputs so Actions does not Skip output … may contain secret (#421).
 name: Reusable Helm OCI Push
 
 permissions:
@@ -106,34 +109,42 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          HELM_OCI_OUT: ${{ runner.temp }}/helm-oci-dh.env
         run: |
           set -euo pipefail
+          write_out() {
+            {
+              echo "status=$1"
+              echo "reason=$2"
+            } > "${HELM_OCI_OUT}"
+          }
           if [[ -z "${DOCKERHUB_USER}" || -z "${DOCKERHUB_TOKEN}" ]]; then
             if [[ "${{ inputs.soft_skip_missing_dockerhub }}" == "true" ]]; then
-              echo "status=skipped" >> "$GITHUB_OUTPUT"
-              echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call" >> "$GITHUB_OUTPUT"
+              write_out skipped "DOCKERHUB_USER and/or DOCKERHUB_TOKEN secrets were not provided to this reusable workflow call"
               exit 0
             fi
-            echo "status=failure" >> "$GITHUB_OUTPUT"
-            echo "reason=DOCKERHUB_USER and/or DOCKERHUB_TOKEN missing" >> "$GITHUB_OUTPUT"
+            write_out failure "DOCKERHUB_USER and/or DOCKERHUB_TOKEN missing"
             echo "::error::DockerHub secrets missing for helm OCI push"
             exit 1
           fi
           echo "${DOCKERHUB_TOKEN}" | helm registry login -u "${DOCKERHUB_USER}" --password-stdin registry-1.docker.io
           helm push "${{ inputs.chart_package }}" "oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
-          echo "status=success" >> "$GITHUB_OUTPUT"
-          echo "reason=${{ inputs.success_reason_prefix }} to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}" >> "$GITHUB_OUTPUT"
+          write_out success "${{ inputs.success_reason_prefix }} to oci://registry-1.docker.io/${{ inputs.dockerhub_namespace }}"
 
       - name: Normalize DockerHub outcome
         id: dh
+        env:
+          HELM_OCI_OUT: ${{ runner.temp }}/helm-oci-dh.env
         run: |
           if [[ "${{ inputs.push_dockerhub }}" != "true" ]]; then
             echo "status=skipped" >> "$GITHUB_OUTPUT"
             echo "reason=push_dockerhub=false" >> "$GITHUB_OUTPUT"
-          elif [[ -n "${{ steps.push_dh.outputs.status }}" ]]; then
-            echo "status=${{ steps.push_dh.outputs.status }}" >> "$GITHUB_OUTPUT"
-            echo "reason=${{ steps.push_dh.outputs.reason }}" >> "$GITHUB_OUTPUT"
-            if [[ "${{ steps.push_dh.outputs.status }}" == "failure" && "${{ inputs.soft_fail }}" != "true" ]]; then
+          elif [[ -f "${HELM_OCI_OUT}" ]]; then
+            status="$(grep -E '^status=' "${HELM_OCI_OUT}" | head -n1 | cut -d= -f2-)"
+            reason="$(grep -E '^reason=' "${HELM_OCI_OUT}" | head -n1 | cut -d= -f2-)"
+            echo "status=${status}" >> "$GITHUB_OUTPUT"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+            if [[ "${status}" == "failure" && "${{ inputs.soft_fail }}" != "true" ]]; then
               exit 1
             fi
           elif [[ "${{ steps.push_dh.outcome }}" == "failure" ]]; then
@@ -151,31 +162,47 @@ jobs:
         id: push_ghcr
         if: ${{ inputs.push_ghcr }}
         continue-on-error: ${{ inputs.soft_fail }}
+        env:
+          HELM_OCI_OUT: ${{ runner.temp }}/helm-oci-ghcr.env
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          write_out() {
+            {
+              echo "status=$1"
+              echo "reason=$2"
+              echo "ghcr_ns=$3"
+            } > "${HELM_OCI_OUT}"
+          }
           GHCR_NS="${{ inputs.ghcr_namespace }}"
           if [[ -z "$GHCR_NS" ]]; then
             GHCR_NS="${{ github.repository_owner }}"
           fi
           GHCR_NS=$(echo "$GHCR_NS" | tr '[:upper:]' '[:lower:]')
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login \
+          echo "${GHCR_TOKEN}" | helm registry login \
             -u "${{ github.actor }}" --password-stdin ghcr.io
           helm push "${{ inputs.chart_package }}" "oci://ghcr.io/${GHCR_NS}"
-          echo "ghcr_ns=${GHCR_NS}" >> "$GITHUB_OUTPUT"
-          echo "status=success" >> "$GITHUB_OUTPUT"
-          echo "reason=${{ inputs.success_reason_prefix }} to oci://ghcr.io/${GHCR_NS}" >> "$GITHUB_OUTPUT"
+          write_out success "${{ inputs.success_reason_prefix }} to oci://ghcr.io/${GHCR_NS}" "${GHCR_NS}"
 
       - name: Normalize GHCR outcome
         id: ghcr
+        env:
+          HELM_OCI_OUT: ${{ runner.temp }}/helm-oci-ghcr.env
         run: |
           if [[ "${{ inputs.push_ghcr }}" != "true" ]]; then
             echo "status=skipped" >> "$GITHUB_OUTPUT"
             echo "reason=push_ghcr=false" >> "$GITHUB_OUTPUT"
             echo "ghcr_ns=" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ steps.push_ghcr.outcome }}" == "success" ]]; then
-            echo "status=${{ steps.push_ghcr.outputs.status }}" >> "$GITHUB_OUTPUT"
-            echo "reason=${{ steps.push_ghcr.outputs.reason }}" >> "$GITHUB_OUTPUT"
-            echo "ghcr_ns=${{ steps.push_ghcr.outputs.ghcr_ns }}" >> "$GITHUB_OUTPUT"
+          elif [[ -f "${HELM_OCI_OUT}" ]]; then
+            status="$(grep -E '^status=' "${HELM_OCI_OUT}" | head -n1 | cut -d= -f2-)"
+            reason="$(grep -E '^reason=' "${HELM_OCI_OUT}" | head -n1 | cut -d= -f2-)"
+            ghcr_ns="$(grep -E '^ghcr_ns=' "${HELM_OCI_OUT}" | head -n1 | cut -d= -f2-)"
+            echo "status=${status}" >> "$GITHUB_OUTPUT"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+            echo "ghcr_ns=${ghcr_ns}" >> "$GITHUB_OUTPUT"
+            if [[ "${status}" == "failure" && "${{ inputs.soft_fail }}" != "true" ]]; then
+              exit 1
+            fi
           elif [[ "${{ steps.push_ghcr.outcome }}" == "failure" ]]; then
             GHCR_NS="${{ inputs.ghcr_namespace }}"
             if [[ -z "$GHCR_NS" ]]; then
